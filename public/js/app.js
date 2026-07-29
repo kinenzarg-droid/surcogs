@@ -24,7 +24,7 @@ export async function renderHeader(activo) {
   const el = document.getElementById("header");
   el.innerHTML = `
     <header class="site-header">
-      <a class="logo" href="/">SURCOGS</a>
+      <a class="logo" href="/">SUR<span>COGS</span></a>
       <nav>
         <a href="/" class="${activo === "catalogo" ? "on" : ""}">Catálogo</a>
         <a href="/publicar.html" class="${activo === "publicar" ? "on" : ""}">Vender</a>
