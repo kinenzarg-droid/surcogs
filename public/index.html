@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SURCOGS — Vinilos techno, de mano en mano</title>
+<meta name="description" content="Marketplace P2P de vinilos techno. Publicá gratis, vendé con confianza. Buenos Aires.">
+<link rel="stylesheet" href="/css/style.css">
+<script src="/js/config.js"></script>
+</head>
+<body>
+<div id="header"></div>
+<div class="wrap">
+  <h1>Vinilos techno, de mano en mano</h1>
+  <p class="sub">Publicá gratis · Grading Goldmine declarado · Pago protegido por Mercado Pago</p>
+
+  <div class="filters">
+    <input id="q" type="search" placeholder="Buscar artista, título o sello…">
+    <select id="f-estado">
+      <option value="">Todos</option>
+      <option value="disponible">Disponibles</option>
+    </select>
+    <select id="f-orden">
+      <option value="new">Más nuevos</option>
+      <option value="cheap">Menor precio</option>
+      <option value="exp">Mayor precio</option>
+    </select>
+  </div>
+
+  <div id="grid" class="grid"></div>
+  <p id="empty" class="sub" style="display:none">No hay discos que coincidan. Probá otra búsqueda.</p>
+
+  <p class="footer">
+    <strong>Grading Goldmine:</strong> NM casi perfecto · VG+ uso leve · VG uso evidente, ruido leve · G ruido considerable.<br>
+    Precios en pesos argentinos · SURCOGS · Buenos Aires · <a href="https://instagram.com/surcogs">@surcogs</a>
+  </p>
+</div>
+
+<script type="module">
+import { sb, renderHeader, fmtPrecio, fotoPrincipal } from "/js/app.js";
+renderHeader("catalogo");
+
+let discos = [];
+
+async function cargar() {
+  const { data, error } = await sb.from("records")
+    .select("*").order("created_at", { ascending: false });
+  if (error) { console.error(error); return; }
+  discos = data || [];
+  pintar();
+}
+
+function pintar() {
+  const q = document.getElementById("q").value.toLowerCase().trim();
+  const estado = document.getElementById("f-estado").value;
+  const orden = document.getElementById("f-orden").value;
+
+  let out = discos.filter(d =>
+    (!estado || d.status === estado) &&
+    (!q || `${d.artist} ${d.title} ${d.label || ""}`.toLowerCase().includes(q))
+  );
+  if (orden === "cheap") out.sort((a, b) => a.price - b.price);
+  if (orden === "exp") out.sort((a, b) => b.price - a.price);
+
+  const grid = document.getElementById("grid");
+  grid.innerHTML = out.map(d => `
+    <a class="card" href="/disco.html?id=${d.id}">
+      <img src="${fotoPrincipal(d)}" alt="${d.artist} – ${d.title}" loading="lazy">
+      <div class="info">
+        <div class="t">${d.artist} – ${d.title}</div>
+        <div class="d">${[d.label, d.year, d.format].filter(Boolean).join(" · ")}</div>
+        <div class="p">${fmtPrecio(d.price)}</div>
+        <div class="badges">
+          <span class="badge">Vinilo ${d.condition_media}</span>
+          <span class="badge">Tapa ${d.condition_sleeve}</span>
+          <span class="badge ${d.status === "disponible" ? "ok" : d.status === "reservado" ? "res" : "sold"}">${d.status}</span>
+        </div>
+      </div>
+    </a>`).join("");
+  document.getElementById("empty").style.display = out.length ? "none" : "block";
+}
+
+["q", "f-estado", "f-orden"].forEach(id =>
+  document.getElementById(id).addEventListener("input", pintar));
+cargar();
+</script>
+</body>
+</html>

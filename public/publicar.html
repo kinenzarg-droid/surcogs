@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SURCOGS — Publicar disco</title>
+<link rel="stylesheet" href="/css/style.css">
+<script src="/js/config.js"></script>
+</head>
+<body>
+<div id="header"></div>
+<div class="wrap" id="main"></div>
+
+<script type="module">
+import { sb, renderHeader, getUser, getPerfil, GRADOS, toast } from "/js/app.js";
+renderHeader("publicar");
+const main = document.getElementById("main");
+
+const mpParam = new URLSearchParams(location.search).get("mp");
+if (mpParam === "ok") toast("¡Mercado Pago conectado! Ya podés publicar.");
+if (mpParam === "error") toast("No se pudo conectar Mercado Pago. Probá de nuevo.", true);
+
+async function init() {
+  const user = await getUser();
+  if (!user) { location.href = "/cuenta.html"; return; }
+  const perfil = await getPerfil(user.id);
+  if (!perfil) { location.href = "/cuenta.html"; return; }
+
+  // Requisito para vender: Mercado Pago conectado (así el comprador paga online y la comisión se descuenta sola)
+  if (!perfil.mp_connected) {
+    main.innerHTML = `
+      <h1>Un paso antes de publicar</h1>
+      <p class="sub">Conectá tu cuenta de Mercado Pago para recibir los pagos directo. Es una sola vez, tarda un minuto y no tiene costo.</p>
+      <div class="panel">
+        <strong>¿Por qué?</strong>
+        <p class="hint" style="margin:6px 0 14px">Los compradores pagan online con protección de Mercado Pago y la plata te llega a tu cuenta al instante. La comisión de SURCOGS (0% tus primeros 30 días, después 15%) se descuenta sola: nunca ponés plata de tu bolsillo.</p>
+        <button class="btn" id="btn-mp">Conectar Mercado Pago</button>
+      </div>`;
+    document.getElementById("btn-mp").onclick = async () => {
+      const { data: { session } } = await sb.auth.getSession();
+      const r = await fetch("/.netlify/functions/mp-oauth-start?next=/publicar.html", {
+        headers: { Authorization: "Bearer " + session.access_token },
+      });
+      const j = await r.json();
+      if (j.url) location.href = j.url; else toast(j.error || "Error", true);
+    };
+    return;
+  }
+
+  main.innerHTML = `
+    <h1>Publicar un disco</h1>
+    <p class="sub">Gratis. Cobrás vos, la comisión se descuenta sola al vender (0% tus primeros 30 días).</p>
+    <form class="panel" id="f">
+      <div class="row2">
+        <div><label>Artista *</label><input id="artist" required></div>
+        <div><label>Título *</label><input id="title" required></div>
+      </div>
+      <div class="row2">
+        <div><label>Sello</label><input id="label" placeholder="Purpose Maker"></div>
+        <div><label>Año</label><input id="year" type="number" min="1940" max="2030"></div>
+      </div>
+      <div class="row2">
+        <div><label>Formato</label>
+          <select id="format"><option>12"</option><option>2×12"</option><option>7"</option><option>10"</option><option>LP</option><option>2×LP</option></select>
+        </div>
+        <div><label>Precio (ARS) *</label><input id="price" type="number" min="1" required></div>
+      </div>
+      <div class="row2">
+        <div><label>Estado del vinilo *</label>
+          <select id="cm">${GRADOS.map(g => `<option ${g === "VG+" ? "selected" : ""}>${g}</option>`).join("")}</select>
+        </div>
+        <div><label>Estado de la tapa *</label>
+          <select id="cs">${GRADOS.map(g => `<option ${g === "VG+" ? "selected" : ""}>${g}</option>`).join("")}</select>
+        </div>
+      </div>
+      <p class="hint">Goldmine: NM casi perfecto · VG+ uso leve · VG uso evidente · G ruido considerable. Ante la duda, poné el grado más bajo.</p>
+      <label>Zona de entrega</label><input id="zona" value="${perfil.zona || ""}">
+      <label>Audio de referencia (link de YouTube)</label><input id="audio" placeholder="https://youtube.com/watch?v=…">
+      <label>Fotos (hasta 4 — tapa, vinilo, etiqueta)</label>
+      <input id="fotos" type="file" accept="image/*" multiple>
+      <label>Notas (opcional)</label><textarea id="desc" placeholder="Warp leve que no afecta reproducción, edición original US…"></textarea>
+      <br><button class="btn" type="submit" id="btn-pub">Publicar</button>
+    </form>`;
+
+  document.getElementById("f").onsubmit = async (e) => {
+    e.preventDefault();
+    const btn = document.getElementById("btn-pub");
+    btn.disabled = true; btn.textContent = "Publicando…";
+    try {
+      // subir fotos
+      const files = [...document.getElementById("fotos").files].slice(0, 4);
+      const photos = [];
+      for (const f of files) {
+        const path = `${user.id}/${Date.now()}-${Math.random().toString(36).slice(2)}.${f.name.split(".").pop()}`;
+        const { error } = await sb.storage.from("records").upload(path, f);
+        if (error) throw error;
+        photos.push(sb.storage.from("records").getPublicUrl(path).data.publicUrl);
+      }
+      const v = (id) => document.getElementById(id).value.trim();
+      const { error } = await sb.from("records").insert({
+        seller_id: user.id,
+        artist: v("artist"), title: v("title"),
+        label: v("label") || null,
+        year: v("year") ? Number(v("year")) : null,
+        format: v("format"), price: Number(v("price")),
+        condition_media: v("cm"), condition_sleeve: v("cs"),
+        zona: v("zona") || null, audio_url: v("audio") || null,
+        description: v("desc") || null, photos,
+      });
+      if (error) throw error;
+      toast("¡Disco publicado!");
+      setTimeout(() => location.href = "/cuenta.html", 900);
+    } catch (err) {
+      toast(err.message, true);
+      btn.disabled = false; btn.textContent = "Publicar";
+    }
+  };
+}
+init();
+</script>
+</body>
+</html>

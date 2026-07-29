@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SURCOGS — Disco</title>
+<link rel="stylesheet" href="/css/style.css">
+<script src="/js/config.js"></script>
+</head>
+<body>
+<div id="header"></div>
+<div class="wrap">
+  <div id="detalle" class="detail"></div>
+  <div id="comentarios"></div>
+</div>
+
+<script type="module">
+import { sb, renderHeader, getUser, fmtPrecio, fotoPrincipal, youtubeId, toast } from "/js/app.js";
+renderHeader("catalogo");
+
+const id = new URLSearchParams(location.search).get("id");
+const cont = document.getElementById("detalle");
+
+// aviso post-pago
+const pago = new URLSearchParams(location.search).get("pago");
+if (pago === "ok") toast("¡Pago aprobado! El vendedor va a coordinar la entrega con vos.");
+if (pago === "error") toast("El pago no se completó. Podés intentar de nuevo.", true);
+
+async function cargar() {
+  const { data: d, error } = await sb.from("records")
+    .select("*, profiles!records_seller_id_fkey(name, whatsapp, zona, mp_connected)")
+    .eq("id", id).single();
+  if (error || !d) { cont.innerHTML = "<p>No encontramos ese disco. <a href='/'>Volver al catálogo</a></p>"; return; }
+
+  const p = d.profiles;
+  const yt = youtubeId(d.audio_url);
+  const fotos = d.photos && d.photos.length ? d.photos : [fotoPrincipal(d)];
+  const disponible = d.status === "disponible";
+
+  cont.innerHTML = `
+    <div>
+      <img class="main" id="foto-main" src="${fotos[0]}" alt="${d.artist} – ${d.title}">
+      ${fotos.length > 1 ? `<div class="thumbs">${fotos.map(f => `<img src="${f}" onclick="document.getElementById('foto-main').src='${f}'">`).join("")}</div>` : ""}
+      ${yt ? `<iframe class="yt" src="https://www.youtube.com/embed/${yt}" allowfullscreen></iframe>
+        <p class="hint">El audio es referencia de la edición, no del ejemplar en venta.</p>` : ""}
+    </div>
+    <div>
+      <h1>${d.artist} – ${d.title}</h1>
+      <p class="meta">${[d.label, d.year, d.format].filter(Boolean).join(" · ")}</p>
+      <div class="badges">
+        <span class="badge">Vinilo ${d.condition_media}</span>
+        <span class="badge">Tapa ${d.condition_sleeve}</span>
+        <span class="badge ${disponible ? "ok" : d.status === "reservado" ? "res" : "sold"}">${d.status}</span>
+      </div>
+      <div class="price-big">${fmtPrecio(d.price)}</div>
+      <p class="meta">Vende <strong>${p?.name || "—"}</strong>${d.zona || p?.zona ? " · " + (d.zona || p.zona) : ""}</p>
+      ${d.description ? `<p style="margin:12px 0">${d.description}</p>` : ""}
+      <div id="compra" style="margin-top:18px"></div>
+      <p class="hint" style="margin-top:14px">Pagás por Mercado Pago. La entrega se coordina entre ustedes: punto de encuentro o envío.</p>
+    </div>`;
+
+  const box = document.getElementById("compra");
+  if (!disponible) {
+    box.innerHTML = `<button class="btn" disabled>${d.status}</button>`;
+  } else {
+    // Todos los vendedores tienen Mercado Pago conectado (requisito para publicar)
+    box.innerHTML = `
+      <label>Tu email (para el comprobante)</label>
+      <input id="buyer-email" type="email" placeholder="tu@email.com" style="max-width:320px">
+      <br><br><button class="btn" id="btn-comprar">Comprar ahora</button>`;
+    document.getElementById("btn-comprar").onclick = comprar;
+  }
+
+  cargarComentarios(d);
+
+  async function comprar() {
+    const email = document.getElementById("buyer-email").value.trim();
+    const btn = document.getElementById("btn-comprar");
+    btn.disabled = true; btn.textContent = "Generando pago…";
+    try {
+      const r = await fetch("/.netlify/functions/create-preference", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ record_id: d.id, buyer_email: email }),
+      });
+      const j = await r.json();
+      if (!r.ok) throw new Error(j.error || "Error");
+      location.href = j.init_point;
+    } catch (e) {
+      toast("No pudimos generar el pago: " + e.message, true);
+      btn.disabled = false; btn.textContent = "Comprar ahora";
+    }
+  }
+}
+
+/* ---------- COMENTARIOS (preguntas y respuestas) ---------- */
+async function cargarComentarios(d) {
+  const box = document.getElementById("comentarios");
+  const user = await getUser();
+
+  const { data: coms } = await sb.from("comments")
+    .select("*, profiles(name)")
+    .eq("record_id", d.id)
+    .order("created_at", { ascending: true });
+
+  box.innerHTML = `
+    <h2 style="font-size:20px;margin:36px 0 6px">Preguntas y comentarios</h2>
+    <p class="hint" style="margin-bottom:16px">Por seguridad, los emails, teléfonos y links se ocultan automáticamente. La compra y el pago se hacen siempre dentro de SURCOGS.</p>
+    <div id="lista-com"></div>
+    <div id="form-com" style="margin-top:16px"></div>`;
+
+  const lista = document.getElementById("lista-com");
+  lista.innerHTML = (coms || []).map(c => `
+    <div class="list-item" style="align-items:flex-start">
+      <div class="grow">
+        <strong>${c.profiles?.name || "Usuario"}</strong>
+        ${c.user_id === d.seller_id ? '<span class="badge ok" style="margin-left:6px">Vendedor</span>' : ""}
+        <span class="hint" style="margin-left:8px">${new Date(c.created_at).toLocaleDateString("es-AR")}</span>
+        <p style="margin-top:4px">${esc(c.body)}</p>
+      </div>
+      ${user && user.id === c.user_id ? `<button class="btn small ghost btn-del-com" data-id="${c.id}">Borrar</button>` : ""}
+    </div>`).join("") || "<p class='sub'>Todavía no hay preguntas. Sé el primero.</p>";
+
+  lista.querySelectorAll(".btn-del-com").forEach(b => b.onclick = async () => {
+    await sb.from("comments").delete().eq("id", b.dataset.id);
+    cargarComentarios(d);
+  });
+
+  const form = document.getElementById("form-com");
+  if (!user) {
+    form.innerHTML = `<p class="sub"><a href="/cuenta.html">Ingresá</a> para preguntar o comentar.</p>`;
+    return;
+  }
+  form.innerHTML = `
+    <textarea id="com-body" maxlength="500" placeholder="Preguntale al vendedor: estado, edición, punto de entrega…"></textarea>
+    <br><br><button class="btn small" id="btn-com">Publicar comentario</button>`;
+  document.getElementById("btn-com").onclick = async () => {
+    const body = document.getElementById("com-body").value.trim();
+    if (!body) return;
+    const { error } = await sb.from("comments").insert({ record_id: d.id, user_id: user.id, body });
+    if (error) return toast(error.message, true);
+    cargarComentarios(d);
+  };
+}
+
+const esc = (s) => s.replace(/[&<>"']/g, (c) =>
+  ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+
+cargar();
+</script>
+</body>
+</html>
