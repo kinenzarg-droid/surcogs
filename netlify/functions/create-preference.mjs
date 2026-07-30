@@ -1,9 +1,9 @@
 // Genera el checkout de Mercado Pago con split de comisión.
-// Comisión: 0% si el vendedor está en sus primeros 30 días, después 15%.
+// Comisión: 0% si el vendedor está en sus primeros 30 días, después 10%.
 const SUPA = process.env.SUPABASE_URL;
 const KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const SITE = process.env.SITE_URL;
-const COMISION = 0.15;
+const COMISION = 0.10;
 const DIAS_GRATIS = 30;
 // records.price = lo que RECIBE el vendedor. El comprador paga el precio
 // con comisiones incluidas. Debe coincidir con precioComprador() de app.js.
@@ -33,7 +33,7 @@ export default async (req) => {
   // Precio final para el comprador (neto del vendedor + comisiones)
   const precioFinal = Math.round(rec.price / (1 - TASA_MP - COMISION));
 
-  // Comisión según antigüedad del vendedor (en promo el vendedor se lleva el 15% de más)
+  // Comisión según antigüedad del vendedor (en promo el vendedor se lleva el 10% de más)
   const alta = new Date(rec.profiles.created_at).getTime();
   const enPromo = Date.now() - alta < DIAS_GRATIS * 86400000;
   const fee = enPromo ? 0 : Math.round(precioFinal * COMISION);
