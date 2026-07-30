@@ -187,7 +187,7 @@ async function renderPanel(user, perfil) {
       <img src="${fotoPrincipal(d)}">
       <div class="grow">
         <strong>${d.artist} – ${d.title}</strong><br>
-        <span class="hint">${fmtPrecio(d.price)} · ${d.status}</span>
+        <span class="hint">recibís ${fmtPrecio(d.price)} · ${d.status}</span>
       </div>
       <select data-id="${d.id}" class="sel-estado" style="width:auto">
         ${["disponible", "reservado", "vendido"].map(s => `<option ${s === d.status ? "selected" : ""}>${s}</option>`).join("")}

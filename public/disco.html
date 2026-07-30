@@ -18,7 +18,7 @@
 </div>
 
 <script type="module">
-import { sb, renderHeader, getUser, fmtPrecio, fotoPrincipal, youtubeId, toast } from "/js/app.js";
+import { sb, renderHeader, getUser, fmtPrecio, fotoPrincipal, youtubeId, toast, precioComprador } from "/js/app.js";
 renderHeader("catalogo");
 
 const id = new URLSearchParams(location.search).get("id");
@@ -55,7 +55,8 @@ async function cargar() {
         <span class="badge">Tapa ${d.condition_sleeve}</span>
         <span class="badge ${disponible ? "ok" : d.status === "reservado" ? "res" : "sold"}">${d.status}</span>
       </div>
-      <div class="price-big">${fmtPrecio(d.price)}</div>
+      <div class="price-big">${fmtPrecio(precioComprador(d.price))}</div>
+      <p class="hint">Precio final — incluye la comisión de Mercado Pago y de SURCOGS.</p>
       <p class="meta">Vende <strong>${p?.name || "—"}</strong>${d.zona || p?.zona ? " · " + (d.zona || p.zona) : ""}</p>
       ${d.description ? `<p style="margin:12px 0">${d.description}</p>` : ""}
       <div id="compra" style="margin-top:18px"></div>

@@ -47,7 +47,7 @@
 </div>
 
 <script type="module">
-import { sb, renderHeader, fmtPrecio, fotoPrincipal } from "/js/app.js";
+import { sb, renderHeader, fmtPrecio, fotoPrincipal, precioComprador } from "/js/app.js";
 renderHeader("catalogo");
 
 let discos = [];
@@ -79,7 +79,7 @@ function pintar() {
       <div class="info">
         <div class="t">${d.artist} – ${d.title}</div>
         <div class="d">${[d.label, d.year, d.format].filter(Boolean).join(" · ")}</div>
-        <div class="p">${fmtPrecio(d.price)}</div>
+        <div class="p">${fmtPrecio(precioComprador(d.price))}</div>
         <div class="badges">
           <span class="badge">Vinilo ${d.condition_media}</span>
           <span class="badge">Tapa ${d.condition_sleeve}</span>

@@ -15,7 +15,7 @@
 <div class="wrap" id="main"></div>
 
 <script type="module">
-import { sb, renderHeader, getUser, getPerfil, GRADOS, toast } from "/js/app.js";
+import { sb, renderHeader, getUser, getPerfil, GRADOS, toast, fmtPrecio, precioComprador } from "/js/app.js";
 renderHeader("publicar");
 const main = document.getElementById("main");
 
@@ -66,8 +66,9 @@ async function init() {
         <div><label>Formato</label>
           <select id="format"><option>12"</option><option>2×12"</option><option>7"</option><option>10"</option><option>LP</option><option>2×LP</option></select>
         </div>
-        <div><label>Precio (ARS) *</label><input id="price" type="number" min="1" required></div>
+        <div><label>Lo que vas a recibir (ARS) *</label><input id="price" type="number" min="1" required></div>
       </div>
+      <p class="hint" id="hint-precio">Ponés lo que querés cobrar vos. Las comisiones se suman arriba y las paga el comprador.</p>
       <div class="row2">
         <div><label>Estado del vinilo *</label>
           <select id="cm">${GRADOS.map(g => `<option ${g === "VG+" ? "selected" : ""}>${g}</option>`).join("")}</select>
@@ -84,6 +85,14 @@ async function init() {
       <label>Notas (opcional)</label><textarea id="desc" placeholder="Warp leve que no afecta reproducción, edición original US…"></textarea>
       <br><button class="btn" type="submit" id="btn-pub">Publicar</button>
     </form>`;
+
+  // Mostrar en vivo el precio final que ve el comprador
+  document.getElementById("price").addEventListener("input", (e) => {
+    const n = Number(e.target.value);
+    document.getElementById("hint-precio").textContent = n > 0
+      ? `Vos recibís ${fmtPrecio(n)} → el comprador va a ver ${fmtPrecio(precioComprador(n))} (comisiones incluidas).`
+      : "Ponés lo que querés cobrar vos. Las comisiones se suman arriba y las paga el comprador.";
+  });
 
   document.getElementById("f").onsubmit = async (e) => {
     e.preventDefault();
