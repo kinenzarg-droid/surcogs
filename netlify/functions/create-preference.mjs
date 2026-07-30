@@ -5,6 +5,9 @@ const KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const SITE = process.env.SITE_URL;
 const COMISION = 0.15;
 const DIAS_GRATIS = 30;
+// records.price = lo que RECIBE el vendedor. El comprador paga el precio
+// con comisiones incluidas. Debe coincidir con precioComprador() de app.js.
+const TASA_MP = 0.0761; // estimado Checkout Pro liberación inmediata (6,29% + IVA)
 
 export default async (req) => {
   if (req.method !== "POST") return json({ error: "Método inválido" }, 405);
@@ -27,10 +30,13 @@ export default async (req) => {
   ).then((r) => r.json());
   if (!toks.length) return json({ error: "El vendedor todavía no activó el pago online" }, 409);
 
-  // Comisión según antigüedad del vendedor
+  // Precio final para el comprador (neto del vendedor + comisiones)
+  const precioFinal = Math.round(rec.price / (1 - TASA_MP - COMISION));
+
+  // Comisión según antigüedad del vendedor (en promo el vendedor se lleva el 15% de más)
   const alta = new Date(rec.profiles.created_at).getTime();
   const enPromo = Date.now() - alta < DIAS_GRATIS * 86400000;
-  const fee = enPromo ? 0 : Math.round(rec.price * COMISION);
+  const fee = enPromo ? 0 : Math.round(precioFinal * COMISION);
 
   // Crear orden pendiente
   const ord = await fetch(`${SUPA}/rest/v1/orders`, {
@@ -40,7 +46,7 @@ export default async (req) => {
       record_id: rec.id,
       seller_id: rec.seller_id,
       buyer_email: buyer_email || null,
-      amount: rec.price,
+      amount: precioFinal,
       fee,
     }),
   }).then((r) => r.json());
@@ -58,7 +64,7 @@ export default async (req) => {
       items: [{
         title: `${rec.artist} – ${rec.title} (vinilo)`,
         quantity: 1,
-        unit_price: rec.price,
+        unit_price: precioFinal,
         currency_id: "ARS",
       }],
       marketplace_fee: fee,
