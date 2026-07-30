@@ -43,7 +43,7 @@ const loginGoogle = async () => {
 function renderAuth() {
   main.innerHTML = `
     <h1>Ingresar</h1>
-    <p class="sub">Registrate gratis. Publicar discos no cuesta nada: SURCOGS cobra 15% solo cuando vendés (0% tus primeros 30 días).</p>
+    <p class="sub">Registrate gratis. Publicar discos no cuesta nada: SURCOGS cobra 10% solo cuando vendés (0% tus primeros 30 días).</p>
     <form class="panel" id="f-auth">
       <button class="btn ghost" type="button" id="btn-google" style="width:100%">Continuar con Google</button>
       <div class="divider"><span>o con tu email</span></div>
@@ -145,8 +145,8 @@ async function renderPanel(user, perfil) {
     <h1>Hola, ${perfil.name}</h1>
     <p class="sub">${perfil.zona || ""}</p>
     ${enPromo
-      ? `<div class="notice">🎉 Estás en tu promo de lanzamiento: <strong>0% de comisión</strong> hasta el ${finPromo.toLocaleDateString("es-AR")}. Después, 15% por venta — solo si vendés.</div>`
-      : `<div class="notice">Comisión vigente: <strong>15% por venta</strong>, descontada automáticamente del pago. Nunca ponés plata de tu bolsillo.</div>`}
+      ? `<div class="notice">🎉 Estás en tu promo de lanzamiento: <strong>0% de comisión</strong> hasta el ${finPromo.toLocaleDateString("es-AR")}. Después, 10% por venta — solo si vendés.</div>`
+      : `<div class="notice">Comisión vigente: <strong>10% por venta</strong>, descontada automáticamente del pago. Nunca ponés plata de tu bolsillo.</div>`}
     <div id="mp-box"></div>
     <p style="margin:18px 0"><a class="btn" href="/publicar.html">+ Publicar un disco</a>
       <button class="btn ghost" id="btn-out" style="margin-left:8px">Salir</button></p>
