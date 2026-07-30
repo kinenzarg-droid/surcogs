@@ -8,6 +8,13 @@ export const GRADOS = ["M", "NM", "VG+", "VG", "G+", "G"];
 
 export const fmtPrecio = (n) => "$" + Number(n).toLocaleString("es-AR");
 
+// El precio guardado (records.price) es lo que RECIBE el vendedor.
+// El comprador ve el precio con comisiones incluidas.
+export const TASA_MP = 0.0761;       // estimado Checkout Pro liberación inmediata (6,29% + IVA)
+export const TASA_SURCOGS = 0.15;
+export const precioComprador = (neto) =>
+  Math.round(Number(neto) / (1 - TASA_MP - TASA_SURCOGS));
+
 export async function getUser() {
   const { data } = await sb.auth.getUser();
   return data.user || null;
