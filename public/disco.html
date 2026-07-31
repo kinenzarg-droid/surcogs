@@ -82,7 +82,7 @@ async function cargar() {
     const btn = document.getElementById("btn-comprar");
     btn.disabled = true; btn.textContent = "Generando pago…";
     try {
-      const r = await fetch("/.netlify/functions/create-preference", {
+      const r = await fetch("/api/create-preference", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ record_id: d.id, buyer_email: email }),

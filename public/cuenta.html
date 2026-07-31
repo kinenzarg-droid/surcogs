@@ -172,7 +172,7 @@ async function renderPanel(user, perfil) {
       </div>`;
     document.getElementById("btn-mp").onclick = async () => {
       const { data: { session } } = await sb.auth.getSession();
-      const r = await fetch("/.netlify/functions/mp-oauth-start", {
+      const r = await fetch("/api/mp-oauth-start", {
         headers: { Authorization: "Bearer " + session.access_token },
       });
       const j = await r.json();
