@@ -55,13 +55,11 @@ async function cargar() {
     <a class="card" href="/disco.html?id=${d.id}">
       <img src="${fotoPrincipal(d)}" alt="${d.artist} – ${d.title}" loading="lazy">
       <div class="info">
-        <div class="t">${d.artist} – ${d.title}</div>
-        <div class="d">${[d.label, d.year, d.format].filter(Boolean).join(" · ")}</div>
-        <div class="p">${fmtPrecio(precioComprador(d.price))}</div>
-        <div class="badges">
-          <span class="badge">Vinilo ${d.condition_media}</span>
-          <span class="badge">Tapa ${d.condition_sleeve}</span>
-          <span class="badge ${d.status === "disponible" ? "ok" : "res"}">${d.status}</span>
+        <div class="t">${d.title}</div>
+        <div class="a">${d.artist}</div>
+        <div class="pr-row">
+          <span class="p">${fmtPrecio(precioComprador(d.price))}</span>
+          ${d.status !== "disponible" ? `<span class="badge res">${d.status}</span>` : ""}
         </div>
       </div>
     </a>`).join("");
