@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>SURCOGS — Vinilos techno, de mano en mano</title>
-<meta name="description" content="Marketplace P2P de vinilos techno y house. Publicá gratis, vendé con confianza. Buenos Aires.">
+<title>SURCOGS — Vinilos de mano en mano</title>
+<meta name="description" content="Marketplace P2P de vinilos. Publicá gratis, vendé con confianza. Buenos Aires.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Space+Grotesk:wght@400;500;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
@@ -27,6 +27,11 @@
   <div class="sec-h" id="catalogo"><h2>Recién publicados</h2></div>
   <div class="filters">
     <input id="q" type="search" placeholder="Buscar artista, título o sello…">
+    <select id="f-genre">
+      <option value="">Todos los géneros</option>
+      <option>Techno</option><option>House</option><option>Electro</option>
+      <option>Minimal</option><option>Otro</option>
+    </select>
     <select id="f-estado">
       <option value="">Todos</option>
       <option value="disponible">Disponibles</option>
@@ -63,10 +68,12 @@ async function cargar() {
 
 function pintar() {
   const q = document.getElementById("q").value.toLowerCase().trim();
+  const genero = document.getElementById("f-genre").value;
   const estado = document.getElementById("f-estado").value;
   const orden = document.getElementById("f-orden").value;
 
   let out = discos.filter(d =>
+    (!genero || d.genre === genero) &&
     (!estado || d.status === estado) &&
     (!q || `${d.artist} ${d.title} ${d.label || ""}`.toLowerCase().includes(q))
   );
@@ -89,7 +96,7 @@ function pintar() {
   document.getElementById("empty").style.display = out.length ? "none" : "block";
 }
 
-["q", "f-estado", "f-orden"].forEach(id =>
+["q", "f-genre", "f-estado", "f-orden"].forEach(id =>
   document.getElementById(id).addEventListener("input", pintar));
 
 // Si vienen buscando desde el header (/?q=...), precargar el término

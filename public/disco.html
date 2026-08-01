@@ -29,7 +29,19 @@ const cont = document.getElementById("detalle");
 const pago = params.get("pago");
 if (pago === "ok") toast("¡Pago aprobado! El vendedor va a coordinar la entrega con vos.");
 if (pago === "error") toast("El pago no se completó. Podés intentar de nuevo.", true);
+if (pago === "ok") mostrarQueSigue();
 if (pago === "ok" && params.get("order") && params.get("rt")) mostrarCalificacion();
+
+function mostrarQueSigue() {
+  const box = document.createElement("div");
+  box.className = "notice";
+  box.innerHTML = `
+    <strong>✅ ¡Compra confirmada! ¿Y ahora?</strong><br>
+    El vendedor recibe aviso de tu compra y va a escribirte <b>al email que dejaste</b> para
+    coordinar la entrega: punto de encuentro o envío. Si en 48 horas no te contactó,
+    escribile por los comentarios de esta página.`;
+  document.querySelector(".wrap").prepend(box);
+}
 
 function mostrarCalificacion() {
   let sel = 0;
@@ -91,7 +103,7 @@ async function cargar() {
     </div>
     <div>
       <h1>${d.artist} – ${d.title}</h1>
-      <p class="meta">${[d.label, d.year, d.format].filter(Boolean).join(" · ")}</p>
+      <p class="meta">${[d.label, d.year, d.format, d.genre].filter(Boolean).join(" · ")}</p>
       <div class="badges">
         <span class="badge">Vinilo ${d.condition_media}</span>
         <span class="badge">Tapa ${d.condition_sleeve}</span>

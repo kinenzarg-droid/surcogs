@@ -79,6 +79,15 @@ async function init() {
         <div><label>Año</label><input id="year" type="number" min="1940" max="2030"></div>
       </div>
       <div class="row2">
+        <div><label>Género *</label>
+          <select id="genre">
+            <option>Techno</option><option>House</option><option>Electro</option>
+            <option>Minimal</option><option>Otro</option>
+          </select>
+        </div>
+        <div></div>
+      </div>
+      <div class="row2">
         <div><label>Formato</label>
           <select id="format"><option>12"</option><option>2×12"</option><option>7"</option><option>10"</option><option>LP</option><option>2×LP</option></select>
         </div>
@@ -115,6 +124,7 @@ async function init() {
     const set = (id, v) => { if (v !== null && v !== undefined) document.getElementById(id).value = v; };
     set("artist", editRec.artist); set("title", editRec.title); set("label", editRec.label);
     set("year", editRec.year); set("format", editRec.format); set("price", editRec.price);
+    set("genre", editRec.genre || "Techno");
     set("cm", editRec.condition_media); set("cs", editRec.condition_sleeve);
     set("zona", editRec.zona); set("audio", editRec.audio_url); set("desc", editRec.description);
   }
@@ -164,6 +174,10 @@ async function init() {
       document.getElementById("label").value = j.label || "";
       if (j.year) document.getElementById("year").value = j.year;
       document.getElementById("format").value = j.format || '12"';
+      // Mapear el estilo de Discogs a nuestros géneros
+      const generos = ["Techno", "House", "Electro", "Minimal"];
+      const match = (j.genres || []).map(g => generos.find(x => g.toLowerCase().includes(x.toLowerCase()))).find(Boolean);
+      document.getElementById("genre").value = match || "Otro";
       if (j.tracks?.length) {
         tracks = j.tracks.map(t => ({ ...t, audio_url: "" }));
         renderTracks();
@@ -206,6 +220,7 @@ async function init() {
         label: v("label") || null,
         year: v("year") ? Number(v("year")) : null,
         format: v("format"), price: Number(v("price")),
+        genre: v("genre"),
         condition_media: v("cm"), condition_sleeve: v("cs"),
         zona: v("zona") || null, audio_url: v("audio") || null,
         description: v("desc") || null,

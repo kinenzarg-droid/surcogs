@@ -139,7 +139,7 @@ async function renderPanel(user, perfil) {
 
   const [{ data: discos }, { data: ventas }] = await Promise.all([
     sb.from("records").select("*").eq("seller_id", user.id).order("created_at", { ascending: false }),
-    sb.from("orders").select("*").eq("seller_id", user.id).eq("status", "pagada"),
+    sb.from("orders").select("*, records(artist, title)").eq("seller_id", user.id).eq("status", "pagada").order("created_at", { ascending: false }),
   ]);
 
   main.innerHTML = `
@@ -156,7 +156,15 @@ async function renderPanel(user, perfil) {
     </div>
     <div class="mis-discos">
       <h2 style="font-size:18px;margin-bottom:12px">Ventas concretadas (${(ventas || []).length})</h2>
-      ${(ventas || []).map(v => `<div class="list-item"><div class="grow">${fmtPrecio(v.amount)} · comisión ${fmtPrecio(v.fee)} · ${new Date(v.created_at).toLocaleDateString("es-AR")}</div></div>`).join("") || "<p class='sub'>Todavía no tenés ventas.</p>"}
+      ${(ventas || []).map(v => `
+        <div class="list-item">
+          <div class="grow">
+            <strong>${v.records ? v.records.artist + " – " + v.records.title : "Disco"}</strong><br>
+            <span class="hint">${fmtPrecio(v.amount)} · comisión ${fmtPrecio(v.fee)} · ${new Date(v.created_at).toLocaleDateString("es-AR")}
+            ${v.buyer_email ? " · comprador: " + v.buyer_email : ""}</span>
+          </div>
+          ${v.buyer_email ? `<a class="btn small" href="mailto:${v.buyer_email}?subject=${encodeURIComponent("Tu compra en SURCOGS")}&body=${encodeURIComponent("¡Hola! Soy " + perfil.name + ", me compraste " + (v.records ? v.records.artist + " – " + v.records.title : "un disco") + " en SURCOGS. ¿Coordinamos la entrega? Puedo ofrecerte punto de encuentro o envío.")}">✉ Contactar</a>` : ""}
+        </div>`).join("") || "<p class='sub'>Todavía no tenés ventas.</p>"}
     </div>`;
 
   // Estado Mercado Pago

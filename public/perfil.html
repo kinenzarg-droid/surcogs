@@ -51,15 +51,24 @@ async function cargar() {
     </p>
     ${soyDueño ? "" : `<p class="hint" style="margin-bottom:18px">Agregá varios discos al carrito y pagalos juntos: un solo pago, una sola entrega.</p>`}
     <h2 style="margin-bottom:14px">Discografía en venta</h2>
+    <div class="filters" style="margin-bottom:16px">
+      <select id="f-genre" style="flex:none">
+        <option value="">Todos los géneros</option>
+        <option>Techno</option><option>House</option><option>Electro</option>
+        <option>Minimal</option><option>Otro</option>
+      </select>
+    </div>
     <div class="grid" id="grid"></div>
     <p id="empty" class="sub" style="display:none">Este vendedor no tiene discos publicados ahora. Volvé pronto.</p>`;
 
   pintar();
+  document.getElementById("f-genre").addEventListener("input", pintar);
   reputacionHTML(id).then(html => { document.getElementById("rep").innerHTML = html; });
 }
 
 function pintar() {
-  const visibles = discos.filter(d => d.status !== "vendido");
+  const genero = document.getElementById("f-genre").value;
+  const visibles = discos.filter(d => d.status !== "vendido" && (!genero || d.genre === genero));
   document.getElementById("grid").innerHTML = visibles.map(d => `
     <div class="card">
       <a href="/disco.html?id=${d.id}" style="display:block;position:relative">
