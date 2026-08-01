@@ -53,6 +53,16 @@ export function fotoPrincipal(rec) {
         `<svg xmlns='http://www.w3.org/2000/svg' width='400' height='400'><rect width='400' height='400' fill='#1a1a1a'/><circle cx='200' cy='200' r='140' fill='#111' stroke='#333' stroke-width='2'/><circle cx='200' cy='200' r='45' fill='#222'/><circle cx='200' cy='200' r='6' fill='#0a0a0a'/></svg>`);
 }
 
+// Reputación: promedio de estrellas de un vendedor, estilo "★★★★★ 100.0%, 79 valoraciones"
+export async function reputacionHTML(sellerId) {
+  const { data } = await sb.from("ratings").select("stars").eq("seller_id", sellerId);
+  if (!data || !data.length) return `<span class="hint">Vendedor nuevo, sin valoraciones todavía</span>`;
+  const avg = data.reduce((a, r) => a + r.stars, 0) / data.length;
+  const full = Math.round(avg);
+  return `<span class="stars">${"★".repeat(full)}${"☆".repeat(5 - full)}</span>
+    <b>${((avg / 5) * 100).toFixed(1)}%</b>, ${data.length} valoraci${data.length === 1 ? "ón" : "ones"}`;
+}
+
 export function toast(msg, err = false) {
   let t = document.createElement("div");
   t.className = "toast" + (err ? " err" : "");
