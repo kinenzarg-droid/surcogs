@@ -1,59 +1,77 @@
-// Cloudflare Pages Function — genera el checkout de Mercado Pago con split de comisión.
-// records.price = lo que RECIBE el vendedor. El comprador paga precio con comisiones.
-// Comisión: 0% primeros 30 días del vendedor, después 10%. Debe coincidir con app.js.
+// Cloudflare Pages Function — checkout de Mercado Pago con split de comisión.
+// Soporta un disco o un carrito (varios discos del MISMO vendedor).
+// records.price = lo que RECIBE el vendedor. El precio del comprador suma:
+//  - reserva para Mercado Pago (8%, con colchón: si MP cobra más, sale de SURCOGS)
+//  - comisión SURCOGS (10% desde la primera venta)
 const COMISION = 0.10;
-const DIAS_GRATIS = 30;
-const TASA_MP = 0.0761; // estimado Checkout Pro liberación inmediata (6,29% + IVA)
+const RESERVA_MP = 0.08;
 
 export async function onRequestPost({ request, env }) {
   const SUPA = env.SUPABASE_URL;
   const KEY = env.SUPABASE_SERVICE_ROLE_KEY;
   const SITE = env.SITE_URL;
 
-  const { record_id, buyer_email } = await request.json().catch(() => ({}));
-  if (!record_id) return json({ error: "Falta el disco" }, 400);
+  const body = await request.json().catch(() => ({}));
+  const ids = body.record_ids?.length ? body.record_ids : (body.record_id ? [body.record_id] : []);
+  const buyer_email = body.buyer_email || null;
+  if (!ids.length || ids.length > 20) return json({ error: "Falta el disco" }, 400);
 
-  // Disco + perfil del vendedor
+  // Traer todos los discos
   const recs = await fetch(
-    `${SUPA}/rest/v1/records?id=eq.${record_id}&select=*,profiles!records_seller_id_fkey(created_at)`,
+    `${SUPA}/rest/v1/records?id=in.(${ids.join(",")})&select=*`,
     { headers: hdrs(KEY) }
   ).then((r) => r.json());
-  const rec = recs[0];
-  if (!rec) return json({ error: "Disco no encontrado" }, 404);
-  if (rec.status !== "disponible") return json({ error: "Este disco ya no está disponible" }, 409);
+  if (!Array.isArray(recs) || recs.length !== ids.length) {
+    return json({ error: "Algún disco del carrito ya no existe" }, 404);
+  }
+  if (recs.some((r) => r.status !== "disponible")) {
+    return json({ error: "Algún disco del carrito ya no está disponible" }, 409);
+  }
+  const sellerId = recs[0].seller_id;
+  if (recs.some((r) => r.seller_id !== sellerId)) {
+    return json({ error: "El carrito solo puede tener discos de un mismo vendedor" }, 400);
+  }
 
   // Token de MP del vendedor
   const toks = await fetch(
-    `${SUPA}/rest/v1/mp_tokens?user_id=eq.${rec.seller_id}&select=access_token`,
+    `${SUPA}/rest/v1/mp_tokens?user_id=eq.${sellerId}&select=access_token`,
     { headers: hdrs(KEY) }
   ).then((r) => r.json());
   if (!toks.length) return json({ error: "El vendedor todavía no activó el pago online" }, 409);
 
-  // Precio final para el comprador (neto del vendedor + comisiones)
-  const precioFinal = Math.round(rec.price / (1 - TASA_MP - COMISION));
+  // Precios: el vendedor recibe su neto; SURCOGS absorbe si MP cuesta más que la reserva
+  const purchaseId = crypto.randomUUID();
+  let items = [], ordenes = [], feeTotal = 0;
+  for (const rec of recs) {
+    const precioFinal = Math.round(rec.price / (1 - RESERVA_MP - COMISION));
+    const fee = precioFinal - rec.price - Math.round(precioFinal * RESERVA_MP);
+    feeTotal += Math.max(fee, 0);
+    items.push({
+      title: `${rec.artist} – ${rec.title} (vinilo)`,
+      quantity: 1,
+      unit_price: precioFinal,
+      currency_id: "ARS",
+    });
+    ordenes.push({
+      record_id: rec.id,
+      seller_id: sellerId,
+      buyer_email,
+      amount: precioFinal,
+      fee: Math.max(fee, 0),
+      purchase_id: purchaseId,
+    });
+  }
 
-  // Comisión según antigüedad del vendedor (en promo el vendedor se lleva el 10% de más)
-  const alta = new Date(rec.profiles.created_at).getTime();
-  const enPromo = Date.now() - alta < DIAS_GRATIS * 86400000;
-  const fee = enPromo ? 0 : Math.round(precioFinal * COMISION);
-
-  // Crear orden pendiente
-  const ord = await fetch(`${SUPA}/rest/v1/orders`, {
+  // Crear las órdenes (una por disco, agrupadas por purchase_id)
+  const ins = await fetch(`${SUPA}/rest/v1/orders`, {
     method: "POST",
     headers: { ...hdrs(KEY), Prefer: "return=representation" },
-    body: JSON.stringify({
-      record_id: rec.id,
-      seller_id: rec.seller_id,
-      buyer_email: buyer_email || null,
-      amount: precioFinal,
-      fee,
-    }),
+    body: JSON.stringify(ordenes),
   }).then((r) => r.json());
-  const orderId = ord[0]?.id;
-  const ratingToken = ord[0]?.rating_token;
-  if (!orderId) return json({ error: "No se pudo crear la orden" }, 500);
+  if (!Array.isArray(ins) || !ins.length) return json({ error: "No se pudo crear la orden" }, 500);
+  const primera = ins[0];
 
-  // Preferencia de pago con el token DEL VENDEDOR + marketplace_fee para SURCOGS
+  // Preferencia de pago con el token DEL VENDEDOR + comisión total para SURCOGS
   const pref = await fetch("https://api.mercadopago.com/checkout/preferences", {
     method: "POST",
     headers: {
@@ -61,29 +79,25 @@ export async function onRequestPost({ request, env }) {
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      items: [{
-        title: `${rec.artist} – ${rec.title} (vinilo)`,
-        quantity: 1,
-        unit_price: precioFinal,
-        currency_id: "ARS",
-      }],
-      marketplace_fee: fee,
+      items,
+      marketplace_fee: feeTotal,
+      statement_descriptor: "SURCOGS",
       payer: buyer_email ? { email: buyer_email } : undefined,
-      external_reference: orderId,
+      external_reference: purchaseId,
       back_urls: {
-        success: `${SITE}/disco.html?id=${rec.id}&pago=ok&order=${orderId}&rt=${ratingToken}`,
-        failure: `${SITE}/disco.html?id=${rec.id}&pago=error`,
-        pending: `${SITE}/disco.html?id=${rec.id}&pago=ok&order=${orderId}&rt=${ratingToken}`,
+        success: `${SITE}/disco.html?id=${recs[0].id}&pago=ok&order=${primera.id}&rt=${primera.rating_token}`,
+        failure: `${SITE}/disco.html?id=${recs[0].id}&pago=error`,
+        pending: `${SITE}/disco.html?id=${recs[0].id}&pago=ok&order=${primera.id}&rt=${primera.rating_token}`,
       },
       auto_return: "approved",
-      notification_url: `${SITE}/api/mp-webhook?order=${orderId}`,
+      notification_url: `${SITE}/api/mp-webhook?purchase=${purchaseId}`,
     }),
   }).then((r) => r.json());
 
   if (!pref.init_point) {
     return json({ error: pref.message || "Mercado Pago rechazó la operación" }, 502);
   }
-  return json({ init_point: pref.init_point, fee });
+  return json({ init_point: pref.init_point, fee: feeTotal });
 }
 
 const hdrs = (KEY) => ({
