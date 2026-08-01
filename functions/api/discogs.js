@@ -70,6 +70,14 @@ export async function onRequestGet({ request, env }) {
     genres: [...(d.styles || []), ...(d.genres || [])].slice(0, 3),
     discogs_url: d.uri || link,
     from_master: Boolean(mMas),
+    // Tracklist tal como está en Discogs (sin encabezados de lado)
+    tracks: (d.tracklist || [])
+      .filter((t) => t.type_ !== "heading" && t.title)
+      .map((t) => ({
+        position: t.position || "",
+        title: t.title,
+        duration: t.duration || "",
+      })),
   });
 }
 
