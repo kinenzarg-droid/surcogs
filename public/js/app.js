@@ -10,10 +10,11 @@ export const fmtPrecio = (n) => "$" + Number(n).toLocaleString("es-AR");
 
 // El precio guardado (records.price) es lo que RECIBE el vendedor.
 // El comprador ve el precio con comisiones incluidas.
-export const TASA_MP = 0.0761;       // estimado Checkout Pro liberación inmediata (6,29% + IVA)
+// Debe coincidir con functions/api/create-preference.js
+export const RESERVA_MP = 0.08;      // reserva para Mercado Pago (con colchón)
 export const TASA_SURCOGS = 0.10;
 export const precioComprador = (neto) =>
-  Math.round(Number(neto) / (1 - TASA_MP - TASA_SURCOGS));
+  Math.round(Number(neto) / (1 - RESERVA_MP - TASA_SURCOGS));
 
 export async function getUser() {
   const { data } = await sb.auth.getUser();
@@ -28,6 +29,12 @@ export async function getPerfil(userId) {
 // Header compartido — estilo SoundCloud
 export async function renderHeader(activo) {
   const user = await getUser();
+  let iniciales = "";
+  if (user) {
+    const perfil = await getPerfil(user.id);
+    iniciales = (perfil?.name || "")
+      .trim().split(/\s+/).map(w => w[0]).slice(0, 2).join("").toUpperCase() || "YO";
+  }
   const el = document.getElementById("header");
   el.innerHTML = `
     <header class="hdr">
@@ -45,7 +52,7 @@ export async function renderHeader(activo) {
       <a class="btn-cta" href="/publicar.html">Vender gratis</a>
       <div class="hdr-links">
         <a href="/cuenta.html">${user ? "Mi cuenta" : "Ingresar"}</a>
-        ${user ? `<a class="avatar" href="/perfil.html?id=${user.id}" title="Mi perfil"></a>` : ""}
+        ${user ? `<a class="avatar" href="/perfil.html?id=${user.id}" title="Mi perfil">${iniciales}</a>` : ""}
       </div>
     </header>`;
 
