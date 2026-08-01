@@ -38,8 +38,9 @@ export async function renderHeader(activo) {
         <a href="${user ? "/perfil.html?id=" + user.id : "/cuenta.html"}">Mi colección</a>
       </nav>
       <div class="search">
-        <input id="hdr-q" type="search" placeholder="Buscar artista, disco o sello">
+        <input id="hdr-q" type="search" placeholder="Buscar artista, disco o sello" autocomplete="off">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.5" y2="16.5"/></svg>
+        <div class="search-dd" id="hdr-dd"></div>
       </div>
       <a class="btn-cta" href="/publicar.html">Vender gratis</a>
       <div class="hdr-links">
@@ -50,10 +51,46 @@ export async function renderHeader(activo) {
 
   // Búsqueda global: Enter → catálogo con el término
   const q = document.getElementById("hdr-q");
+  const dd = document.getElementById("hdr-dd");
   q.addEventListener("keydown", (e) => {
     if (e.key === "Enter" && q.value.trim()) {
       location.href = "/?q=" + encodeURIComponent(q.value.trim()) + "#catalogo";
     }
+    if (e.key === "Escape") dd.style.display = "none";
+  });
+
+  // Autocompletado con miniaturas mientras tipeás
+  let ddTimer;
+  q.addEventListener("input", () => {
+    clearTimeout(ddTimer);
+    const term = q.value.trim().replace(/[,()]/g, " ");
+    if (term.length < 2) { dd.style.display = "none"; return; }
+    ddTimer = setTimeout(async () => {
+      const { data } = await sb.from("records")
+        .select("id, artist, title, label, photos, status")
+        .or(`artist.ilike.%${term}%,title.ilike.%${term}%,label.ilike.%${term}%`)
+        .neq("status", "vendido")
+        .limit(6);
+      if (!data || !data.length) {
+        dd.innerHTML = `<div class="sd-empty">Sin resultados para "${term.replace(/</g, "&lt;")}"</div>`;
+        dd.style.display = "block";
+        return;
+      }
+      dd.innerHTML = data.map(r => `
+        <a href="/disco.html?id=${r.id}">
+          <img src="${fotoPrincipal(r)}" alt="">
+          <div>
+            <div class="sd-t">${r.title.replace(/</g, "&lt;")}</div>
+            <div class="sd-a">${r.artist.replace(/</g, "&lt;")}${r.label ? " · " + r.label.replace(/</g, "&lt;") : ""}</div>
+          </div>
+        </a>`).join("");
+      dd.style.display = "block";
+    }, 250);
+  });
+
+  // Cerrar el desplegable al hacer clic afuera
+  document.addEventListener("click", (e) => {
+    if (!e.target.closest(".search")) dd.style.display = "none";
   });
 }
 
