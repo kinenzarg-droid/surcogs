@@ -215,6 +215,12 @@ textarea { min-height: 84px; resize: vertical; }
 .divider::before, .divider::after { content: ""; flex: 1; height: 1px; background: var(--line); }
 
 /* ============ VARIOS ============ */
+.stars { color: #f5a623; letter-spacing: 2px; }
+.star-btn { background: transparent; border: 0; font-size: 34px; color: var(--line);
+  cursor: pointer; padding: 0 4px; transition: color .1s, transform .1s; }
+.star-btn.on { color: #f5a623; }
+.star-btn:hover { transform: scale(1.15); }
+
 .toast {
   position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
   background: var(--acc); color: #0a0a0b; font-family: var(--font-mono);
