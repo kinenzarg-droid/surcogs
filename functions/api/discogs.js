@@ -1,22 +1,36 @@
-// Cloudflare Pages Function — trae los datos de un release de Discogs
+// Cloudflare Pages Function — trae los datos de un disco de Discogs
 // para autocompletar el formulario de publicación.
-// Acepta links tipo: https://www.discogs.com/release/1234567-Artista-Titulo
+// Acepta links de release (edición concreta) y de master (usa la edición principal):
+//   https://www.discogs.com/release/1234567-Artista-Titulo
+//   https://www.discogs.com/es/master/531487-Artista-Titulo
 export async function onRequestGet({ request, env }) {
   const url = new URL(request.url);
   const link = url.searchParams.get("url") || "";
-
-  // Extraer el ID del release del link
-  const m = link.match(/release\/(\d+)/);
-  if (!m) {
-    return json({ error: "Pegá un link de un release de Discogs (tiene que contener /release/...)" }, 400);
-  }
-  const releaseId = m[1];
 
   const headers = {
     "User-Agent": "SURCOGS/1.0 +https://surcogs.com.ar",
     Accept: "application/json",
   };
   if (env.DISCOGS_TOKEN) headers.Authorization = `Discogs token=${env.DISCOGS_TOKEN}`;
+
+  // Extraer el ID: release directo, o master → su edición principal
+  let releaseId = null;
+  const mRel = link.match(/release\/(\d+)/);
+  const mMas = link.match(/master\/(\d+)/);
+
+  if (mRel) {
+    releaseId = mRel[1];
+  } else if (mMas) {
+    const rm = await fetch(`https://api.discogs.com/masters/${mMas[1]}`, { headers });
+    if (rm.status === 404) return json({ error: "No encontramos ese disco en Discogs" }, 404);
+    if (rm.status === 429) return json({ error: "Discogs está limitando las consultas. Esperá un minuto y probá de nuevo." }, 429);
+    if (!rm.ok) return json({ error: "Discogs no respondió" }, 502);
+    const master = await rm.json();
+    releaseId = master.main_release;
+    if (!releaseId) return json({ error: "Ese master no tiene una edición principal" }, 404);
+  } else {
+    return json({ error: "Pegá un link de Discogs de un disco (con /release/ o /master/ en la dirección)" }, 400);
+  }
 
   const r = await fetch(`https://api.discogs.com/releases/${releaseId}`, { headers });
   if (r.status === 404) return json({ error: "No encontramos ese release en Discogs" }, 404);
@@ -55,6 +69,7 @@ export async function onRequestGet({ request, env }) {
     country: d.country || null,
     genres: [...(d.styles || []), ...(d.genres || [])].slice(0, 3),
     discogs_url: d.uri || link,
+    from_master: Boolean(mMas),
   });
 }
 
