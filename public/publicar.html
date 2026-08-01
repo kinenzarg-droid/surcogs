@@ -54,6 +54,13 @@ async function init() {
     <h1>Publicar un disco</h1>
     <p class="sub">Gratis. Cobrás vos, la comisión se descuenta sola al vender (0% tus primeros 30 días).</p>
     <form class="panel" id="f">
+      <label>¿Está en Discogs? Pegá el link y completamos todo</label>
+      <div style="display:flex;gap:8px">
+        <input id="dg-url" placeholder="https://www.discogs.com/release/…" style="flex:1">
+        <button class="btn small" type="button" id="btn-dg">Traer datos</button>
+      </div>
+      <p class="hint" id="dg-hint">Autocompleta artista, título, sello, año y formato. Las fotos siempre son de TU ejemplar.</p>
+      <div class="divider"><span>datos del disco</span></div>
       <div class="row2">
         <div><label>Artista *</label><input id="artist" required></div>
         <div><label>Título *</label><input id="title" required></div>
@@ -85,6 +92,30 @@ async function init() {
       <label>Notas (opcional)</label><textarea id="desc" placeholder="Warp leve que no afecta reproducción, edición original US…"></textarea>
       <br><button class="btn" type="submit" id="btn-pub">Publicar</button>
     </form>`;
+
+  // Autocompletar desde Discogs
+  document.getElementById("btn-dg").onclick = async () => {
+    const btn = document.getElementById("btn-dg");
+    const hint = document.getElementById("dg-hint");
+    const link = document.getElementById("dg-url").value.trim();
+    if (!link) return toast("Pegá primero el link de Discogs", true);
+    btn.disabled = true; btn.textContent = "Buscando…";
+    try {
+      const r = await fetch("/api/discogs?url=" + encodeURIComponent(link));
+      const j = await r.json();
+      if (!r.ok) throw new Error(j.error || "Error");
+      document.getElementById("artist").value = j.artist || "";
+      document.getElementById("title").value = j.title || "";
+      document.getElementById("label").value = j.label || "";
+      if (j.year) document.getElementById("year").value = j.year;
+      document.getElementById("format").value = j.format || '12"';
+      hint.textContent = `✓ Datos traídos de Discogs${j.genres?.length ? " · " + j.genres.join(", ") : ""}. Revisalos, completá estado, precio y TUS fotos.`;
+      toast("¡Datos completados desde Discogs!");
+    } catch (e) {
+      toast(e.message, true);
+    }
+    btn.disabled = false; btn.textContent = "Traer datos";
+  };
 
   // Mostrar en vivo el precio final que ve el comprador
   document.getElementById("price").addEventListener("input", (e) => {
