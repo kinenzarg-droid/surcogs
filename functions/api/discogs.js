@@ -11,7 +11,21 @@ export async function onRequestGet({ request, env }) {
     "User-Agent": "SURCOGS/1.0 +https://surcogs.com.ar",
     Accept: "application/json",
   };
-  if (env.DISCOGS_TOKEN) headers.Authorization = `Discogs token=${env.DISCOGS_TOKEN}`;
+  const conToken = Boolean(env.DISCOGS_TOKEN);
+  if (conToken) headers.Authorization = `Discogs token=${env.DISCOGS_TOKEN}`;
+
+  // Discogs a veces devuelve 429 aislados: reintentar una vez tras una pausa
+  const fetchDg = async (u) => {
+    let r = await fetch(u, { headers });
+    if (r.status === 429) {
+      await new Promise((res) => setTimeout(res, 1500));
+      r = await fetch(u, { headers });
+    }
+    return r;
+  };
+  const err429 = () => json({
+    error: `Discogs está limitando las consultas${conToken ? "" : " (token no configurado)"}. Esperá un minuto y probá de nuevo.`,
+  }, 429);
 
   // Extraer el ID: release directo, o master → su edición principal
   let releaseId = null;
@@ -21,9 +35,9 @@ export async function onRequestGet({ request, env }) {
   if (mRel) {
     releaseId = mRel[1];
   } else if (mMas) {
-    const rm = await fetch(`https://api.discogs.com/masters/${mMas[1]}`, { headers });
+    const rm = await fetchDg(`https://api.discogs.com/masters/${mMas[1]}`);
     if (rm.status === 404) return json({ error: "No encontramos ese disco en Discogs" }, 404);
-    if (rm.status === 429) return json({ error: "Discogs está limitando las consultas. Esperá un minuto y probá de nuevo." }, 429);
+    if (rm.status === 429) return err429();
     if (!rm.ok) return json({ error: "Discogs no respondió" }, 502);
     const master = await rm.json();
     releaseId = master.main_release;
@@ -32,9 +46,9 @@ export async function onRequestGet({ request, env }) {
     return json({ error: "Pegá un link de Discogs de un disco (con /release/ o /master/ en la dirección)" }, 400);
   }
 
-  const r = await fetch(`https://api.discogs.com/releases/${releaseId}`, { headers });
+  const r = await fetchDg(`https://api.discogs.com/releases/${releaseId}`);
   if (r.status === 404) return json({ error: "No encontramos ese release en Discogs" }, 404);
-  if (r.status === 429) return json({ error: "Discogs está limitando las consultas. Esperá un minuto y probá de nuevo." }, 429);
+  if (r.status === 429) return err429();
   if (!r.ok) return json({ error: "Discogs no respondió" }, 502);
   const d = await r.json();
 
