@@ -25,19 +25,36 @@ export async function getPerfil(userId) {
   return data;
 }
 
-// Header compartido
+// Header compartido — estilo SoundCloud
 export async function renderHeader(activo) {
   const user = await getUser();
   const el = document.getElementById("header");
   el.innerHTML = `
-    <header class="site-header">
-      <a class="logo" href="/">SUR<span>COGS</span></a>
+    <header class="hdr">
+      <a class="logo" href="/"><span class="vinilo"></span>SUR<span class="lg-acc">COGS</span></a>
       <nav>
-        <a href="/" class="${activo === "catalogo" ? "on" : ""}">Catálogo</a>
-        <a href="/publicar.html" class="${activo === "publicar" ? "on" : ""}">Vender</a>
-        <a href="/cuenta.html" class="${activo === "cuenta" ? "on" : ""}">${user ? "Mi cuenta" : "Ingresar"}</a>
+        <a href="/" class="${activo === "catalogo" ? "on" : ""}">Inicio</a>
+        <a href="/#catalogo">Catálogo</a>
+        <a href="${user ? "/perfil.html?id=" + user.id : "/cuenta.html"}">Mi colección</a>
       </nav>
+      <div class="search">
+        <input id="hdr-q" type="search" placeholder="Buscar artista, disco o sello">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.5" y2="16.5"/></svg>
+      </div>
+      <a class="btn-cta" href="/publicar.html">Vender gratis</a>
+      <div class="hdr-links">
+        <a href="/cuenta.html">${user ? "Mi cuenta" : "Ingresar"}</a>
+        ${user ? `<a class="avatar" href="/perfil.html?id=${user.id}" title="Mi perfil"></a>` : ""}
+      </div>
     </header>`;
+
+  // Búsqueda global: Enter → catálogo con el término
+  const q = document.getElementById("hdr-q");
+  q.addEventListener("keydown", (e) => {
+    if (e.key === "Enter" && q.value.trim()) {
+      location.href = "/?q=" + encodeURIComponent(q.value.trim()) + "#catalogo";
+    }
+  });
 }
 
 export function youtubeId(url) {
