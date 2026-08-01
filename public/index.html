@@ -13,17 +13,17 @@
 </head>
 <body>
 <div id="header"></div>
-<div class="marquee"><div class="marquee-inner">
-  PUBLICÁ GRATIS · 0% COMISIÓN TUS PRIMEROS 30 DÍAS · PAGO PROTEGIDO POR MERCADO PAGO · GRADING GOLDMINE DECLARADO · BUENOS AIRES ·&nbsp;
-  PUBLICÁ GRATIS · 0% COMISIÓN TUS PRIMEROS 30 DÍAS · PAGO PROTEGIDO POR MERCADO PAGO · GRADING GOLDMINE DECLARADO · BUENOS AIRES ·&nbsp;
-</div></div>
 <div class="wrap">
   <section class="hero">
-    <p class="kicker">/// Marketplace P2P de vinilo techno &amp; house</p>
-    <h1>De mano<br>en mano.</h1>
-    <p class="sub">Compra y venta de vinilos techno y house entre coleccionistas. Estado real declarado, audio de referencia y pago online protegido.</p>
+    <h1>Vinilos de mano en mano</h1>
+    <p class="sub">Pago protegido por Mercado Pago</p>
+    <div class="cta-row">
+      <a class="btn" href="#catalogo">Explorar discos</a>
+      <a class="btn ghost" href="/publicar.html">Vender los míos — 0% comisión 30 días</a>
+    </div>
   </section>
 
+  <div class="sec-h" id="catalogo"><h2>Recién publicados</h2></div>
   <div class="filters">
     <input id="q" type="search" placeholder="Buscar artista, título o sello…">
     <select id="f-estado">
@@ -92,6 +92,11 @@ function pintar() {
 
 ["q", "f-estado", "f-orden"].forEach(id =>
   document.getElementById(id).addEventListener("input", pintar));
+
+// Si vienen buscando desde el header (/?q=...), precargar el término
+const qParam = new URLSearchParams(location.search).get("q");
+if (qParam) document.getElementById("q").value = qParam;
+
 cargar();
 </script>
 </body>

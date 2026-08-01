@@ -86,12 +86,44 @@ async function init() {
       </div>
       <p class="hint">Goldmine: NM casi perfecto · VG+ uso leve · VG uso evidente · G ruido considerable. Ante la duda, poné el grado más bajo.</p>
       <label>Zona de entrega</label><input id="zona" value="${perfil.zona || ""}">
-      <label>Audio de referencia (link de YouTube)</label><input id="audio" placeholder="https://youtube.com/watch?v=…">
+      <label>Temas (se completan solos desde Discogs, o cargalos a mano)</label>
+      <div id="tracks-box"></div>
+      <button type="button" class="btn small ghost" id="btn-add-track">+ Agregar tema</button>
+      <label>Audio de referencia general (opcional, link de YouTube)</label><input id="audio" placeholder="https://youtube.com/watch?v=…">
       <label>Fotos (hasta 4 — tapa, vinilo, etiqueta)</label>
       <input id="fotos" type="file" accept="image/*" multiple>
       <label>Notas (opcional)</label><textarea id="desc" placeholder="Warp leve que no afecta reproducción, edición original US…"></textarea>
       <br><button class="btn" type="submit" id="btn-pub">Publicar</button>
     </form>`;
+
+  // ---- Tracklist con audio por tema ----
+  let tracks = [];
+  function renderTracks() {
+    const box = document.getElementById("tracks-box");
+    box.innerHTML = tracks.map((t, i) => `
+      <div style="border:1px solid var(--line);border-radius:2px;padding:10px;margin-bottom:8px">
+        <div style="display:flex;gap:8px">
+          <input data-i="${i}" data-k="position" value="${esc(t.position)}" placeholder="A1" style="width:64px">
+          <input data-i="${i}" data-k="title" value="${esc(t.title)}" placeholder="Título del tema" style="flex:1">
+          <button type="button" class="btn small ghost btn-del-track" data-i="${i}">✕</button>
+        </div>
+        <input data-i="${i}" data-k="audio_url" value="${esc(t.audio_url || "")}"
+          placeholder="Link de audio del tema (YouTube, Bandcamp o SoundCloud)" style="margin-top:6px">
+      </div>`).join("") || `<p class="hint">Sin temas cargados. Traelos desde Discogs o agregalos a mano.</p>`;
+
+    box.querySelectorAll("input[data-i]").forEach(inp => inp.oninput = () => {
+      tracks[Number(inp.dataset.i)][inp.dataset.k] = inp.value;
+    });
+    box.querySelectorAll(".btn-del-track").forEach(b => b.onclick = () => {
+      tracks.splice(Number(b.dataset.i), 1); renderTracks();
+    });
+  }
+  const esc = (s) => String(s ?? "").replace(/"/g, "&quot;").replace(/</g, "&lt;");
+  document.getElementById("btn-add-track").onclick = () => {
+    tracks.push({ position: "", title: "", duration: "", audio_url: "" });
+    renderTracks();
+  };
+  renderTracks();
 
   // Autocompletar desde Discogs
   document.getElementById("btn-dg").onclick = async () => {
@@ -109,7 +141,13 @@ async function init() {
       document.getElementById("label").value = j.label || "";
       if (j.year) document.getElementById("year").value = j.year;
       document.getElementById("format").value = j.format || '12"';
-      hint.textContent = `✓ Datos traídos de Discogs${j.genres?.length ? " · " + j.genres.join(", ") : ""}. Revisalos, completá estado, precio y TUS fotos.`;
+      if (j.tracks?.length) {
+        tracks = j.tracks.map(t => ({ ...t, audio_url: "" }));
+        renderTracks();
+      }
+      hint.textContent = j.from_master
+        ? `✓ Trajimos la EDICIÓN PRINCIPAL de ese disco${j.year ? " (" + j.year + ")" : ""} — verificá que sea la tuya (sello, año, país) y corregí lo que haga falta.`
+        : `✓ Datos traídos de Discogs${j.genres?.length ? " · " + j.genres.join(", ") : ""}. Revisalos, completá estado, precio y TUS fotos.`;
       toast("¡Datos completados desde Discogs!");
     } catch (e) {
       toast(e.message, true);
@@ -149,6 +187,12 @@ async function init() {
         condition_media: v("cm"), condition_sleeve: v("cs"),
         zona: v("zona") || null, audio_url: v("audio") || null,
         description: v("desc") || null, photos,
+        tracks: tracks.filter(t => (t.title || "").trim()).map(t => ({
+          position: (t.position || "").trim(),
+          title: t.title.trim(),
+          duration: (t.duration || "").trim(),
+          audio_url: (t.audio_url || "").trim() || null,
+        })),
       });
       if (error) throw error;
       toast("¡Disco publicado!");

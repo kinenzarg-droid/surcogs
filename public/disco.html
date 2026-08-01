@@ -102,6 +102,20 @@ async function cargar() {
       <p class="meta">Vende <a href="/perfil.html?id=${d.seller_id}"><strong>${p?.name || "—"}</strong></a>${d.zona || p?.zona ? " · " + (d.zona || p.zona) : ""} · <a href="/perfil.html?id=${d.seller_id}">ver su discografía →</a></p>
       <p class="meta" id="rep-vendedor"></p>
       ${d.description ? `<p style="margin:12px 0">${d.description}</p>` : ""}
+      ${d.tracks && d.tracks.length ? `
+        <div style="margin-top:16px">
+          <p class="meta" style="margin-bottom:6px">TRACKLIST</p>
+          ${d.tracks.map((t, i) => `
+            <div style="border-top:1px solid var(--line);padding:7px 0">
+              <div style="display:flex;align-items:center;gap:10px">
+                <span class="meta" style="min-width:34px">${esc(t.position || "")}</span>
+                <span style="flex:1;font-size:14px">${esc(t.title)}</span>
+                <span class="meta">${esc(t.duration || "")}</span>
+                ${t.audio_url ? `<button class="btn small ghost btn-play" data-i="${i}">▶</button>` : ""}
+              </div>
+              <div id="player-${i}"></div>
+            </div>`).join("")}
+        </div>` : ""}
       <div id="compra" style="margin-top:18px"></div>
       <p class="hint" style="margin-top:14px">Pagás por Mercado Pago. La entrega se coordina entre ustedes: punto de encuentro o envío.</p>
     </div>`;
@@ -117,6 +131,27 @@ async function cargar() {
       <br><br><button class="btn" id="btn-comprar">Comprar ahora</button>`;
     document.getElementById("btn-comprar").onclick = comprar;
   }
+
+  // Players por tema: YouTube y SoundCloud embebidos; Bandcamp u otros abren aparte
+  cont.querySelectorAll(".btn-play").forEach(b => b.onclick = () => {
+    const i = Number(b.dataset.i);
+    const url = d.tracks[i].audio_url;
+    const holder = document.getElementById("player-" + i);
+    if (holder.innerHTML) { holder.innerHTML = ""; b.textContent = "▶"; return; }
+    // cerrar otros players
+    cont.querySelectorAll("[id^='player-']").forEach(h => h.innerHTML = "");
+    cont.querySelectorAll(".btn-play").forEach(x => x.textContent = "▶");
+    const yt = youtubeId(url);
+    if (yt) {
+      holder.innerHTML = `<iframe style="width:100%;height:90px;border:1px solid var(--line);border-radius:2px;margin-top:6px" src="https://www.youtube.com/embed/${yt}?autoplay=1" allow="autoplay"></iframe>`;
+      b.textContent = "❚❚";
+    } else if (/soundcloud\.com/.test(url)) {
+      holder.innerHTML = `<iframe style="width:100%;height:100px;border:0;margin-top:6px" allow="autoplay" src="https://w.soundcloud.com/player/?url=${encodeURIComponent(url)}&auto_play=true&visual=false"></iframe>`;
+      b.textContent = "❚❚";
+    } else {
+      window.open(url, "_blank");
+    }
+  });
 
   cargarComentarios(d);
   reputacionHTML(d.seller_id).then(html => {
