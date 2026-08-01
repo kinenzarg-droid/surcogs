@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SURCOGS — Métricas</title>
+<meta name="robots" content="noindex">
+<link rel="stylesheet" href="/css/style.css">
+<script src="/js/config.js"></script>
+<style>
+.m-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 16px; margin-top: 20px; }
+.m-card { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 18px; }
+.m-card.norte { border-color: var(--acc); grid-column: 1 / -1;
+  background: linear-gradient(135deg, rgba(255,85,0,.12), var(--panel)); }
+.m-num { font-size: 38px; font-weight: 800; letter-spacing: -1px; }
+.m-card.norte .m-num { font-size: 56px; color: var(--acc); }
+.m-lbl { font-size: 13px; font-weight: 600; margin-bottom: 6px; }
+.m-sub { color: var(--dim); font-size: 12px; margin-top: 6px; line-height: 1.5; }
+</style>
+</head>
+<body>
+<div id="header"></div>
+<div class="wrap" id="main"><p class="sub">Cargando métricas…</p></div>
+
+<script type="module">
+import { sb, renderHeader, fmtPrecio, toast } from "/js/app.js";
+renderHeader("");
+const main = document.getElementById("main");
+
+async function cargar() {
+  const { data: { session } } = await sb.auth.getSession();
+  if (!session) { main.innerHTML = "<p class='sub'>Ingresá con tu cuenta para ver esto. <a href='/cuenta.html'>Ingresar</a></p>"; return; }
+
+  const r = await fetch("/api/metrics", { headers: { Authorization: "Bearer " + session.access_token } });
+  const m = await r.json();
+  if (!r.ok) { main.innerHTML = `<p class='sub'>${m.error}</p>`; return; }
+
+  const mes = new Date().toLocaleDateString("es-AR", { month: "long", year: "numeric" });
+  main.innerHTML = `
+    <h1>Métricas</h1>
+    <p class="sub">${mes} · datos en vivo de la base</p>
+    <div class="m-grid">
+      <div class="m-card norte">
+        <div class="m-lbl">⭐ MÉTRICA NORTE · Ventas felices este mes</div>
+        <div class="m-num">${m.norte.ventasFelicesMes}</div>
+        <div class="m-sub">Ventas pagadas y calificadas con 4-5 estrellas.
+        Este mes hubo ${m.norte.ventasPagadasMes} venta${m.norte.ventasPagadasMes === 1 ? "" : "s"} pagada${m.norte.ventasPagadasMes === 1 ? "" : "s"}
+        (${m.norte.calificadasPendientes} sin calificar todavía). Si este número crece mes a mes, el negocio funciona.</div>
+      </div>
+
+      <div class="m-card">
+        <div class="m-lbl">💧 Liquidez</div>
+        <div class="m-num">${m.soporte.liquidez60 === null ? "—" : m.soporte.liquidez60 + "%"}</div>
+        <div class="m-sub">De los ${m.soporte.publicados60} discos publicados en los últimos 60 días,
+        se vendieron ${m.soporte.vendidos60}. Arriba del 20% es un marketplace sano.</div>
+      </div>
+
+      <div class="m-card">
+        <div class="m-lbl">🏪 Vendedores activos</div>
+        <div class="m-num">${m.soporte.vendedoresActivos}</div>
+        <div class="m-sub">Con 3+ discos publicados (de ${m.soporte.vendedoresTotales} vendedores totales).
+        Tu prioridad pre-lanzamiento: llegar a 5-10.</div>
+      </div>
+
+      <div class="m-card">
+        <div class="m-lbl">📦 Oferta activa</div>
+        <div class="m-num">${m.soporte.discosDisponibles}</div>
+        <div class="m-sub">Discos disponibles ahora · ${m.soporte.publicadosUlt30} publicados en los últimos 30 días.</div>
+      </div>
+
+      <div class="m-card">
+        <div class="m-lbl">🔁 Compradores</div>
+        <div class="m-num">${m.soporte.compradoresUnicos}</div>
+        <div class="m-sub">Únicos históricos · ${m.soporte.compradoresRepetidos} compraron más de una vez.
+        La repetición es la métrica de retención.</div>
+      </div>
+
+      <div class="m-card">
+        <div class="m-lbl">⭐ Reputación global</div>
+        <div class="m-num">${m.soporte.ratingPromedio ?? "—"}</div>
+        <div class="m-sub">Promedio de ${m.soporte.totalCalificaciones} calificación${m.soporte.totalCalificaciones === 1 ? "" : "es"}.
+        Si baja de 4, hay un problema de calidad o entregas.</div>
+      </div>
+
+      <div class="m-card">
+        <div class="m-lbl">💰 Tu comisión</div>
+        <div class="m-num">${fmtPrecio(m.plata.comisionMes)}</div>
+        <div class="m-sub">Este mes · ${fmtPrecio(m.plata.comisionTotal)} histórico ·
+        GMV del mes: ${fmtPrecio(m.plata.gmvMes)} · ${m.plata.ventasTotales} ventas totales.</div>
+      </div>
+    </div>
+    <p class="hint" style="margin-top:22px">El tráfico del sitio (visitas, orígenes) está en Cloudflare → Web Analytics.
+    Esta página es privada: solo tu cuenta puede verla.</p>`;
+}
+cargar();
+</script>
+</body>
+</html>
