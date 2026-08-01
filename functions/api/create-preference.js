@@ -50,6 +50,7 @@ export async function onRequestPost({ request, env }) {
     }),
   }).then((r) => r.json());
   const orderId = ord[0]?.id;
+  const ratingToken = ord[0]?.rating_token;
   if (!orderId) return json({ error: "No se pudo crear la orden" }, 500);
 
   // Preferencia de pago con el token DEL VENDEDOR + marketplace_fee para SURCOGS
@@ -70,9 +71,9 @@ export async function onRequestPost({ request, env }) {
       payer: buyer_email ? { email: buyer_email } : undefined,
       external_reference: orderId,
       back_urls: {
-        success: `${SITE}/disco.html?id=${rec.id}&pago=ok`,
+        success: `${SITE}/disco.html?id=${rec.id}&pago=ok&order=${orderId}&rt=${ratingToken}`,
         failure: `${SITE}/disco.html?id=${rec.id}&pago=error`,
-        pending: `${SITE}/disco.html?id=${rec.id}&pago=ok`,
+        pending: `${SITE}/disco.html?id=${rec.id}&pago=ok&order=${orderId}&rt=${ratingToken}`,
       },
       auto_return: "approved",
       notification_url: `${SITE}/api/mp-webhook?order=${orderId}`,
