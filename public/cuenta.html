@@ -65,6 +65,7 @@ function renderAuth() {
           <label>Nombre o alias *</label><input id="r-name" required>
           <label>Email *</label><input id="r-email" type="email" required>
           <label>Contraseña (mín. 6) *</label><input id="r-pass" type="password" minlength="6" required>
+          <label>Repetir contraseña *</label><input id="r-pass2" type="password" minlength="6" required>
           <label>Zona / barrio</label><input id="r-zona" placeholder="Palermo, CABA">
           <br><br>
           <button class="btn" type="submit" id="btn-reg-go">Crear mi cuenta</button>
@@ -90,6 +91,9 @@ function renderAuth() {
 
   document.getElementById("f-reg").onsubmit = async (e) => {
     e.preventDefault();
+    if (document.getElementById("r-pass").value !== document.getElementById("r-pass2").value) {
+      return toast("Las contraseñas no coinciden. Revisalas.", true);
+    }
     const btn = document.getElementById("btn-reg-go");
     btn.disabled = true; btn.textContent = "Creando…";
     const v = (id) => document.getElementById(id).value.trim();
@@ -149,6 +153,7 @@ async function renderPanel(user, perfil) {
       : `<div class="notice">Comisión vigente: <strong>10% por venta</strong>, descontada automáticamente del pago. Nunca ponés plata de tu bolsillo.</div>`}
     <div id="mp-box"></div>
     <p style="margin:18px 0"><a class="btn" href="/publicar.html">+ Publicar un disco</a>
+      <a class="btn ghost" href="/perfil.html?id=${user.id}" style="margin-left:8px">Ver mi perfil público</a>
       <button class="btn ghost" id="btn-out" style="margin-left:8px">Salir</button></p>
     <div class="mis-discos">
       <h2 style="font-size:18px;margin-bottom:12px">Mis discos (${(discos || []).length})</h2>

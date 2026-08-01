@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SURCOGS — Perfil</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Space+Grotesk:wght@400;500;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/css/style.css">
+<script src="/js/config.js"></script>
+</head>
+<body>
+<div id="header"></div>
+<div class="wrap" id="main"></div>
+
+<script type="module">
+import { sb, renderHeader, fmtPrecio, fotoPrincipal, precioComprador, reputacionHTML } from "/js/app.js";
+renderHeader("catalogo");
+const main = document.getElementById("main");
+
+const id = new URLSearchParams(location.search).get("id");
+
+async function cargar() {
+  if (!id) { main.innerHTML = "<p class='sub'>Perfil no encontrado. <a href='/'>Volver al catálogo</a></p>"; return; }
+
+  const [{ data: perfil }, { data: discos }] = await Promise.all([
+    sb.from("profiles").select("name, zona, created_at").eq("id", id).maybeSingle(),
+    sb.from("records").select("*").eq("seller_id", id).order("created_at", { ascending: false }),
+  ]);
+
+  if (!perfil) { main.innerHTML = "<p class='sub'>Perfil no encontrado. <a href='/'>Volver al catálogo</a></p>"; return; }
+
+  const enVenta = (discos || []).filter(d => d.status === "disponible");
+  const vendidos = (discos || []).filter(d => d.status === "vendido");
+  const miembroDesde = new Date(perfil.created_at).toLocaleDateString("es-AR", { month: "long", year: "numeric" });
+
+  main.innerHTML = `
+    <h1>${perfil.name}</h1>
+    <p class="meta" id="rep" style="font-size:16px;margin:4px 0 8px"></p>
+    <p class="sub">
+      ${perfil.zona ? perfil.zona + " · " : ""}Miembro desde ${miembroDesde}
+      · ${enVenta.length} en venta · ${vendidos.length} vendido${vendidos.length === 1 ? "" : "s"}
+    </p>
+    <div class="badges" style="margin-bottom:26px">
+      <span class="badge ok">✓ Vende con Mercado Pago</span>
+      <span class="badge">Grading Goldmine declarado</span>
+    </div>
+    <h2 style="font-size:17px;margin-bottom:14px">Discografía en venta</h2>
+    <div class="grid" id="grid"></div>
+    <p id="empty" class="sub" style="display:none">Este vendedor no tiene discos publicados ahora. Volvé pronto.</p>`;
+
+  const visibles = (discos || []).filter(d => d.status !== "vendido");
+  document.getElementById("grid").innerHTML = visibles.map(d => `
+    <a class="card" href="/disco.html?id=${d.id}">
+      <img src="${fotoPrincipal(d)}" alt="${d.artist} – ${d.title}" loading="lazy">
+      <div class="info">
+        <div class="t">${d.artist} – ${d.title}</div>
+        <div class="d">${[d.label, d.year, d.format].filter(Boolean).join(" · ")}</div>
+        <div class="p">${fmtPrecio(precioComprador(d.price))}</div>
+        <div class="badges">
+          <span class="badge">Vinilo ${d.condition_media}</span>
+          <span class="badge">Tapa ${d.condition_sleeve}</span>
+          <span class="badge ${d.status === "disponible" ? "ok" : "res"}">${d.status}</span>
+        </div>
+      </div>
+    </a>`).join("");
+  document.getElementById("empty").style.display = visibles.length ? "none" : "block";
+
+  reputacionHTML(id).then(html => { document.getElementById("rep").innerHTML = html; });
+}
+cargar();
+</script>
+</body>
+</html>

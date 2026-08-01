@@ -18,16 +18,58 @@
 </div>
 
 <script type="module">
-import { sb, renderHeader, getUser, fmtPrecio, fotoPrincipal, youtubeId, toast, precioComprador } from "/js/app.js";
+import { sb, renderHeader, getUser, fmtPrecio, fotoPrincipal, youtubeId, toast, precioComprador, reputacionHTML } from "/js/app.js";
 renderHeader("catalogo");
 
-const id = new URLSearchParams(location.search).get("id");
+const params = new URLSearchParams(location.search);
+const id = params.get("id");
 const cont = document.getElementById("detalle");
 
-// aviso post-pago
-const pago = new URLSearchParams(location.search).get("pago");
+// aviso post-pago + calificación
+const pago = params.get("pago");
 if (pago === "ok") toast("¡Pago aprobado! El vendedor va a coordinar la entrega con vos.");
 if (pago === "error") toast("El pago no se completó. Podés intentar de nuevo.", true);
+if (pago === "ok" && params.get("order") && params.get("rt")) mostrarCalificacion();
+
+function mostrarCalificacion() {
+  let sel = 0;
+  const box = document.createElement("div");
+  box.className = "panel";
+  box.style.cssText = "max-width:none;margin-bottom:24px";
+  box.innerHTML = `
+    <strong>¿Cómo fue tu compra? Calificá al vendedor</strong>
+    <div id="star-row" style="margin:10px 0">
+      ${[1,2,3,4,5].map(n => `<button type="button" class="star-btn" data-n="${n}">★</button>`).join("")}
+    </div>
+    <textarea id="rate-comment" maxlength="300" placeholder="Comentario opcional: puntualidad, estado del disco, trato…"></textarea>
+    <br><br><button class="btn small" id="btn-rate" disabled>Enviar calificación</button>`;
+  document.querySelector(".wrap").prepend(box);
+
+  box.querySelectorAll(".star-btn").forEach(b => b.onclick = () => {
+    sel = Number(b.dataset.n);
+    box.querySelectorAll(".star-btn").forEach(s =>
+      s.classList.toggle("on", Number(s.dataset.n) <= sel));
+    document.getElementById("btn-rate").disabled = false;
+  });
+
+  document.getElementById("btn-rate").onclick = async () => {
+    const btn = document.getElementById("btn-rate");
+    btn.disabled = true; btn.textContent = "Enviando…";
+    const r = await fetch("/api/rate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        order_id: params.get("order"),
+        token: params.get("rt"),
+        stars: sel,
+        comment: document.getElementById("rate-comment").value.trim(),
+      }),
+    });
+    const j = await r.json();
+    if (r.ok) { box.innerHTML = "<strong>¡Gracias por calificar! ⭐</strong> Tu valoración ya aparece en el perfil del vendedor."; }
+    else { toast(j.error || "Error", true); btn.disabled = false; btn.textContent = "Enviar calificación"; }
+  };
+}
 
 async function cargar() {
   const { data: d, error } = await sb.from("records")
@@ -57,7 +99,8 @@ async function cargar() {
       </div>
       <div class="price-big">${fmtPrecio(precioComprador(d.price))}</div>
       <p class="hint">Precio final — incluye la comisión de Mercado Pago y de SURCOGS.</p>
-      <p class="meta">Vende <strong>${p?.name || "—"}</strong>${d.zona || p?.zona ? " · " + (d.zona || p.zona) : ""}</p>
+      <p class="meta">Vende <a href="/perfil.html?id=${d.seller_id}"><strong>${p?.name || "—"}</strong></a>${d.zona || p?.zona ? " · " + (d.zona || p.zona) : ""} · <a href="/perfil.html?id=${d.seller_id}">ver su discografía →</a></p>
+      <p class="meta" id="rep-vendedor"></p>
       ${d.description ? `<p style="margin:12px 0">${d.description}</p>` : ""}
       <div id="compra" style="margin-top:18px"></div>
       <p class="hint" style="margin-top:14px">Pagás por Mercado Pago. La entrega se coordina entre ustedes: punto de encuentro o envío.</p>
@@ -76,6 +119,10 @@ async function cargar() {
   }
 
   cargarComentarios(d);
+  reputacionHTML(d.seller_id).then(html => {
+    const el = document.getElementById("rep-vendedor");
+    if (el) el.innerHTML = html;
+  });
 
   async function comprar() {
     const email = document.getElementById("buyer-email").value.trim();
