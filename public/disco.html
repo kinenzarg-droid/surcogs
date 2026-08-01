@@ -97,8 +97,7 @@ async function cargar() {
         <span class="badge">Tapa ${d.condition_sleeve}</span>
         <span class="badge ${disponible ? "ok" : d.status === "reservado" ? "res" : "sold"}">${d.status}</span>
       </div>
-      <div class="price-big">${fmtPrecio(precioComprador(d.price))}</div>
-      <p class="hint">Precio final — incluye la comisión de Mercado Pago y de SURCOGS.</p>
+      <div class="price-big">${d.old_price && d.old_price > d.price ? `<span class="p-old" style="font-size:18px">${fmtPrecio(precioComprador(d.old_price))}</span>` : ""}${fmtPrecio(precioComprador(d.price))}</div>
       <p class="meta">Vende <a href="/perfil.html?id=${d.seller_id}"><strong>${p?.name || "—"}</strong></a>${d.zona || p?.zona ? " · " + (d.zona || p.zona) : ""} · <a href="/perfil.html?id=${d.seller_id}">ver su discografía →</a></p>
       <p class="meta" id="rep-vendedor"></p>
       ${d.description ? `<p style="margin:12px 0">${d.description}</p>` : ""}
@@ -142,11 +141,15 @@ async function cargar() {
     cont.querySelectorAll("[id^='player-']").forEach(h => h.innerHTML = "");
     cont.querySelectorAll(".btn-play").forEach(x => x.textContent = "▶");
     const yt = youtubeId(url);
+    const sp = url.match(/open\.spotify\.com\/(?:intl-\w+\/)?track\/([A-Za-z0-9]+)/);
     if (yt) {
-      holder.innerHTML = `<iframe style="width:100%;height:90px;border:1px solid var(--line);border-radius:2px;margin-top:6px" src="https://www.youtube.com/embed/${yt}?autoplay=1" allow="autoplay"></iframe>`;
+      holder.innerHTML = `<iframe style="width:100%;height:90px;border:1px solid var(--line);border-radius:4px;margin-top:6px" src="https://www.youtube.com/embed/${yt}?autoplay=1" allow="autoplay"></iframe>`;
       b.textContent = "❚❚";
     } else if (/soundcloud\.com/.test(url)) {
       holder.innerHTML = `<iframe style="width:100%;height:100px;border:0;margin-top:6px" allow="autoplay" src="https://w.soundcloud.com/player/?url=${encodeURIComponent(url)}&auto_play=true&visual=false"></iframe>`;
+      b.textContent = "❚❚";
+    } else if (sp) {
+      holder.innerHTML = `<iframe style="width:100%;height:80px;border:0;border-radius:8px;margin-top:6px" allow="autoplay; encrypted-media" src="https://open.spotify.com/embed/track/${sp[1]}"></iframe>`;
       b.textContent = "❚❚";
     } else {
       window.open(url, "_blank");

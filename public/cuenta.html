@@ -43,7 +43,7 @@ const loginGoogle = async () => {
 function renderAuth() {
   main.innerHTML = `
     <h1>Ingresar</h1>
-    <p class="sub">Registrate gratis. Publicar discos no cuesta nada: SURCOGS cobra 10% solo cuando vendés (0% tus primeros 30 días).</p>
+    <p class="sub">Registrate gratis. Publicar no cuesta nada: SURCOGS cobra 10% solo cuando vendés.</p>
     <form class="panel" id="f-auth">
       <button class="btn ghost" type="button" id="btn-google" style="width:100%">Continuar con Google</button>
       <div class="divider"><span>o con tu email</span></div>
@@ -136,9 +136,6 @@ function renderCrearPerfil(user) {
 
 /* ---------- PANEL ---------- */
 async function renderPanel(user, perfil) {
-  const alta = new Date(perfil.created_at);
-  const finPromo = new Date(alta.getTime() + 30 * 86400000);
-  const enPromo = Date.now() < finPromo.getTime();
 
   const [{ data: discos }, { data: ventas }] = await Promise.all([
     sb.from("records").select("*").eq("seller_id", user.id).order("created_at", { ascending: false }),
@@ -148,9 +145,7 @@ async function renderPanel(user, perfil) {
   main.innerHTML = `
     <h1>Hola, ${perfil.name}</h1>
     <p class="sub">${perfil.zona || ""}</p>
-    ${enPromo
-      ? `<div class="notice">🎉 Estás en tu promo de lanzamiento: <strong>0% de comisión</strong> hasta el ${finPromo.toLocaleDateString("es-AR")}. Después, 10% por venta — solo si vendés.</div>`
-      : `<div class="notice">Comisión vigente: <strong>10% por venta</strong>, descontada automáticamente del pago. Nunca ponés plata de tu bolsillo.</div>`}
+    <div class="notice">Comisión: <strong>10% por venta</strong>, se suma al precio que ve el comprador y se descuenta automáticamente del pago. Nunca ponés plata de tu bolsillo.</div>
     <div id="mp-box"></div>
     <p style="margin:18px 0"><a class="btn" href="/publicar.html">+ Publicar un disco</a>
       <a class="btn ghost" href="/perfil.html?id=${user.id}" style="margin-left:8px">Ver mi perfil público</a>
@@ -197,6 +192,7 @@ async function renderPanel(user, perfil) {
       <select data-id="${d.id}" class="sel-estado" style="width:auto">
         ${["disponible", "reservado", "vendido"].map(s => `<option ${s === d.status ? "selected" : ""}>${s}</option>`).join("")}
       </select>
+      <a class="btn small ghost" href="/publicar.html?edit=${d.id}">✎ Editar</a>
       <button class="btn small ghost btn-del" data-id="${d.id}">Borrar</button>
     </div>`).join("") || "<p class='sub'>Todavía no publicaste discos.</p>";
 

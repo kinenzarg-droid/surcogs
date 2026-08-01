@@ -17,9 +17,10 @@
   <section class="hero">
     <h1>Vinilos de mano en mano</h1>
     <p class="sub">Pago protegido por Mercado Pago</p>
-    <div class="cta-row">
-      <a class="btn" href="#catalogo">Explorar discos</a>
-      <a class="btn ghost" href="/publicar.html">Vender los míos — 0% comisión 30 días</a>
+    <div style="display:flex;gap:22px;flex-wrap:wrap;margin-top:4px;color:var(--dim);font-size:13px">
+      <span><b style="color:var(--acc)">1</b>&nbsp; Elegí un disco y escuchalo</span>
+      <span><b style="color:var(--acc)">2</b>&nbsp; Pagá online con Mercado Pago</span>
+      <span><b style="color:var(--acc)">3</b>&nbsp; Coordinás la entrega con el vendedor</span>
     </div>
   </section>
 
@@ -80,7 +81,7 @@ function pintar() {
         <div class="t">${d.title}</div>
         <div class="a">${d.artist}</div>
         <div class="pr-row">
-          <span class="p">${fmtPrecio(precioComprador(d.price))}</span>
+          <span>${d.old_price && d.old_price > d.price ? `<span class="p-old">${fmtPrecio(precioComprador(d.old_price))}</span>` : ""}<span class="p">${fmtPrecio(precioComprador(d.price))}</span></span>
           ${d.status !== "disponible" ? `<span class="badge ${d.status === "reservado" ? "res" : "sold"}">${d.status}</span>` : ""}
         </div>
       </div>

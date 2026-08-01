@@ -4,9 +4,6 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>SURCOGS — Perfil</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Space+Grotesk:wght@400;500;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/css/style.css">
 <script src="/js/config.js"></script>
 </head>
@@ -14,25 +11,35 @@
 <div id="header"></div>
 <div class="wrap" id="main"></div>
 
+<div class="cart-bar" id="cart-bar">
+  <span>🛒 <b id="cart-n">0</b> discos · <b id="cart-total">$0</b></span>
+  <input id="cart-email" type="email" placeholder="Tu email (comprobante)">
+  <button class="btn" id="cart-buy">Comprar todo</button>
+</div>
+
 <script type="module">
-import { sb, renderHeader, fmtPrecio, fotoPrincipal, precioComprador, reputacionHTML } from "/js/app.js";
+import { sb, renderHeader, getUser, fmtPrecio, fotoPrincipal, precioComprador, reputacionHTML, toast } from "/js/app.js";
 renderHeader("catalogo");
 const main = document.getElementById("main");
 
 const id = new URLSearchParams(location.search).get("id");
+let discos = [], carrito = new Set(), soyDueño = false;
 
 async function cargar() {
   if (!id) { main.innerHTML = "<p class='sub'>Perfil no encontrado. <a href='/'>Volver al catálogo</a></p>"; return; }
 
-  const [{ data: perfil }, { data: discos }] = await Promise.all([
+  const user = await getUser();
+  soyDueño = user && user.id === id;
+
+  const [{ data: perfil }, { data: recs }] = await Promise.all([
     sb.from("profiles").select("name, zona, created_at").eq("id", id).maybeSingle(),
     sb.from("records").select("*").eq("seller_id", id).order("created_at", { ascending: false }),
   ]);
-
   if (!perfil) { main.innerHTML = "<p class='sub'>Perfil no encontrado. <a href='/'>Volver al catálogo</a></p>"; return; }
+  discos = recs || [];
 
-  const enVenta = (discos || []).filter(d => d.status === "disponible");
-  const vendidos = (discos || []).filter(d => d.status === "vendido");
+  const enVenta = discos.filter(d => d.status === "disponible");
+  const vendidos = discos.filter(d => d.status === "vendido");
   const miembroDesde = new Date(perfil.created_at).toLocaleDateString("es-AR", { month: "long", year: "numeric" });
 
   main.innerHTML = `
@@ -42,31 +49,97 @@ async function cargar() {
       ${perfil.zona ? perfil.zona + " · " : ""}Miembro desde ${miembroDesde}
       · ${enVenta.length} en venta · ${vendidos.length} vendido${vendidos.length === 1 ? "" : "s"}
     </p>
-    <div class="badges" style="margin-bottom:26px">
-      <span class="badge ok">✓ Vende con Mercado Pago</span>
-      <span class="badge">Grading Goldmine declarado</span>
-    </div>
-    <h2 style="font-size:17px;margin-bottom:14px">Discografía en venta</h2>
+    ${soyDueño ? "" : `<p class="hint" style="margin-bottom:18px">Agregá varios discos al carrito y pagalos juntos: un solo pago, una sola entrega.</p>`}
+    <h2 style="margin-bottom:14px">Discografía en venta</h2>
     <div class="grid" id="grid"></div>
     <p id="empty" class="sub" style="display:none">Este vendedor no tiene discos publicados ahora. Volvé pronto.</p>`;
 
-  const visibles = (discos || []).filter(d => d.status !== "vendido");
-  document.getElementById("grid").innerHTML = visibles.map(d => `
-    <a class="card" href="/disco.html?id=${d.id}">
-      <img src="${fotoPrincipal(d)}" alt="${d.artist} – ${d.title}" loading="lazy">
-      <div class="info">
-        <div class="t">${d.title}</div>
-        <div class="a">${d.artist}</div>
-        <div class="pr-row">
-          <span class="p">${fmtPrecio(precioComprador(d.price))}</span>
-          ${d.status !== "disponible" ? `<span class="badge res">${d.status}</span>` : ""}
-        </div>
-      </div>
-    </a>`).join("");
-  document.getElementById("empty").style.display = visibles.length ? "none" : "block";
-
+  pintar();
   reputacionHTML(id).then(html => { document.getElementById("rep").innerHTML = html; });
 }
+
+function pintar() {
+  const visibles = discos.filter(d => d.status !== "vendido");
+  document.getElementById("grid").innerHTML = visibles.map(d => `
+    <div class="card">
+      <a href="/disco.html?id=${d.id}" style="display:block;position:relative">
+        <img src="${fotoPrincipal(d)}" alt="${d.artist} – ${d.title}" loading="lazy">
+        ${soyDueño ? `
+          <div class="own-actions">
+            <button class="own-btn" title="Editar" data-edit="${d.id}">✎</button>
+            <button class="own-btn del" title="Eliminar" data-del="${d.id}">🗑</button>
+          </div>` : ""}
+        ${!soyDueño && d.status === "disponible" ? `
+          <button class="cart-add ${carrito.has(d.id) ? "in" : ""}" data-cart="${d.id}">
+            ${carrito.has(d.id) ? "✓ En carrito" : "+ Carrito"}</button>` : ""}
+      </a>
+      <a href="/disco.html?id=${d.id}" style="display:block">
+        <div class="info">
+          <div class="t">${d.title}</div>
+          <div class="a">${d.artist}</div>
+          <div class="pr-row">
+            <span>${d.old_price && d.old_price > d.price ? `<span class="p-old">${fmtPrecio(precioComprador(d.old_price))}</span>` : ""}<span class="p">${fmtPrecio(precioComprador(d.price))}</span></span>
+            ${d.status !== "disponible" ? `<span class="badge res">${d.status}</span>` : ""}
+          </div>
+        </div>
+      </a>
+    </div>`).join("");
+  document.getElementById("empty").style.display = visibles.length ? "none" : "block";
+
+  // dueño: editar / eliminar
+  document.querySelectorAll("[data-edit]").forEach(b => b.onclick = (e) => {
+    e.preventDefault(); location.href = "/publicar.html?edit=" + b.dataset.edit;
+  });
+  document.querySelectorAll("[data-del]").forEach(b => b.onclick = async (e) => {
+    e.preventDefault();
+    const d = discos.find(x => x.id === b.dataset.del);
+    if (!confirm(`¿Eliminar "${d.title}"? Esta acción no se puede deshacer.`)) return;
+    const { error } = await sb.from("records").delete().eq("id", d.id);
+    if (error) return toast(error.message, true);
+    discos = discos.filter(x => x.id !== d.id);
+    toast("Disco eliminado"); pintar();
+  });
+
+  // visitante: carrito
+  document.querySelectorAll("[data-cart]").forEach(b => b.onclick = (e) => {
+    e.preventDefault();
+    const rid = b.dataset.cart;
+    carrito.has(rid) ? carrito.delete(rid) : carrito.add(rid);
+    actualizarCarrito(); pintar();
+  });
+}
+
+function actualizarCarrito() {
+  const total = [...carrito].reduce((s, rid) => {
+    const d = discos.find(x => x.id === rid);
+    return s + (d ? precioComprador(d.price) : 0);
+  }, 0);
+  document.getElementById("cart-n").textContent = carrito.size;
+  document.getElementById("cart-total").textContent = fmtPrecio(total);
+  document.getElementById("cart-bar").style.display = carrito.size ? "flex" : "none";
+}
+
+document.getElementById("cart-buy").onclick = async () => {
+  const btn = document.getElementById("cart-buy");
+  btn.disabled = true; btn.textContent = "Generando pago…";
+  try {
+    const r = await fetch("/api/create-preference", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        record_ids: [...carrito],
+        buyer_email: document.getElementById("cart-email").value.trim(),
+      }),
+    });
+    const j = await r.json();
+    if (!r.ok) throw new Error(j.error || "Error");
+    location.href = j.init_point;
+  } catch (e) {
+    toast("No pudimos generar el pago: " + e.message, true);
+    btn.disabled = false; btn.textContent = "Comprar todo";
+  }
+};
+
 cargar();
 </script>
 </body>

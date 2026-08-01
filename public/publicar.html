@@ -36,7 +36,7 @@ async function init() {
       <p class="sub">Conectá tu cuenta de Mercado Pago para recibir los pagos directo. Es una sola vez, tarda un minuto y no tiene costo.</p>
       <div class="panel">
         <strong>¿Por qué?</strong>
-        <p class="hint" style="margin:6px 0 14px">Los compradores pagan online con protección de Mercado Pago y la plata te llega a tu cuenta al instante. La comisión de SURCOGS (0% tus primeros 30 días, después 10%) se descuenta sola: nunca ponés plata de tu bolsillo.</p>
+        <p class="hint" style="margin:6px 0 14px">Los compradores pagan online con protección de Mercado Pago y la plata te llega a tu cuenta. La comisión de SURCOGS (10%) se suma al precio que ve el comprador: nunca ponés plata de tu bolsillo.</p>
         <button class="btn" id="btn-mp">Conectar Mercado Pago</button>
       </div>`;
     document.getElementById("btn-mp").onclick = async () => {
@@ -50,9 +50,18 @@ async function init() {
     return;
   }
 
+  // ¿Modo edición?
+  const editId = new URLSearchParams(location.search).get("edit");
+  let editRec = null;
+  if (editId) {
+    const { data } = await sb.from("records").select("*").eq("id", editId).eq("seller_id", user.id).maybeSingle();
+    if (!data) { toast("No encontramos ese disco entre los tuyos", true); location.href = "/perfil.html?id=" + user.id; return; }
+    editRec = data;
+  }
+
   main.innerHTML = `
-    <h1>Publicar un disco</h1>
-    <p class="sub">Gratis. Cobrás vos, la comisión se descuenta sola al vender (0% tus primeros 30 días).</p>
+    <h1>${editRec ? "Editar disco" : "Publicar un disco"}</h1>
+    <p class="sub">${editRec ? "Cambiá lo que necesites y guardá. Si bajás el precio, el anterior queda tachado en el catálogo." : "Publicar es gratis. La comisión se descuenta sola al vender."}</p>
     <form class="panel" id="f">
       <label>¿Está en Discogs? Pegá el link y completamos todo</label>
       <div style="display:flex;gap:8px">
@@ -73,9 +82,14 @@ async function init() {
         <div><label>Formato</label>
           <select id="format"><option>12"</option><option>2×12"</option><option>7"</option><option>10"</option><option>LP</option><option>2×LP</option></select>
         </div>
-        <div><label>Lo que vas a recibir (ARS) *</label><input id="price" type="number" min="1" required></div>
+        <div><label>Precio recibido *</label>
+          <div style="position:relative">
+            <span style="position:absolute;left:11px;top:9px;color:var(--dim);font-size:13.5px">$</span>
+            <input id="price" type="number" min="1" placeholder="0" required style="padding-left:24px">
+          </div>
+        </div>
       </div>
-      <p class="hint" id="hint-precio">Ponés lo que querés cobrar vos. Las comisiones se suman arriba y las paga el comprador.</p>
+      <p class="hint" id="hint-precio">Es lo que recibís vos. Las comisiones de Mercado Pago y SURCOGS se suman al precio que ve el comprador.</p>
       <div class="row2">
         <div><label>Estado del vinilo *</label>
           <select id="cm">${GRADOS.map(g => `<option ${g === "VG+" ? "selected" : ""}>${g}</option>`).join("")}</select>
@@ -93,11 +107,20 @@ async function init() {
       <label>Fotos (hasta 4 — tapa, vinilo, etiqueta)</label>
       <input id="fotos" type="file" accept="image/*" multiple>
       <label>Notas (opcional)</label><textarea id="desc" placeholder="Warp leve que no afecta reproducción, edición original US…"></textarea>
-      <br><button class="btn" type="submit" id="btn-pub">Publicar</button>
+      <br><button class="btn" type="submit" id="btn-pub">${editRec ? "Guardar cambios" : "Publicar"}</button>
     </form>`;
 
+  // Precargar datos en modo edición
+  if (editRec) {
+    const set = (id, v) => { if (v !== null && v !== undefined) document.getElementById(id).value = v; };
+    set("artist", editRec.artist); set("title", editRec.title); set("label", editRec.label);
+    set("year", editRec.year); set("format", editRec.format); set("price", editRec.price);
+    set("cm", editRec.condition_media); set("cs", editRec.condition_sleeve);
+    set("zona", editRec.zona); set("audio", editRec.audio_url); set("desc", editRec.description);
+  }
+
   // ---- Tracklist con audio por tema ----
-  let tracks = [];
+  let tracks = editRec?.tracks?.length ? editRec.tracks.map(t => ({ ...t })) : [];
   function renderTracks() {
     const box = document.getElementById("tracks-box");
     box.innerHTML = tracks.map((t, i) => `
@@ -108,7 +131,7 @@ async function init() {
           <button type="button" class="btn small ghost btn-del-track" data-i="${i}">✕</button>
         </div>
         <input data-i="${i}" data-k="audio_url" value="${esc(t.audio_url || "")}"
-          placeholder="Link de audio del tema (YouTube, Bandcamp o SoundCloud)" style="margin-top:6px">
+          placeholder="Link de audio del tema (YouTube, SoundCloud o Spotify)" style="margin-top:6px">
       </div>`).join("") || `<p class="hint">Sin temas cargados. Traelos desde Discogs o agregalos a mano.</p>`;
 
     box.querySelectorAll("input[data-i]").forEach(inp => inp.oninput = () => {
@@ -178,25 +201,36 @@ async function init() {
         photos.push(sb.storage.from("records").getPublicUrl(path).data.publicUrl);
       }
       const v = (id) => document.getElementById(id).value.trim();
-      const { error } = await sb.from("records").insert({
-        seller_id: user.id,
+      const datos = {
         artist: v("artist"), title: v("title"),
         label: v("label") || null,
         year: v("year") ? Number(v("year")) : null,
         format: v("format"), price: Number(v("price")),
         condition_media: v("cm"), condition_sleeve: v("cs"),
         zona: v("zona") || null, audio_url: v("audio") || null,
-        description: v("desc") || null, photos,
+        description: v("desc") || null,
         tracks: tracks.filter(t => (t.title || "").trim()).map(t => ({
           position: (t.position || "").trim(),
           title: t.title.trim(),
           duration: (t.duration || "").trim(),
           audio_url: (t.audio_url || "").trim() || null,
         })),
-      });
+      };
+      if (photos.length) datos.photos = photos;
+
+      let error;
+      if (editRec) {
+        // Si baja el precio, guardar el anterior para mostrarlo tachado
+        datos.old_price = datos.price < editRec.price ? editRec.price : null;
+        ({ error } = await sb.from("records").update(datos).eq("id", editRec.id));
+      } else {
+        datos.seller_id = user.id;
+        if (!datos.photos) datos.photos = [];
+        ({ error } = await sb.from("records").insert(datos));
+      }
       if (error) throw error;
-      toast("¡Disco publicado!");
-      setTimeout(() => location.href = "/cuenta.html", 900);
+      toast(editRec ? "¡Cambios guardados!" : "¡Disco publicado!");
+      setTimeout(() => location.href = editRec ? "/perfil.html?id=" + user.id : "/cuenta.html", 900);
     } catch (err) {
       toast(err.message, true);
       btn.disabled = false; btn.textContent = "Publicar";
