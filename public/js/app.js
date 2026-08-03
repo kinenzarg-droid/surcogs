@@ -5,6 +5,7 @@ const { SUPABASE_URL, SUPABASE_ANON_KEY } = window.SURCOGS_CONFIG;
 export const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 export const GRADOS = ["M", "NM", "VG+", "VG", "G+", "G"];
+export const ADMIN_ID = window.SURCOGS_CONFIG.ADMIN_ID || null;
 
 export const fmtPrecio = (n) => "$" + Number(n).toLocaleString("es-AR");
 
@@ -51,10 +52,32 @@ export async function renderHeader(activo) {
       </div>
       <a class="btn-cta" href="/publicar.html">Vender gratis</a>
       <div class="hdr-links">
-        <a href="/cuenta.html">${user ? "Mi cuenta" : "Ingresar"}</a>
-        ${user ? `<a class="avatar" href="/perfil.html?id=${user.id}" title="Mi perfil">${iniciales}</a>` : ""}
+        ${user ? `
+          <div class="avatar-wrap">
+            <button class="avatar" id="avatar-btn" title="Menú">${iniciales}</button>
+            <div class="avatar-menu" id="avatar-menu">
+              <a href="/perfil.html?id=${user.id}" class="only-mobile">Mi colección</a>
+              <a href="/cuenta.html">Mi cuenta</a>
+              <a href="#" class="salir" id="btn-salir">Salir</a>
+            </div>
+          </div>` : `<a href="/cuenta.html">Ingresar</a>`}
       </div>
     </header>`;
+
+  // Menú del avatar
+  if (user) {
+    const menu = document.getElementById("avatar-menu");
+    document.getElementById("avatar-btn").onclick = (e) => {
+      e.stopPropagation();
+      menu.style.display = menu.style.display === "block" ? "none" : "block";
+    };
+    document.addEventListener("click", () => { menu.style.display = "none"; });
+    document.getElementById("btn-salir").onclick = async (e) => {
+      e.preventDefault();
+      await sb.auth.signOut();
+      location.href = "/";
+    };
+  }
 
   // Búsqueda global: Enter → catálogo con el término
   const q = document.getElementById("hdr-q");
