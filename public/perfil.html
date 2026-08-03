@@ -18,7 +18,7 @@
 </div>
 
 <script type="module">
-import { sb, renderHeader, getUser, fmtPrecio, fotoPrincipal, precioComprador, reputacionHTML, toast } from "/js/app.js";
+import { sb, renderHeader, getUser, fmtPrecio, fotoPrincipal, precioComprador, reputacionHTML, toast, ADMIN_ID } from "/js/app.js";
 renderHeader("catalogo");
 const main = document.getElementById("main");
 
@@ -29,7 +29,7 @@ async function cargar() {
   if (!id) { main.innerHTML = "<p class='sub'>Perfil no encontrado. <a href='/'>Volver al catálogo</a></p>"; return; }
 
   const user = await getUser();
-  soyDueño = user && user.id === id;
+  soyDueño = user && (user.id === id || user.id === ADMIN_ID);
 
   const [{ data: perfil }, { data: recs }] = await Promise.all([
     sb.from("profiles").select("name, zona, created_at").eq("id", id).maybeSingle(),

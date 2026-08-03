@@ -15,7 +15,7 @@
 <div class="wrap" id="main"></div>
 
 <script type="module">
-import { sb, renderHeader, getUser, getPerfil, GRADOS, toast, fmtPrecio, precioComprador } from "/js/app.js";
+import { sb, renderHeader, getUser, getPerfil, GRADOS, toast, fmtPrecio, precioComprador, ADMIN_ID } from "/js/app.js";
 renderHeader("publicar");
 const main = document.getElementById("main");
 
@@ -54,8 +54,9 @@ async function init() {
   const editId = new URLSearchParams(location.search).get("edit");
   let editRec = null;
   if (editId) {
-    const { data } = await sb.from("records").select("*").eq("id", editId).eq("seller_id", user.id).maybeSingle();
-    if (!data) { toast("No encontramos ese disco entre los tuyos", true); location.href = "/perfil.html?id=" + user.id; return; }
+    const { data } = await sb.from("records").select("*").eq("id", editId).maybeSingle();
+    const puedeEditar = data && (data.seller_id === user.id || user.id === ADMIN_ID);
+    if (!puedeEditar) { toast("No encontramos ese disco entre los tuyos", true); location.href = "/perfil.html?id=" + user.id; return; }
     editRec = data;
   }
 
