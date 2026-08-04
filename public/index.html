@@ -4,104 +4,242 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>SURCOGS — Vinilos de mano en mano</title>
-<meta name="description" content="Marketplace P2P de vinilos. Publicá gratis, vendé con confianza. Buenos Aires.">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Space+Grotesk:wght@400;500;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<meta name="description" content="Marketplace P2P de vinilos. Escuchá cada tema, pagá con Mercado Pago, coordiná la entrega. Buenos Aires.">
 <link rel="stylesheet" href="/css/style.css">
 <script src="/js/config.js"></script>
+<style>
+/* ===== Catálogo estilo Hard Wax ===== */
+.hw-layout{display:grid;grid-template-columns:210px 1fr;gap:0;max-width:1240px;margin:0 auto}
+.hw-side{background:#1b1b1b;padding:14px 0;border-right:1px solid #333;min-height:70vh}
+.hw-side h4{display:flex;align-items:center;gap:8px;font-size:13.5px;color:#ddd;
+  padding:10px 16px 6px;font-weight:700}
+.hw-side h4::before{content:"▾";font-size:11px;color:#888}
+.hw-side a{display:block;padding:7px 16px 7px 30px;font-size:13px;color:#b9b6b0;
+  border-bottom:1px solid #242424;cursor:pointer}
+.hw-side a:hover,.hw-side a.on{color:#fff;background:#252525}
+.hw-side .cnt{color:#2ea860;font-size:11px;margin-left:6px}
+.hw-mobile-filters{display:none;gap:8px;padding:0 16px 12px}
+.hw-mobile-filters select{flex:1;background:#2a2a2a;border:1px solid #3a3a3a;border-radius:4px;
+  color:#ddd;padding:8px;font-size:13px}
+@media(max-width:860px){
+  .hw-layout{grid-template-columns:1fr}
+  .hw-side{display:none}
+  .hw-mobile-filters{display:flex}
+}
+.hw-rows{padding:14px 16px 110px}
+.hw-row{display:flex;gap:14px;background:#d6d4d0;color:#1d1d1d;
+  padding:12px;margin-bottom:14px}
+.hw-row:nth-child(even){background:#cfccc7}
+.hw-row .cov{width:118px;height:118px;object-fit:cover;flex:none}
+@media(max-width:560px){.hw-row .cov{width:86px;height:86px}}
+.hw-main{flex:1;min-width:0}
+.hw-top{display:flex;justify-content:space-between;gap:10px;align-items:baseline;flex-wrap:wrap}
+.hw-cat{font-weight:700;font-size:14.5px}
+.hw-meta{color:#555;font-size:12px}
+.hw-meta b{color:#1d1d1d;font-weight:700;padding:0 4px}
+.hw-chip{display:inline-block;background:#fff;padding:2px 7px;margin:5px 0 4px;
+  font-size:14px;box-shadow:1px 1px 0 rgba(0,0,0,.15)}
+.hw-chip b{font-weight:700}
+.hw-desc{color:#8b3a2e;font-size:13px;margin:2px 0 8px;overflow:hidden;display:-webkit-box;
+  -webkit-line-clamp:2;-webkit-box-orient:vertical}
+.hw-tracks{border-top:1px solid #b5b2ac;padding-top:7px;display:flex;flex-wrap:wrap;gap:2px 16px}
+.hw-tracks button{background:transparent;border:0;color:#3a3a3a;font-size:12.5px;
+  cursor:pointer;display:flex;align-items:center;gap:5px;font-family:inherit;padding:2px 0}
+.hw-tracks button::before{content:"▶";font-size:10px;color:#1d1d1d}
+.hw-tracks button:hover{color:#000;text-decoration:underline}
+.hw-tracks button:hover::before{color:#2ea860}
+.hw-side-r{display:flex;flex-direction:column;align-items:flex-end;gap:8px;flex:none}
+.hw-est{font-size:11px;color:#777;text-transform:uppercase;letter-spacing:1px}
+.hw-est.disp{color:#2ea860;font-weight:700}
+.hw-est.disp::before{content:"● ";font-size:9px}
+.tag-nuevo{display:inline-block;background:#2ea860;color:#fff;font-size:10.5px;
+  font-weight:700;letter-spacing:1px;padding:2px 7px;border-radius:2px;margin-left:8px;
+  text-transform:uppercase;vertical-align:2px}
+.ahorro{display:inline-block;background:#e8f5ec;color:#1e7a44;font-size:11px;font-weight:700;
+  padding:2px 7px;border-radius:2px}
+.hw-pill{display:inline-block;background:#2e2e2e;color:#fff;border-radius:4px;padding:8px 13px;
+  font-size:13.5px;font-weight:700;white-space:nowrap;text-decoration:none}
+.hw-pill:hover{background:#000}
+.hw-pill s{opacity:.55;font-weight:400;margin-right:6px}
+/* player fijo */
+.hw-player{position:fixed;left:0;right:0;bottom:0;background:#181818;border-top:1px solid #000;
+  z-index:60;display:none}
+.hw-player .bar{display:flex;align-items:center;gap:12px;padding:8px 16px;color:#bbb;font-size:12.5px}
+.hw-player .bar b{color:#fff}
+.hw-player .cerrar{margin-left:auto;background:transparent;border:1px solid #444;border-radius:3px;
+  color:#bbb;cursor:pointer;padding:3px 10px;font-size:12px}
+.hw-player iframe{display:block;width:100%;height:80px;border:0}
+.hw-footer{color:#777;font-size:12px;padding:10px 16px 30px;line-height:1.7}
+.hw-footer a{color:#2ea860}
+</style>
 </head>
 <body>
 <div id="header"></div>
-<div class="wrap">
-  <section class="hero">
-    <h1>Vinilos de mano en mano</h1>
-    <p class="sub">Pago protegido por Mercado Pago</p>
-    <div style="display:flex;gap:22px;flex-wrap:wrap;margin-top:4px;color:var(--dim);font-size:13px">
-      <span><b style="color:var(--acc)">1</b>&nbsp; Elegí un disco y escuchalo</span>
-      <span><b style="color:var(--acc)">2</b>&nbsp; Pagá online con Mercado Pago</span>
-      <span><b style="color:var(--acc)">3</b>&nbsp; Coordinás la entrega con el vendedor</span>
+
+<div class="hw-layout">
+  <aside class="hw-side" id="side"></aside>
+
+  <main class="hw-rows">
+    <div class="hw-mobile-filters">
+      <select id="m-genre"></select>
+      <select id="m-zona"></select>
     </div>
-  </section>
+    <div id="lista"></div>
+    <p id="empty" class="sub" style="display:none;padding:20px 0">
+      No hay discos que coincidan. Probá otra búsqueda o <a href="/publicar.html" style="color:var(--acc)">publicá el tuyo</a>.
+    </p>
+    <p class="hw-footer">
+      <strong>Grading Goldmine:</strong> NM casi perfecto · VG+ uso leve · VG uso evidente, ruido leve · G ruido considerable.<br>
+      Pago protegido por Mercado Pago · Precios en pesos argentinos · SURCOGS · Buenos Aires · <a href="https://instagram.com/surcogs">@surcogs</a>
+    </p>
+  </main>
+</div>
 
-  <div class="sec-h" id="catalogo"><h2>Recién publicados</h2></div>
-  <div class="filters">
-    <input id="q" type="search" placeholder="Buscar artista, título o sello…">
-    <select id="f-genre">
-      <option value="">Todos los géneros</option>
-      <option>Techno</option><option>House</option><option>Electro</option>
-      <option>Minimal</option><option>Otro</option>
-    </select>
-    <select id="f-estado">
-      <option value="">Todos</option>
-      <option value="disponible">Disponibles</option>
-    </select>
-    <select id="f-orden">
-      <option value="new">Más nuevos</option>
-      <option value="cheap">Menor precio</option>
-      <option value="exp">Mayor precio</option>
-    </select>
+<div class="hw-player" id="player">
+  <div class="bar">
+    <span id="pl-titulo">▶</span>
+    <button class="cerrar" id="pl-cerrar">✕ Cerrar</button>
   </div>
-
-  <div id="grid" class="grid"></div>
-  <p id="empty" class="sub" style="display:none">No hay discos que coincidan. Probá otra búsqueda.</p>
-
-  <p class="footer">
-    <strong>Grading Goldmine:</strong> NM casi perfecto · VG+ uso leve · VG uso evidente, ruido leve · G ruido considerable.<br>
-    Precios en pesos argentinos · SURCOGS · Buenos Aires · <a href="https://instagram.com/surcogs">@surcogs</a>
-  </p>
+  <div id="pl-frame"></div>
 </div>
 
 <script type="module">
-import { sb, renderHeader, fmtPrecio, fotoPrincipal, precioComprador } from "/js/app.js";
-renderHeader("inicio");
+import { sb, renderHeader, fmtPrecio, fotoPrincipal, precioComprador, youtubeId } from "/js/app.js";
+renderHeader("catalogo");
+
+const esc = (s) => String(s ?? "").replace(/</g, "&lt;").replace(/"/g, "&quot;");
+const DIA = 86400000;
 
 let discos = [];
+const filtro = { q: "", genre: "", zona: "", nuevo: "" };
+
+// ?q= y ?genre= desde el header u otras páginas
+const params = new URLSearchParams(location.search);
+filtro.q = (params.get("q") || "").toLowerCase().trim();
+filtro.genre = params.get("genre") || "";
 
 async function cargar() {
   const { data, error } = await sb.from("records")
-    .select("*").order("created_at", { ascending: false });
+    .select("*").neq("status", "vendido")
+    .order("created_at", { ascending: false });
   if (error) { console.error(error); return; }
   discos = data || [];
+  pintarSidebar();
   pintar();
 }
 
-function pintar() {
-  const q = document.getElementById("q").value.toLowerCase().trim();
-  const genero = document.getElementById("f-genre").value;
-  const estado = document.getElementById("f-estado").value;
-  const orden = document.getElementById("f-orden").value;
-
-  let out = discos.filter(d =>
-    (!genero || d.genre === genero) &&
-    (!estado || d.status === estado) &&
-    (!q || `${d.artist} ${d.title} ${d.label || ""}`.toLowerCase().includes(q))
-  );
-  if (orden === "cheap") out.sort((a, b) => a.price - b.price);
-  if (orden === "exp") out.sort((a, b) => b.price - a.price);
-
-  const grid = document.getElementById("grid");
-  grid.innerHTML = out.map(d => `
-    <a class="card" href="/disco.html?id=${d.id}">
-      <img src="${fotoPrincipal(d)}" alt="${d.artist} – ${d.title}" loading="lazy">
-      <div class="info">
-        <div class="t">${d.title}</div>
-        <div class="a">${d.artist}</div>
-        <div class="pr-row">
-          <span>${d.old_price && d.old_price > d.price ? `<span class="p-old">${fmtPrecio(precioComprador(d.old_price))}</span>` : ""}<span class="p">${fmtPrecio(precioComprador(d.price))}</span></span>
-          ${d.status !== "disponible" ? `<span class="badge ${d.status === "reservado" ? "res" : "sold"}">${d.status}</span>` : ""}
-        </div>
-      </div>
-    </a>`).join("");
-  document.getElementById("empty").style.display = out.length ? "none" : "block";
+function visibles() {
+  const hoy = Date.now();
+  return discos.filter(d => {
+    if (filtro.genre && d.genre !== filtro.genre) return false;
+    if (filtro.zona && d.zona !== filtro.zona) return false;
+    if (filtro.q && !`${d.artist} ${d.title} ${d.label || ""}`.toLowerCase().includes(filtro.q)) return false;
+    const edad = hoy - new Date(d.created_at).getTime();
+    if (filtro.nuevo === "semana" && edad > 7 * DIA) return false;
+    if (filtro.nuevo === "anterior" && (edad <= 7 * DIA || edad > 14 * DIA)) return false;
+    if (filtro.nuevo === "rebajados" && !(d.old_price && d.old_price > d.price)) return false;
+    return true;
+  });
 }
 
-["q", "f-genre", "f-estado", "f-orden"].forEach(id =>
-  document.getElementById(id).addEventListener("input", pintar));
+function pintarSidebar() {
+  const generos = {}, zonas = {};
+  discos.forEach(d => {
+    if (d.genre) generos[d.genre] = (generos[d.genre] || 0) + 1;
+    if (d.zona) zonas[d.zona] = (zonas[d.zona] || 0) + 1;
+  });
 
-// Si vienen buscando desde el header (/?q=...), precargar el término
-const qParam = new URLSearchParams(location.search).get("q");
-if (qParam) document.getElementById("q").value = qParam;
+  document.getElementById("side").innerHTML = `
+    <h4>Nuevos</h4>
+    <a data-f="nuevo" data-v="" class="${filtro.nuevo === "" ? "on" : ""}">Todos</a>
+    <a data-f="nuevo" data-v="semana" class="${filtro.nuevo === "semana" ? "on" : ""}">Esta semana</a>
+    <a data-f="nuevo" data-v="anterior" class="${filtro.nuevo === "anterior" ? "on" : ""}">Semana pasada</a>
+    <a data-f="nuevo" data-v="rebajados" class="${filtro.nuevo === "rebajados" ? "on" : ""}">Rebajados</a>
+    <h4>Géneros</h4>
+    <a data-f="genre" data-v="" class="${filtro.genre === "" ? "on" : ""}">Todos</a>
+    ${Object.entries(generos).sort((a, b) => b[1] - a[1]).map(([g, n]) => `
+      <a data-f="genre" data-v="${esc(g)}" class="${filtro.genre === g ? "on" : ""}">${esc(g)} <span class="cnt">${n}</span></a>`).join("")}
+    ${Object.keys(zonas).length ? `
+      <h4>Zonas</h4>
+      <a data-f="zona" data-v="" class="${filtro.zona === "" ? "on" : ""}">Todas</a>
+      ${Object.entries(zonas).sort((a, b) => b[1] - a[1]).map(([z, n]) => `
+        <a data-f="zona" data-v="${esc(z)}" class="${filtro.zona === z ? "on" : ""}">${esc(z)} <span class="cnt">${n}</span></a>`).join("")}` : ""}`;
+
+  document.querySelectorAll("#side a").forEach(a => a.onclick = () => {
+    filtro[a.dataset.f] = a.dataset.v;
+    pintarSidebar(); pintar();
+  });
+
+  // filtros mobile (espejan el sidebar)
+  const mg = document.getElementById("m-genre"), mz = document.getElementById("m-zona");
+  mg.innerHTML = `<option value="">Todos los géneros</option>` +
+    Object.keys(generos).map(g => `<option ${filtro.genre === g ? "selected" : ""}>${esc(g)}</option>`).join("");
+  mz.innerHTML = `<option value="">Todas las zonas</option>` +
+    Object.keys(zonas).map(z => `<option ${filtro.zona === z ? "selected" : ""}>${esc(z)}</option>`).join("");
+  mg.onchange = () => { filtro.genre = mg.value; pintarSidebar(); pintar(); };
+  mz.onchange = () => { filtro.zona = mz.value; pintarSidebar(); pintar(); };
+}
+
+function pintar() {
+  const out = visibles();
+  document.getElementById("lista").innerHTML = out.map((d, i) => `
+    <div class="hw-row">
+      <a href="/disco.html?id=${d.id}"><img class="cov" src="${fotoPrincipal(d)}" alt="${esc(d.artist)} – ${esc(d.title)}" loading="lazy"></a>
+      <div class="hw-main">
+        <div class="hw-top">
+          <span class="hw-cat">${esc(d.label || d.format)}</span>
+          <span class="hw-meta">${d.year ? d.year + " |" : ""} <b>${esc(d.format)}</b> |
+            ${esc(d.condition_media)}/${esc(d.condition_sleeve)}${d.zona ? " | 📍 " + esc(d.zona) + (d.localidad ? " · " + esc(d.localidad) : "") : ""}</span>
+        </div>
+        <div><a href="/disco.html?id=${d.id}"><span class="hw-chip"><b>${esc(d.artist)}:</b> ${esc(d.title)}</span></a>${Date.now() - new Date(d.created_at).getTime() < 7 * DIA ? `<span class="tag-nuevo">Nuevo</span>` : ""}</div>
+        ${d.description ? `<div class="hw-desc">${esc(d.description)}</div>` : ""}
+        ${trackBtns(d, i)}
+      </div>
+      <div class="hw-side-r">
+        <span class="hw-est ${d.status === "disponible" ? "disp" : ""}">${d.status}</span>
+        <a class="hw-pill" href="/disco.html?id=${d.id}">
+          ${d.old_price && d.old_price > d.price ? `<s>${fmtPrecio(precioComprador(d.old_price))}</s>` : ""}${fmtPrecio(precioComprador(d.price))}</a>
+        ${d.old_price && d.old_price > d.price ? `<span class="ahorro">↓ Bajó de precio</span>` : ""}
+      </div>
+    </div>`).join("");
+  document.getElementById("empty").style.display = out.length ? "none" : "block";
+
+  document.querySelectorAll("[data-play]").forEach(b => b.onclick = () => {
+    const [di, ti] = b.dataset.play.split(":").map(Number);
+    const d = visibles()[di], t = d.tracks[ti];
+    reproducir(d, t);
+  });
+}
+
+function trackBtns(d, i) {
+  const conAudio = (d.tracks || []).map((t, ti) => ({ t, ti })).filter(x => x.t.audio_url);
+  if (!conAudio.length) return "";
+  return `<div class="hw-tracks">
+    ${conAudio.map(x => `<button data-play="${i}:${x.ti}" title="${esc(x.t.title)}">${esc(x.t.position || "▶")}</button>`).join("")}
+  </div>`;
+}
+
+// ===== Player fijo abajo =====
+function reproducir(d, t) {
+  const url = t.audio_url || "";
+  const yt = youtubeId(url);
+  const sp = url.match(/open\.spotify\.com\/(?:intl-\w+\/)?track\/([A-Za-z0-9]+)/);
+  let frame = "";
+  if (yt) frame = `<iframe src="https://www.youtube.com/embed/${yt}?autoplay=1" allow="autoplay; encrypted-media"></iframe>`;
+  else if (url.includes("soundcloud.com"))
+    frame = `<iframe src="https://w.soundcloud.com/player/?url=${encodeURIComponent(url)}&auto_play=true&visual=false" allow="autoplay"></iframe>`;
+  else if (sp) frame = `<iframe src="https://open.spotify.com/embed/track/${sp[1]}" allow="autoplay; encrypted-media"></iframe>`;
+  else { window.open(url, "_blank"); return; }
+
+  document.getElementById("pl-titulo").innerHTML =
+    `▶ <b>${esc(d.artist)} — ${esc(d.title)}</b> · ${esc(t.position || "")} ${esc(t.title || "")}`;
+  document.getElementById("pl-frame").innerHTML = frame;
+  document.getElementById("player").style.display = "block";
+}
+document.getElementById("pl-cerrar").onclick = () => {
+  document.getElementById("pl-frame").innerHTML = "";
+  document.getElementById("player").style.display = "none";
+};
 
 cargar();
 </script>
