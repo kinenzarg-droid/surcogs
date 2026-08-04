@@ -67,7 +67,7 @@ function renderAuth() {
           <label>Contraseña (mín. 6) *</label><input id="r-pass" type="password" minlength="6" required>
           <label>Repetir contraseña *</label><input id="r-pass2" type="password" minlength="6" required>
           <label>Zona</label><select id="r-zona"></select>
-          <label>Localidad / barrio</label><select id="r-loc"></select>
+          <label>Localidad / barrio</label><input id="r-loc">
           <br><br>
           <button class="btn" type="submit" id="btn-reg-go">Crear mi cuenta</button>
           <button class="btn ghost" type="button" id="btn-reg-close">Cancelar</button>
@@ -124,7 +124,7 @@ function renderCrearPerfil(user) {
     <form class="panel" id="f-perfil">
       <label>Nombre o alias</label><input id="p-name" value="${sugerido.replace(/"/g, "&quot;")}" required>
       <label>Zona</label><select id="p-zona"></select>
-      <label>Localidad / barrio</label><select id="p-loc"></select>
+      <label>Localidad / barrio</label><input id="p-loc">
       <br><br><button class="btn" type="submit">Guardar y empezar</button>
     </form>`;
   zonaSelector(document.getElementById("p-zona"), document.getElementById("p-loc"));
@@ -155,7 +155,7 @@ async function renderPanel(user, perfil) {
     <form id="f-ubic" style="display:none;gap:8px;margin:0 0 14px;max-width:480px">
       <div style="display:flex;gap:8px">
         <select id="u-zona" style="flex:1"></select>
-        <select id="u-loc" style="flex:1"></select>
+        <input id="u-loc" style="flex:1">
         <button class="btn small" type="submit">Guardar</button>
       </div>
     </form>
