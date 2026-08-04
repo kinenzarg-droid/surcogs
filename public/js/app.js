@@ -90,11 +90,14 @@ export async function getPerfil(userId) {
 // Header compartido — estilo SoundCloud
 export async function renderHeader(activo) {
   const user = await getUser();
-  let iniciales = "";
+  let avatarInner = "";
   if (user) {
     const perfil = await getPerfil(user.id);
-    iniciales = (perfil?.name || "")
+    const iniciales = (perfil?.name || "")
       .trim().split(/\s+/).map(w => w[0]).slice(0, 2).join("").toUpperCase() || "YO";
+    avatarInner = perfil?.avatar_url
+      ? `<img src="${perfil.avatar_url}" alt="Mi foto">`
+      : iniciales;
   }
   const el = document.getElementById("header");
   el.innerHTML = `
@@ -104,7 +107,6 @@ export async function renderHeader(activo) {
     <header class="hwh-bar">
       <nav class="hwh-tabs">
         <a href="/" class="${activo === "catalogo" ? "on" : ""}">Catálogo</a>
-        <a href="${user ? "/perfil.html?id=" + user.id : "/cuenta.html"}" class="${activo === "coleccion" ? "on" : ""}">Mi colección</a>
       </nav>
       <div class="search">
         <input id="hdr-q" type="search" placeholder="Buscar artista, disco o sello" autocomplete="off">
@@ -115,12 +117,15 @@ export async function renderHeader(activo) {
       <div class="hdr-links">
         ${user ? `
           <div class="avatar-wrap">
-            <button class="avatar" id="avatar-btn" title="Menú">${iniciales}</button>
+            <button class="avatar" id="avatar-btn" title="Menú">${avatarInner}</button>
             <div class="avatar-menu" id="avatar-menu">
               <a href="/cuenta.html">Mi cuenta</a>
+              <a href="/perfil.html?id=${user.id}">Mi colección</a>
               <a href="#" class="salir" id="btn-salir">Salir</a>
             </div>
-          </div>` : `<a href="/cuenta.html">Ingresar</a>`}
+          </div>` : `
+          <a class="btn-ing" href="/cuenta.html">Ingresar</a>
+          <a class="btn-reg" href="/cuenta.html?registro=1">Registrarse</a>`}
       </div>
     </header>`;
 
