@@ -70,12 +70,13 @@ export async function renderHeader(activo) {
   }
   const el = document.getElementById("header");
   el.innerHTML = `
-    <header class="hdr">
-      <a class="logo" href="/"><span class="vinilo"></span>SUR<span class="lg-acc">COGS</span></a>
-      <nav>
-        <a href="/" class="${activo === "inicio" ? "on" : ""}">Inicio</a>
-        <a href="/catalogo.html" class="${activo === "catalogo" ? "on" : ""}">Catálogo</a>
-        <a href="${user ? "/perfil.html?id=" + user.id : "/cuenta.html"}">Mi colección</a>
+    <div class="hwh-banner">
+      <a href="/"><span class="vinilo-hw"></span><span class="hwh-word">SURCOGS</span></a>
+    </div>
+    <header class="hwh-bar">
+      <nav class="hwh-tabs">
+        <a href="/" class="${activo === "catalogo" ? "on" : ""}">Catálogo</a>
+        <a href="${user ? "/perfil.html?id=" + user.id : "/cuenta.html"}" class="${activo === "coleccion" ? "on" : ""}">Mi colección</a>
       </nav>
       <div class="search">
         <input id="hdr-q" type="search" placeholder="Buscar artista, disco o sello" autocomplete="off">
@@ -88,7 +89,6 @@ export async function renderHeader(activo) {
           <div class="avatar-wrap">
             <button class="avatar" id="avatar-btn" title="Menú">${iniciales}</button>
             <div class="avatar-menu" id="avatar-menu">
-              <a href="/perfil.html?id=${user.id}" class="only-mobile">Mi colección</a>
               <a href="/cuenta.html">Mi cuenta</a>
               <a href="#" class="salir" id="btn-salir">Salir</a>
             </div>
@@ -116,7 +116,7 @@ export async function renderHeader(activo) {
   const dd = document.getElementById("hdr-dd");
   q.addEventListener("keydown", (e) => {
     if (e.key === "Enter" && q.value.trim()) {
-      location.href = "/catalogo.html?q=" + encodeURIComponent(q.value.trim());
+      location.href = "/?q=" + encodeURIComponent(q.value.trim());
     }
     if (e.key === "Escape") dd.style.display = "none";
   });
