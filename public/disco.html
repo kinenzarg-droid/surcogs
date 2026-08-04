@@ -39,7 +39,13 @@ function mostrarQueSigue() {
     <strong>✅ ¡Compra confirmada! ¿Y ahora?</strong><br>
     El vendedor recibe aviso de tu compra y va a escribirte <b>al email que dejaste</b> para
     coordinar la entrega: punto de encuentro o envío. Si en 48 horas no te contactó,
-    escribile por los comentarios de esta página.`;
+    escribile por los comentarios de esta página.<br><br>
+    📦 <b>¿Envío?</b> Sugerimos <b>Correo Argentino a sucursal</b>: el vendedor despacha el vinilo
+    embalado en cartón rígido y vos lo retirás en tu sucursal más cercana con tu DNI.
+    Es la opción más económica y el paquete viaja con seguimiento. El costo del envío lo acuerdan entre ustedes.<br><br>
+    🛡 <b>Política de devolución:</b> tu pago está protegido por Mercado Pago. Si el pedido no te llega,
+    o llega algo muy distinto a lo publicado, abrí un reclamo desde tu cuenta de Mercado Pago
+    (Compra Protegida) y te reintegran la plata.`;
   document.querySelector(".wrap").prepend(box);
 }
 
@@ -139,7 +145,9 @@ async function cargar() {
     box.innerHTML = `
       <label>Tu email (para el comprobante)</label>
       <input id="buyer-email" type="email" placeholder="tu@email.com" style="max-width:320px">
-      <br><br><button class="btn" id="btn-comprar">Comprar ahora</button>`;
+      <br><br><button class="btn" id="btn-comprar">Comprar ahora</button>
+      <p class="hint" style="margin-top:10px">🛡 <b>Comprá tranquilo:</b> pago protegido por Mercado Pago.
+      Si el disco no te llega, MP te devuelve la plata.</p>`;
     document.getElementById("btn-comprar").onclick = comprar;
   }
 

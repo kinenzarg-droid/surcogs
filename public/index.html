@@ -9,7 +9,8 @@
 <script src="/js/config.js"></script>
 <style>
 /* ===== Catálogo estilo Hard Wax ===== */
-.hw-layout{display:grid;grid-template-columns:210px 1fr;gap:0;max-width:1240px;margin:0 auto}
+.hw-layout{display:grid;grid-template-columns:210px 1fr;gap:0}
+.hw-rows>*{max-width:1030px}
 .hw-side{background:#1b1b1b;padding:14px 0;border-right:1px solid #333;min-height:70vh}
 .hw-side h4{display:flex;align-items:center;gap:8px;font-size:13.5px;color:#ddd;
   padding:10px 16px 6px;font-weight:700}
@@ -59,10 +60,45 @@ a:hover .hw-chip{background:#fff;box-shadow:1px 1px 0 rgba(0,0,0,.15)}
   text-transform:uppercase;vertical-align:2px}
 .ahorro{display:inline-block;background:#e8f5ec;color:#1e7a44;font-size:11px;font-weight:700;
   padding:2px 7px;border-radius:2px}
-.hw-pill{display:inline-block;background:#2e2e2e;color:#fff;border-radius:4px;padding:8px 13px;
-  font-size:13.5px;font-weight:700;white-space:nowrap;text-decoration:none}
-.hw-pill:hover{background:#000}
-.hw-pill s{opacity:.55;font-weight:400;margin-right:6px}
+/* precio + comprar (opción 3) */
+.hw-price{font-size:19px;font-weight:700;color:#1d1d1d;white-space:nowrap;text-decoration:none}
+.hw-price s{color:#8a8a8a;font-weight:400;font-size:13px;margin-right:6px}
+.hw-buy{display:inline-block;background:#2ea860;color:#fff;border-radius:4px;padding:8px 18px;
+  font-size:13.5px;font-weight:700;text-decoration:none;white-space:nowrap}
+.hw-buy:hover{background:#1e7a44;color:#fff}
+.hw-cart{background:transparent;color:#1d1d1d;border:1px solid #999;border-radius:4px;
+  padding:6px 12px;font-size:12.5px;cursor:pointer;font-family:inherit;white-space:nowrap}
+.hw-cart:hover{background:#c2bfb9}
+.hw-cart.in{background:#e8f5ec;color:#1e7a44;border-color:#2ea860}
+/* barra de carrito */
+.cart-bar{position:fixed;left:0;right:0;bottom:0;z-index:70;display:none;align-items:center;
+  gap:12px;background:#2e2e2e;border-top:2px solid #2ea860;padding:10px 16px;color:#ddd;
+  font-size:13.5px;flex-wrap:wrap}
+.cart-bar .verde{color:#39d17a}
+.cart-covers{display:flex;gap:5px}
+.cart-covers img{width:34px;height:34px;object-fit:cover;border-radius:2px}
+.cart-hint{color:#999;font-size:12px;margin-left:6px}
+.cart-buy-all{margin-left:auto;background:#2ea860;color:#fff;border:0;border-radius:4px;
+  padding:9px 20px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit}
+.cart-buy-all:hover{background:#1e7a44}
+/* modal de checkout por vendedor */
+.co-bg{position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:90;display:none;
+  align-items:center;justify-content:center;padding:16px}
+.co-modal{background:#232323;border:1px solid #3a3a3a;border-radius:6px;max-width:520px;
+  width:100%;padding:20px;color:#ddd;max-height:85vh;overflow:auto}
+.co-modal h3{margin:0 0 6px;color:#fff}
+.co-sub{color:#aaa;font-size:13px;margin:0 0 14px}
+.co-modal label{display:block;font-size:12.5px;color:#aaa;margin-bottom:4px}
+.co-modal input{width:100%;background:#3a3a3a;border:0;border-radius:4px;color:#eee;
+  padding:9px 12px;font-size:14px;margin-bottom:14px}
+.co-g{display:flex;align-items:center;gap:12px;justify-content:space-between;
+  background:#1b1b1b;border-radius:4px;padding:12px;margin-bottom:10px}
+.co-list{color:#8a8a8a;font-size:12px}
+.co-pay{background:#2ea860;color:#fff;border:0;border-radius:4px;padding:9px 18px;
+  font-weight:700;cursor:pointer;font-family:inherit;flex:none}
+.co-pay:disabled{opacity:.6;cursor:default}
+.co-close{background:transparent;border:1px solid #555;border-radius:4px;color:#bbb;
+  padding:7px 14px;cursor:pointer;font-family:inherit;margin-top:4px}
 /* player fijo */
 .hw-player{position:fixed;left:0;right:0;bottom:0;background:#181818;border-top:1px solid #000;
   z-index:60;display:none}
@@ -97,6 +133,27 @@ a:hover .hw-chip{background:#fff;box-shadow:1px 1px 0 rgba(0,0,0,.15)}
   </main>
 </div>
 
+<div class="cart-bar" id="cart-bar">
+  <span style="font-size:17px">🛒</span>
+  <div class="cart-covers" id="cart-covers"></div>
+  <span id="cart-info"></span>
+  <button class="cart-buy-all" id="cart-buy">Comprar todo</button>
+</div>
+
+<div class="co-bg" id="co-bg">
+  <div class="co-modal">
+    <h3>Finalizar compra</h3>
+    <p class="co-sub" id="co-sub"></p>
+    <label>Tu email (comprobante y contacto del vendedor)</label>
+    <input id="co-email" type="email" placeholder="tu@email.com" autocomplete="email">
+    <div id="co-groups"></div>
+    <p style="color:#8fd4ab;font-size:12.5px;background:#1d2b22;border-radius:4px;padding:10px 12px;margin:0 0 12px">
+      🛡 <b>Pago protegido por Mercado Pago.</b> Si el disco no te llega, abrís un reclamo
+      desde tu cuenta de MP y te devuelven la plata.</p>
+    <button class="co-close" id="co-close">Cerrar</button>
+  </div>
+</div>
+
 <div class="hw-player" id="player">
   <div class="bar">
     <span id="pl-titulo">▶</span>
@@ -106,7 +163,7 @@ a:hover .hw-chip{background:#fff;box-shadow:1px 1px 0 rgba(0,0,0,.15)}
 </div>
 
 <script type="module">
-import { sb, renderHeader, fmtPrecio, fotoPrincipal, precioComprador, youtubeId } from "/js/app.js";
+import { sb, renderHeader, fmtPrecio, fotoPrincipal, precioComprador, youtubeId, toast } from "/js/app.js";
 renderHeader("catalogo");
 
 const esc = (s) => String(s ?? "").replace(/</g, "&lt;").replace(/"/g, "&quot;");
@@ -128,6 +185,7 @@ async function cargar() {
   discos = data || [];
   pintarSidebar();
   pintar();
+  pintarCartBar();
 }
 
 function visibles() {
@@ -199,9 +257,12 @@ function pintar() {
       </div>
       <div class="hw-side-r">
         <span class="hw-est ${d.status === "disponible" ? "disp" : ""}">${d.status}</span>
-        <a class="hw-pill" href="/disco.html?id=${d.id}">
+        <a class="hw-price" href="/disco.html?id=${d.id}">
           ${d.old_price && d.old_price > d.price ? `<s>${fmtPrecio(precioComprador(d.old_price))}</s>` : ""}${fmtPrecio(precioComprador(d.price))}</a>
         ${d.old_price && d.old_price > d.price ? `<span class="ahorro">↓ Bajó de precio</span>` : ""}
+        ${d.status === "disponible" ? `
+          <a class="hw-buy" href="/disco.html?id=${d.id}">Comprar</a>
+          <button class="hw-cart" data-cart="${d.id}">+ Carrito</button>` : ""}
       </div>
     </div>`).join("");
   document.getElementById("empty").style.display = out.length ? "none" : "block";
@@ -211,6 +272,97 @@ function pintar() {
     const d = visibles()[di], t = d.tracks[ti];
     reproducir(d, t);
   });
+
+  // botones de carrito
+  document.querySelectorAll("[data-cart]").forEach(b => {
+    const rid = b.dataset.cart;
+    b.textContent = carrito.has(rid) ? "✓ En carrito" : "+ Carrito";
+    b.classList.toggle("in", carrito.has(rid));
+    b.onclick = () => {
+      carrito.has(rid) ? carrito.delete(rid) : carrito.add(rid);
+      guardarCarrito(); pintar(); pintarCartBar();
+    };
+  });
+}
+
+/* ===== Carrito global (persiste entre visitas) ===== */
+let carrito = new Set(JSON.parse(localStorage.getItem("sc_cart") || "[]"));
+const guardarCarrito = () => localStorage.setItem("sc_cart", JSON.stringify([...carrito]));
+
+function pintarCartBar() {
+  // depurar: sacar discos vendidos o inexistentes
+  [...carrito].forEach(rid => {
+    const d = discos.find(x => x.id === rid);
+    if (!d || d.status !== "disponible") carrito.delete(rid);
+  });
+  guardarCarrito();
+  const bar = document.getElementById("cart-bar");
+  if (!carrito.size) { bar.style.display = "none"; return; }
+  const items = [...carrito].map(rid => discos.find(x => x.id === rid));
+  const total = items.reduce((s, d) => s + precioComprador(d.price), 0);
+  const vendedores = new Set(items.map(d => d.seller_id)).size;
+  document.getElementById("cart-covers").innerHTML =
+    items.map(d => `<img src="${fotoPrincipal(d)}" title="${esc(d.artist)} — ${esc(d.title)}">`).join("");
+  document.getElementById("cart-info").innerHTML =
+    `<b>${carrito.size}</b> disco${carrito.size > 1 ? "s" : ""} · <b class="verde">${fmtPrecio(total)}</b>
+     <span class="cart-hint">${vendedores > 1 ? "de " + vendedores + " vendedores" : "un solo pago · una sola entrega"}</span>`;
+  bar.style.display = "flex";
+}
+
+document.getElementById("cart-buy").onclick = abrirCheckout;
+document.getElementById("co-close").onclick = () => { document.getElementById("co-bg").style.display = "none"; };
+document.getElementById("co-bg").onclick = (e) => { if (e.target.id === "co-bg") e.target.style.display = "none"; };
+
+async function abrirCheckout() {
+  const items = [...carrito].map(rid => discos.find(x => x.id === rid));
+  const grupos = {};
+  items.forEach(d => { (grupos[d.seller_id] = grupos[d.seller_id] || []).push(d); });
+  const sellerIds = Object.keys(grupos);
+  const { data: perfiles } = await sb.from("profiles").select("id, name").in("id", sellerIds);
+  const nombre = (sid) => (perfiles || []).find(p => p.id === sid)?.name || "Vendedor";
+
+  document.getElementById("co-sub").innerHTML = sellerIds.length > 1
+    ? `<span style="display:block;background:#332a1a;border:1px solid #6b5a35;border-radius:4px;padding:10px 12px;color:#e8d5a8">
+       ⚠ <b>Ojo: tu carrito tiene discos de ${sellerIds.length} vendedores.</b><br>
+       Eso significa <b>${sellerIds.length} pagos separados</b> (cada uno protegido por Mercado Pago) y
+       <b>${sellerIds.length} entregas distintas</b>: cada vendedor coordina con vos su propio envío o punto de
+       encuentro, y si van por correo, cada envío tiene su costo.<br>
+       Si preferís una sola entrega, comprale a un solo vendedor por vez.</span>`
+    : `Un solo pago por ${items.length} disco${items.length > 1 ? "s" : ""}, una sola entrega.`;
+  document.getElementById("co-groups").innerHTML = sellerIds.map(sid => {
+    const g = grupos[sid];
+    const t = g.reduce((s, d) => s + precioComprador(d.price), 0);
+    return `<div class="co-g">
+      <div><b>${esc(nombre(sid))}</b> · ${g.length} disco${g.length > 1 ? "s" : ""} · <b>${fmtPrecio(t)}</b><br>
+        <span class="co-list">${g.map(d => esc(d.artist + " – " + d.title)).join(" · ")}</span></div>
+      <button class="co-pay" data-sid="${sid}">Pagar</button>
+    </div>`;
+  }).join("");
+  document.getElementById("co-bg").style.display = "flex";
+  document.querySelectorAll(".co-pay").forEach(b => b.onclick = () => pagarGrupo(b, grupos[b.dataset.sid], sellerIds.length));
+}
+
+async function pagarGrupo(btn, grupo, cantGrupos) {
+  const email = document.getElementById("co-email").value.trim();
+  if (!email || !email.includes("@")) return toast("Poné tu email para el comprobante", true);
+  btn.disabled = true; btn.textContent = "Generando…";
+  try {
+    const r = await fetch("/api/create-preference", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ record_ids: grupo.map(d => d.id), buyer_email: email }),
+    });
+    const j = await r.json();
+    if (!r.ok) throw new Error(j.error || "Error");
+    grupo.forEach(d => carrito.delete(d.id));
+    guardarCarrito(); pintarCartBar();
+    if (cantGrupos === 1) { location.href = j.init_point; return; }
+    window.open(j.init_point, "_blank");
+    btn.textContent = "Pago abierto ✓";
+  } catch (e) {
+    toast("No pudimos generar el pago: " + e.message, true);
+    btn.disabled = false; btn.textContent = "Pagar";
+  }
 }
 
 function trackBtns(d, i) {

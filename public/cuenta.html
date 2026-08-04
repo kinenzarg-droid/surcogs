@@ -66,6 +66,7 @@ function renderAuth() {
           <label>Email *</label><input id="r-email" type="email" required>
           <label>Contraseña (mín. 6) *</label><input id="r-pass" type="password" minlength="6" required>
           <label>Repetir contraseña *</label><input id="r-pass2" type="password" minlength="6" required>
+          <label>Celular (WhatsApp)</label><input id="r-cel" type="tel" placeholder="11 2345 6789">
           <label>Zona</label><select id="r-zona"></select>
           <label>Localidad / barrio</label><input id="r-loc">
           <br><br>
@@ -91,6 +92,9 @@ function renderAuth() {
   document.getElementById("btn-reg-close").onclick = () => { modal.style.display = "none"; };
   modal.onclick = (e) => { if (e.target === modal) modal.style.display = "none"; };
 
+  // /cuenta.html?registro=1 → abrir directo el formulario de crear cuenta
+  if (new URLSearchParams(location.search).get("registro")) modal.style.display = "flex";
+
   document.getElementById("f-reg").onsubmit = async (e) => {
     e.preventDefault();
     if (document.getElementById("r-pass").value !== document.getElementById("r-pass2").value) {
@@ -106,6 +110,7 @@ function renderAuth() {
       const { error: e2 } = await sb.from("profiles").insert({
         id: data.user.id, name: v("r-name"),
         zona: v("r-zona") || null, localidad: v("r-loc") || null,
+        whatsapp: v("r-cel") || null,
       });
       if (e2) { toast(e2.message, true); btn.disabled = false; btn.textContent = "Crear mi cuenta"; return; }
     }
@@ -123,6 +128,7 @@ function renderCrearPerfil(user) {
     <p class="sub">Confirmá cómo te van a ver los demás y listo.</p>
     <form class="panel" id="f-perfil">
       <label>Nombre o alias</label><input id="p-name" value="${sugerido.replace(/"/g, "&quot;")}" required>
+      <label>Celular (WhatsApp)</label><input id="p-cel" type="tel" placeholder="11 2345 6789">
       <label>Zona</label><select id="p-zona"></select>
       <label>Localidad / barrio</label><input id="p-loc">
       <br><br><button class="btn" type="submit">Guardar y empezar</button>
@@ -133,6 +139,7 @@ function renderCrearPerfil(user) {
     const { error } = await sb.from("profiles").insert({
       id: user.id,
       name: document.getElementById("p-name").value.trim(),
+      whatsapp: document.getElementById("p-cel").value.trim() || null,
       zona: document.getElementById("p-zona").value || null,
       localidad: document.getElementById("p-loc").value || null,
     });
@@ -148,14 +155,23 @@ async function renderPanel(user, perfil) {
     sb.from("orders").select("*, records(artist, title)").eq("seller_id", user.id).eq("status", "pagada").order("created_at", { ascending: false }),
   ]);
 
+  const iniciales = (perfil.name || "").trim().split(/\s+/).map(w => w[0]).slice(0, 2).join("").toUpperCase() || "YO";
   main.innerHTML = `
-    <h1>Hola, ${perfil.name}</h1>
+    <h1 style="display:flex;align-items:center;gap:14px">
+      <span class="avatar" id="ava-view" style="width:54px;height:54px;font-size:19px;flex:none;display:inline-flex;align-items:center;justify-content:center">
+        ${perfil.avatar_url ? `<img src="${perfil.avatar_url}" alt="">` : iniciales}</span>
+      <span>Hola, ${perfil.name}</span>
+    </h1>
     <p class="sub">📍 ${[perfil.zona, perfil.localidad].filter(Boolean).join(" · ") || "Sin ubicación"}
-      <a href="#" id="btn-ubic" style="color:var(--acc);font-size:12.5px;margin-left:8px">cambiar</a></p>
-    <form id="f-ubic" style="display:none;gap:8px;margin:0 0 14px;max-width:480px">
-      <div style="display:flex;gap:8px">
-        <select id="u-zona" style="flex:1"></select>
-        <input id="u-loc" style="flex:1">
+      · 📱 ${perfil.whatsapp || "sin celular"}
+      <a href="#" id="btn-ubic" style="color:var(--acc);font-size:12.5px;margin-left:8px">editar</a>
+      · <a href="#" id="btn-ava" style="color:var(--acc);font-size:12.5px">📷 ${perfil.avatar_url ? "cambiar foto" : "subir foto"}</a>
+      <input id="ava-file" type="file" accept="image/*" style="display:none"></p>
+    <form id="f-ubic" style="display:none;gap:8px;margin:0 0 14px;max-width:560px">
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <select id="u-zona" style="flex:1;min-width:140px"></select>
+        <input id="u-loc" style="flex:1;min-width:140px">
+        <input id="u-cel" type="tel" placeholder="Celular (WhatsApp)" style="flex:1;min-width:140px">
         <button class="btn small" type="submit">Guardar</button>
       </div>
     </form>
@@ -177,7 +193,7 @@ async function renderPanel(user, perfil) {
             <span class="hint">${fmtPrecio(v.amount)} · comisión ${fmtPrecio(v.fee)} · ${new Date(v.created_at).toLocaleDateString("es-AR")}
             ${v.buyer_email ? " · comprador: " + v.buyer_email : ""}</span>
           </div>
-          ${v.buyer_email ? `<a class="btn small" href="mailto:${v.buyer_email}?subject=${encodeURIComponent("Tu compra en SURCOGS")}&body=${encodeURIComponent("¡Hola! Soy " + perfil.name + ", me compraste " + (v.records ? v.records.artist + " – " + v.records.title : "un disco") + " en SURCOGS. ¿Coordinamos la entrega? Puedo ofrecerte punto de encuentro o envío.")}">✉ Contactar</a>` : ""}
+          ${v.buyer_email ? `<a class="btn small" href="mailto:${v.buyer_email}?subject=${encodeURIComponent("Tu compra en SURCOGS")}&body=${encodeURIComponent("¡Hola! Soy " + perfil.name + ", me compraste " + (v.records ? v.records.artist + " – " + v.records.title : "un disco") + " en SURCOGS. ¿Coordinamos la entrega? Puedo ofrecerte punto de encuentro o envío por Correo Argentino a tu sucursal más cercana (va embalado en cartón rígido y con seguimiento).")}">✉ Contactar</a>` : ""}
         </div>`).join("") || "<p class='sub'>Todavía no tenés ventas.</p>"}
     </div>`;
 
@@ -230,6 +246,26 @@ async function renderPanel(user, perfil) {
 
   document.getElementById("btn-out").onclick = async () => { await sb.auth.signOut(); init(); };
 
+  // Foto de perfil
+  document.getElementById("btn-ava").onclick = (e) => {
+    e.preventDefault();
+    document.getElementById("ava-file").click();
+  };
+  document.getElementById("ava-file").onchange = async (e) => {
+    const f = e.target.files[0];
+    if (!f) return;
+    if (f.size > 3 * 1024 * 1024) return toast("La foto es muy pesada (máx. 3 MB)", true);
+    const ext = (f.name.split(".").pop() || "jpg").toLowerCase();
+    const path = `avatars/${user.id}-${Date.now()}.${ext}`;
+    const { error: e1 } = await sb.storage.from("records").upload(path, f);
+    if (e1) return toast(e1.message, true);
+    const { data: pu } = sb.storage.from("records").getPublicUrl(path);
+    const { error: e2 } = await sb.from("profiles").update({ avatar_url: pu.publicUrl }).eq("id", user.id);
+    if (e2) return toast(e2.message, true);
+    toast("Foto de perfil actualizada");
+    renderPanel(user, { ...perfil, avatar_url: pu.publicUrl });
+  };
+
   // Cambiar ubicación (zona → localidad)
   const fUbic = document.getElementById("f-ubic");
   document.getElementById("btn-ubic").onclick = (e) => {
@@ -237,15 +273,17 @@ async function renderPanel(user, perfil) {
     fUbic.style.display = fUbic.style.display === "none" ? "block" : "none";
     zonaSelector(document.getElementById("u-zona"), document.getElementById("u-loc"),
       perfil.zona || "", perfil.localidad || "");
+    document.getElementById("u-cel").value = perfil.whatsapp || "";
   };
   fUbic.onsubmit = async (e) => {
     e.preventDefault();
     const zona = document.getElementById("u-zona").value || null;
     const localidad = document.getElementById("u-loc").value || null;
-    const { error } = await sb.from("profiles").update({ zona, localidad }).eq("id", user.id);
+    const whatsapp = document.getElementById("u-cel").value.trim() || null;
+    const { error } = await sb.from("profiles").update({ zona, localidad, whatsapp }).eq("id", user.id);
     if (error) return toast(error.message, true);
-    toast("Ubicación actualizada");
-    renderPanel(user, { ...perfil, zona, localidad });
+    toast("Datos actualizados");
+    renderPanel(user, { ...perfil, zona, localidad, whatsapp });
   };
 }
 

@@ -32,7 +32,7 @@ async function cargar() {
   renderHeader(user && user.id === id ? "coleccion" : "");
 
   const [{ data: perfil }, { data: recs }] = await Promise.all([
-    sb.from("profiles").select("name, zona, created_at").eq("id", id).maybeSingle(),
+    sb.from("profiles").select("name, zona, localidad, avatar_url, created_at").eq("id", id).maybeSingle(),
     sb.from("records").select("*").eq("seller_id", id).order("created_at", { ascending: false }),
   ]);
   if (!perfil) { main.innerHTML = "<p class='sub'>Perfil no encontrado. <a href='/'>Volver al catálogo</a></p>"; return; }
@@ -42,8 +42,13 @@ async function cargar() {
   const vendidos = discos.filter(d => d.status === "vendido");
   const miembroDesde = new Date(perfil.created_at).toLocaleDateString("es-AR", { month: "long", year: "numeric" });
 
+  const iniciales = (perfil.name || "").trim().split(/\s+/).map(w => w[0]).slice(0, 2).join("").toUpperCase() || "?";
   main.innerHTML = `
-    <h1>${perfil.name}</h1>
+    <h1 style="display:flex;align-items:center;gap:14px">
+      <span class="avatar" style="width:54px;height:54px;font-size:19px;flex:none;display:inline-flex;align-items:center;justify-content:center;background:#4a4a4a;color:#fff;border-radius:50%">
+        ${perfil.avatar_url ? `<img src="${perfil.avatar_url}" alt="">` : iniciales}</span>
+      <span>${perfil.name}</span>
+    </h1>
     <p class="meta" id="rep" style="font-size:16px;margin:4px 0 8px"></p>
     <p class="sub">
       ${perfil.zona ? perfil.zona + " · " : ""}Miembro desde ${miembroDesde}
