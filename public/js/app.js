@@ -102,7 +102,7 @@ export async function renderHeader(activo) {
   const el = document.getElementById("header");
   el.innerHTML = `
     <div class="hwh-banner">
-      <a href="/"><span class="vinilo-hw"></span><span class="hwh-word">SURCOGS</span></a>
+      <a href="/"><span class="hwh-word">SURC</span><span class="vinilo-o"></span><span class="hwh-word">GS</span></a>
     </div>
     <header class="hwh-bar">
       <nav class="hwh-tabs">
