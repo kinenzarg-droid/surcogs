@@ -18,7 +18,7 @@
 </div>
 
 <script type="module">
-import { sb, renderHeader, getUser, fmtPrecio, fotoPrincipal, youtubeId, toast, precioComprador, reputacionHTML } from "/js/app.js";
+import { sb, renderHeader, getUser, fmtPrecio, fotoPrincipal, youtubeId, toast, precioComprador, reputacionHTML, ADMIN_ID } from "/js/app.js";
 renderHeader("catalogo");
 
 const params = new URLSearchParams(location.search);
@@ -96,6 +96,8 @@ async function cargar() {
   if (error || !d) { cont.innerHTML = "<p>No encontramos ese disco. <a href='/'>Volver al catálogo</a></p>"; return; }
 
   const p = d.profiles;
+  const yo = await getUser();
+  const esMio = yo && (yo.id === d.seller_id || yo.id === ADMIN_ID);
   const yt = youtubeId(d.audio_url);
   const fotos = d.photos && d.photos.length ? d.photos : [fotoPrincipal(d)];
   const disponible = d.status === "disponible";
@@ -117,6 +119,9 @@ async function cargar() {
       </div>
       <div class="price-big">${d.old_price && d.old_price > d.price ? `<span class="p-old" style="font-size:18px">${fmtPrecio(precioComprador(d.old_price))}</span>` : ""}${fmtPrecio(precioComprador(d.price))}</div>
       <p class="meta">Vende <a href="/perfil.html?id=${d.seller_id}"><strong>${p?.name || "—"}</strong></a>${d.zona || p?.zona ? " · " + (d.zona || p.zona) : ""} · <a href="/perfil.html?id=${d.seller_id}">ver su discografía →</a></p>
+      ${esMio ? `<p style="margin:10px 0">
+        <a class="btn small ghost" href="/publicar.html?edit=${d.id}">✎ Editar</a>
+        <button class="btn small ghost" id="btn-del-disco" style="margin-left:8px;color:#ff6b6b">🗑 Eliminar</button></p>` : ""}
       <p class="meta" id="rep-vendedor"></p>
       ${d.description ? `<p style="margin:12px 0">${d.description}</p>` : ""}
       ${d.tracks && d.tracks.length ? `
@@ -175,6 +180,16 @@ async function cargar() {
       window.open(url, "_blank");
     }
   });
+
+  if (esMio) {
+    document.getElementById("btn-del-disco").onclick = async () => {
+      if (!confirm(`¿Eliminar "${d.artist} – ${d.title}"? Esta acción no se puede deshacer.`)) return;
+      const { error } = await sb.from("records").delete().eq("id", d.id);
+      if (error) return toast(error.message, true);
+      toast("Disco eliminado");
+      setTimeout(() => location.href = "/", 800);
+    };
+  }
 
   cargarComentarios(d);
   reputacionHTML(d.seller_id).then(html => {
