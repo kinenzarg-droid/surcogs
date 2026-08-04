@@ -266,3 +266,28 @@ textarea { min-height: 72px; resize: vertical; }
 }
 .footer a { color: var(--dim); }
 .footer a:hover { color: var(--acc); }
+
+/* ===== Header Hard Wax: banner centrado + barra de pestañas ===== */
+.hwh-banner { padding: 22px 0 14px; text-align: center; background: var(--bg); }
+.hwh-banner a { display: inline-flex; align-items: center; gap: 12px; text-decoration: none; }
+.vinilo-hw { width: 34px; height: 34px; border-radius: 50%; flex: none;
+  background: radial-gradient(circle, #ff5500 16%, #0d0d0d 17%, #0d0d0d 44%, #3a3a3a 45%, #181818 100%); }
+.hwh-word { font-family: Arial, Helvetica, sans-serif; font-weight: 700; font-size: 26px;
+  letter-spacing: 9px; color: #fff; }
+.hwh-bar { display: flex; align-items: center; gap: 10px; padding: 10px 16px;
+  border-top: 1px solid #333; border-bottom: 1px solid #333;
+  position: sticky; top: 0; background: var(--bg); z-index: 40; }
+.hwh-tabs { display: flex; gap: 4px; flex: none; }
+.hwh-tabs a { color: #bbb; font-weight: 700; font-size: 14px; padding: 6px 10px;
+  border-radius: 4px; white-space: nowrap; }
+.hwh-tabs a:hover { color: #fff; }
+.hwh-tabs a.on { color: #fff; background: #2e2e2e; }
+.hwh-bar .search input { background: #3a3a3a; border: 0; border-radius: 4px; }
+.hwh-bar .search input:focus { background: #454545; }
+@media (max-width: 680px) {
+  .hwh-banner { padding: 14px 0 10px; }
+  .hwh-word { font-size: 19px; letter-spacing: 6px; }
+  .vinilo-hw { width: 26px; height: 26px; }
+  .hwh-bar { flex-wrap: wrap; }
+  .hwh-bar .search { order: 5; flex-basis: 100%; margin: 6px 0 0; }
+}
