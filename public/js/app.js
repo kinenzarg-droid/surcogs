@@ -8,31 +8,59 @@ export const GRADOS = ["M", "NM", "VG+", "VG", "G+", "G"];
 
 // Zonas y localidades para perfiles y discos
 export const ZONAS = {
-  "CABA": ["Almagro", "Balvanera", "Belgrano", "Boedo", "Caballito", "Chacarita", "Colegiales",
-    "Flores", "Floresta", "La Boca", "Liniers", "Mataderos", "Monserrat", "Núñez", "Palermo",
-    "Parque Patricios", "Paternal", "Recoleta", "Retiro", "Saavedra", "San Cristóbal", "San Telmo",
-    "Villa Crespo", "Villa Devoto", "Villa del Parque", "Villa Urquiza", "Otro barrio"],
-  "GBA Norte": ["Vicente López", "San Isidro", "San Fernando", "Tigre", "San Martín", "San Miguel",
-    "José C. Paz", "Malvinas Argentinas", "Escobar", "Pilar", "Otra localidad"],
-  "GBA Oeste": ["La Matanza", "Morón", "Hurlingham", "Ituzaingó", "Tres de Febrero", "Merlo",
-    "Moreno", "General Rodríguez", "Marcos Paz", "Otra localidad"],
-  "GBA Sur": ["Avellaneda", "Lanús", "Lomas de Zamora", "Quilmes", "Berazategui",
-    "Florencio Varela", "Almirante Brown", "Esteban Echeverría", "Ezeiza", "Otra localidad"],
-  "La Plata y alrededores": ["La Plata", "Berisso", "Ensenada", "City Bell / Gonnet", "Otra localidad"],
-  "Interior del país": ["Córdoba", "Rosario / Santa Fe", "Mendoza", "Tucumán", "Entre Ríos",
-    "Neuquén", "Río Negro", "Salta", "Corrientes", "Misiones", "Mar del Plata", "Bahía Blanca",
-    "Otra provincia"],
+  "CABA": ["Agronomía", "Almagro", "Balvanera", "Barracas", "Belgrano", "Boedo", "Caballito",
+    "Chacarita", "Coghlan", "Colegiales", "Constitución", "Flores", "Floresta", "La Boca",
+    "La Paternal", "Liniers", "Mataderos", "Monte Castro", "Monserrat", "Nueva Pompeya", "Núñez",
+    "Palermo", "Parque Avellaneda", "Parque Chacabuco", "Parque Chas", "Parque Patricios",
+    "Puerto Madero", "Recoleta", "Retiro", "Saavedra", "San Cristóbal", "San Nicolás", "San Telmo",
+    "Vélez Sársfield", "Versalles", "Villa Crespo", "Villa del Parque", "Villa Devoto",
+    "Villa General Mitre", "Villa Lugano", "Villa Luro", "Villa Ortúzar", "Villa Pueyrredón",
+    "Villa Real", "Villa Riachuelo", "Villa Santa Rita", "Villa Soldati", "Villa Urquiza"],
+  "GBA Norte": ["Vicente López", "Olivos", "Florida", "Munro", "Villa Martelli", "San Isidro",
+    "Martínez", "Acassuso", "Beccar", "Boulogne", "Villa Adelina", "San Fernando", "Victoria",
+    "Tigre", "Don Torcuato", "Pacheco", "Benavídez", "Nordelta", "Escobar", "Garín", "Maquinista Savio",
+    "Pilar", "Del Viso", "San Martín", "Villa Ballester", "San Andrés", "José León Suárez",
+    "San Miguel", "Bella Vista", "Muñiz", "José C. Paz", "Malvinas Argentinas", "Los Polvorines",
+    "Grand Bourg", "Campana", "Zárate"],
+  "GBA Oeste": ["La Matanza", "San Justo", "Ramos Mejía", "Lomas del Mirador", "Villa Luzuriaga",
+    "Isidro Casanova", "González Catán", "Laferrere", "Morón", "Castelar", "Haedo", "El Palomar",
+    "Hurlingham", "Villa Tesei", "William Morris", "Ituzaingó", "Parque Leloir", "Merlo",
+    "San Antonio de Padua", "Libertad", "Moreno", "Paso del Rey", "Francisco Álvarez",
+    "Tres de Febrero", "Caseros", "Ciudadela", "Santos Lugares", "Sáenz Peña", "Villa Bosch",
+    "General Rodríguez", "Marcos Paz", "Luján", "General Las Heras"],
+  "GBA Sur": ["Avellaneda", "Sarandí", "Wilde", "Gerli", "Piñeyro", "Lanús", "Remedios de Escalada",
+    "Monte Chingolo", "Valentín Alsina", "Lomas de Zamora", "Banfield", "Temperley", "Turdera",
+    "Llavallol", "Quilmes", "Bernal", "Don Bosco", "Ezpeleta", "San Francisco Solano", "Berazategui",
+    "Ranelagh", "Hudson", "Florencio Varela", "Almirante Brown", "Adrogué", "Burzaco", "Glew",
+    "Longchamps", "Rafael Calzada", "Claypole", "Esteban Echeverría", "Monte Grande", "Ezeiza",
+    "Canning", "San Vicente", "Guernica", "Cañuelas"],
+  "La Plata y alrededores": ["La Plata", "City Bell", "Gonnet", "Villa Elisa", "Tolosa", "Ringuelet",
+    "Los Hornos", "Berisso", "Ensenada", "Brandsen", "Magdalena"],
+  "Interior del país": ["Córdoba", "Rosario", "Santa Fe", "Mendoza", "San Miguel de Tucumán",
+    "Mar del Plata", "Bahía Blanca", "Tandil", "Salta", "San Salvador de Jujuy", "Neuquén",
+    "Cipolletti", "Bariloche", "Paraná", "Corrientes", "Resistencia", "Posadas", "Formosa",
+    "Santiago del Estero", "Catamarca", "La Rioja", "San Juan", "San Luis", "Santa Rosa",
+    "Rawson", "Comodoro Rivadavia", "Río Gallegos", "Ushuaia"],
 };
 
-// Llena dos <select> encadenados (zona → localidad). Reusable en registro, cuenta y publicar.
-export function zonaSelector(selZona, selLoc, zonaVal = "", locVal = "") {
+// Zona (select) → localidad (input con autocompletado). Si no está en la lista, se puede escribir igual.
+export function zonaSelector(selZona, inpLoc, zonaVal = "", locVal = "") {
   selZona.innerHTML = `<option value="">Elegí tu zona…</option>` +
     Object.keys(ZONAS).map(z => `<option ${z === zonaVal ? "selected" : ""}>${z}</option>`).join("");
+
+  // datalist para autocompletar mientras escribe
+  const dlId = "dl-" + (inpLoc.id || Math.random().toString(36).slice(2));
+  let dl = document.getElementById(dlId);
+  if (!dl) { dl = document.createElement("datalist"); dl.id = dlId; inpLoc.after(dl); }
+  inpLoc.setAttribute("list", dlId);
+  inpLoc.setAttribute("autocomplete", "off");
+  inpLoc.placeholder = "Escribí tu localidad o barrio…";
+
   const llenar = (loc) => {
     const locs = ZONAS[selZona.value] || [];
-    selLoc.innerHTML = `<option value="">Localidad / barrio…</option>` +
-      locs.map(l => `<option ${l === loc ? "selected" : ""}>${l}</option>`).join("");
-    selLoc.disabled = !locs.length;
+    dl.innerHTML = locs.map(l => `<option value="${l}">`).join("");
+    inpLoc.value = loc || "";
+    inpLoc.disabled = !selZona.value;
   };
   selZona.onchange = () => llenar("");
   llenar(locVal);
