@@ -302,3 +302,8 @@ textarea { min-height: 72px; resize: vertical; }
 .btn-reg { background: var(--acc); border-radius: 4px; color: #fff !important; font-weight: 700;
   font-size: 13px; padding: 7px 15px !important; white-space: nowrap; }
 .btn-reg:hover { background: #e04b00; }
+
+/* Logo: el vinilo es la O de SURCOGS */
+.vinilo-o { width: 26px; height: 26px; border-radius: 50%; flex: none; margin-right: 9px;
+  background: radial-gradient(circle, #ff5500 16%, #0d0d0d 17%, #0d0d0d 44%, #3a3a3a 45%, #181818 100%); }
+@media (max-width: 680px) { .vinilo-o { width: 19px; height: 19px; margin-right: 6px; } }
