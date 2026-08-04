@@ -291,3 +291,14 @@ textarea { min-height: 72px; resize: vertical; }
   .hwh-bar { flex-wrap: wrap; }
   .hwh-bar .search { order: 5; flex-basis: 100%; margin: 6px 0 0; }
 }
+
+/* Avatar con foto */
+.avatar { overflow: hidden; padding: 0; }
+.avatar img { width: 100%; height: 100%; object-fit: cover; display: block; border-radius: 50%; }
+
+/* Deslogueado: Ingresar + Registrarse */
+.btn-ing { color: #ddd !important; font-size: 13px; padding: 6px 10px !important; white-space: nowrap; }
+.btn-ing:hover { color: #fff !important; text-decoration: underline; }
+.btn-reg { background: var(--acc); border-radius: 4px; color: #fff !important; font-weight: 700;
+  font-size: 13px; padding: 7px 15px !important; white-space: nowrap; }
+.btn-reg:hover { background: #e04b00; }
