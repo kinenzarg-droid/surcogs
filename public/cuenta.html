@@ -15,7 +15,7 @@
 <div class="wrap" id="main"></div>
 
 <script type="module">
-import { sb, renderHeader, getUser, getPerfil, fmtPrecio, fotoPrincipal, toast } from "/js/app.js";
+import { sb, renderHeader, getUser, getPerfil, fmtPrecio, fotoPrincipal, toast, zonaSelector } from "/js/app.js";
 renderHeader("cuenta");
 const main = document.getElementById("main");
 
@@ -66,7 +66,8 @@ function renderAuth() {
           <label>Email *</label><input id="r-email" type="email" required>
           <label>Contraseña (mín. 6) *</label><input id="r-pass" type="password" minlength="6" required>
           <label>Repetir contraseña *</label><input id="r-pass2" type="password" minlength="6" required>
-          <label>Zona / barrio</label><input id="r-zona" placeholder="Palermo, CABA">
+          <label>Zona</label><select id="r-zona"></select>
+          <label>Localidad / barrio</label><select id="r-loc"></select>
           <br><br>
           <button class="btn" type="submit" id="btn-reg-go">Crear mi cuenta</button>
           <button class="btn ghost" type="button" id="btn-reg-close">Cancelar</button>
@@ -85,6 +86,7 @@ function renderAuth() {
   };
   document.getElementById("btn-google").onclick = loginGoogle;
   document.getElementById("btn-google-reg").onclick = loginGoogle;
+  zonaSelector(document.getElementById("r-zona"), document.getElementById("r-loc"));
   document.getElementById("btn-reg").onclick = () => { modal.style.display = "flex"; };
   document.getElementById("btn-reg-close").onclick = () => { modal.style.display = "none"; };
   modal.onclick = (e) => { if (e.target === modal) modal.style.display = "none"; };
@@ -102,7 +104,8 @@ function renderAuth() {
     // Crear el perfil en el mismo paso
     if (data.user) {
       const { error: e2 } = await sb.from("profiles").insert({
-        id: data.user.id, name: v("r-name"), zona: v("r-zona") || null,
+        id: data.user.id, name: v("r-name"),
+        zona: v("r-zona") || null, localidad: v("r-loc") || null,
       });
       if (e2) { toast(e2.message, true); btn.disabled = false; btn.textContent = "Crear mi cuenta"; return; }
     }
@@ -120,15 +123,18 @@ function renderCrearPerfil(user) {
     <p class="sub">Confirmá cómo te van a ver los demás y listo.</p>
     <form class="panel" id="f-perfil">
       <label>Nombre o alias</label><input id="p-name" value="${sugerido.replace(/"/g, "&quot;")}" required>
-      <label>Zona / barrio</label><input id="p-zona" placeholder="Palermo, CABA">
+      <label>Zona</label><select id="p-zona"></select>
+      <label>Localidad / barrio</label><select id="p-loc"></select>
       <br><br><button class="btn" type="submit">Guardar y empezar</button>
     </form>`;
+  zonaSelector(document.getElementById("p-zona"), document.getElementById("p-loc"));
   document.getElementById("f-perfil").onsubmit = async (e) => {
     e.preventDefault();
     const { error } = await sb.from("profiles").insert({
       id: user.id,
       name: document.getElementById("p-name").value.trim(),
-      zona: document.getElementById("p-zona").value.trim() || null,
+      zona: document.getElementById("p-zona").value || null,
+      localidad: document.getElementById("p-loc").value || null,
     });
     error ? toast(error.message, true) : location.href = "/publicar.html";
   };
@@ -144,7 +150,15 @@ async function renderPanel(user, perfil) {
 
   main.innerHTML = `
     <h1>Hola, ${perfil.name}</h1>
-    <p class="sub">${perfil.zona || ""}</p>
+    <p class="sub">📍 ${[perfil.zona, perfil.localidad].filter(Boolean).join(" · ") || "Sin ubicación"}
+      <a href="#" id="btn-ubic" style="color:var(--acc);font-size:12.5px;margin-left:8px">cambiar</a></p>
+    <form id="f-ubic" style="display:none;gap:8px;margin:0 0 14px;max-width:480px">
+      <div style="display:flex;gap:8px">
+        <select id="u-zona" style="flex:1"></select>
+        <select id="u-loc" style="flex:1"></select>
+        <button class="btn small" type="submit">Guardar</button>
+      </div>
+    </form>
     <div class="notice">Comisión: <strong>10% por venta</strong>, se suma al precio que ve el comprador y se descuenta automáticamente del pago. Nunca ponés plata de tu bolsillo.</div>
     <div id="mp-box"></div>
     <p style="margin:18px 0"><a class="btn" href="/publicar.html">+ Publicar un disco</a>
@@ -215,6 +229,24 @@ async function renderPanel(user, perfil) {
   });
 
   document.getElementById("btn-out").onclick = async () => { await sb.auth.signOut(); init(); };
+
+  // Cambiar ubicación (zona → localidad)
+  const fUbic = document.getElementById("f-ubic");
+  document.getElementById("btn-ubic").onclick = (e) => {
+    e.preventDefault();
+    fUbic.style.display = fUbic.style.display === "none" ? "block" : "none";
+    zonaSelector(document.getElementById("u-zona"), document.getElementById("u-loc"),
+      perfil.zona || "", perfil.localidad || "");
+  };
+  fUbic.onsubmit = async (e) => {
+    e.preventDefault();
+    const zona = document.getElementById("u-zona").value || null;
+    const localidad = document.getElementById("u-loc").value || null;
+    const { error } = await sb.from("profiles").update({ zona, localidad }).eq("id", user.id);
+    if (error) return toast(error.message, true);
+    toast("Ubicación actualizada");
+    renderPanel(user, { ...perfil, zona, localidad });
+  };
 }
 
 init();

@@ -15,7 +15,7 @@
 <div class="wrap" id="main"></div>
 
 <script type="module">
-import { sb, renderHeader, getUser, getPerfil, GRADOS, toast, fmtPrecio, precioComprador, ADMIN_ID } from "/js/app.js";
+import { sb, renderHeader, getUser, getPerfil, GRADOS, toast, fmtPrecio, precioComprador, ADMIN_ID, zonaSelector } from "/js/app.js";
 renderHeader("publicar");
 const main = document.getElementById("main");
 
@@ -109,7 +109,10 @@ async function init() {
         </div>
       </div>
       <p class="hint">Goldmine: NM casi perfecto · VG+ uso leve · VG uso evidente · G ruido considerable. Ante la duda, poné el grado más bajo.</p>
-      <label>Zona de entrega</label><input id="zona" value="${perfil.zona || ""}">
+      <div class="row2">
+        <div><label>Zona de entrega</label><select id="zona"></select></div>
+        <div><label>Localidad / barrio</label><select id="loc"></select></div>
+      </div>
       <label>Temas (se completan solos desde Discogs, o cargalos a mano)</label>
       <div id="tracks-box"></div>
       <button type="button" class="btn small ghost" id="btn-add-track">+ Agregar tema</button>
@@ -120,6 +123,11 @@ async function init() {
       <br><button class="btn" type="submit" id="btn-pub">${editRec ? "Guardar cambios" : "Publicar"}</button>
     </form>`;
 
+  // Zona → localidad: hereda la del perfil (o la del disco en modo edición)
+  zonaSelector(document.getElementById("zona"), document.getElementById("loc"),
+    editRec ? (editRec.zona || "") : (perfil.zona || ""),
+    editRec ? (editRec.localidad || "") : (perfil.localidad || ""));
+
   // Precargar datos en modo edición
   if (editRec) {
     const set = (id, v) => { if (v !== null && v !== undefined) document.getElementById(id).value = v; };
@@ -127,7 +135,7 @@ async function init() {
     set("year", editRec.year); set("format", editRec.format); set("price", editRec.price);
     set("genre", editRec.genre || "Techno");
     set("cm", editRec.condition_media); set("cs", editRec.condition_sleeve);
-    set("zona", editRec.zona); set("audio", editRec.audio_url); set("desc", editRec.description);
+    set("audio", editRec.audio_url); set("desc", editRec.description);
   }
 
   // ---- Tracklist con audio por tema ----
@@ -223,7 +231,7 @@ async function init() {
         format: v("format"), price: Number(v("price")),
         genre: v("genre"),
         condition_media: v("cm"), condition_sleeve: v("cs"),
-        zona: v("zona") || null, audio_url: v("audio") || null,
+        zona: v("zona") || null, localidad: v("loc") || null, audio_url: v("audio") || null,
         description: v("desc") || null,
         tracks: tracks.filter(t => (t.title || "").trim()).map(t => ({
           position: (t.position || "").trim(),
