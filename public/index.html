@@ -28,6 +28,35 @@
   .hw-mobile-filters{display:flex}
 }
 .hw-rows{padding:14px 16px 110px}
+/* grilla híbrida: tapa grande + lo esencial */
+.ggrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(225px,1fr));gap:14px}
+.gcard{background:#d6d4d0;color:#1d1d1d;display:flex;flex-direction:column;position:relative}
+.gcard:nth-child(even){background:#cfccc7}
+.gcov{width:100%;aspect-ratio:1;object-fit:cover;display:block}
+.gtag{position:absolute;top:8px;left:8px;background:#2ea860;color:#fff;font-size:10.5px;
+  font-weight:700;letter-spacing:1px;padding:2px 7px;border-radius:2px;text-transform:uppercase;z-index:2}
+.gbody{padding:10px 12px 12px;display:flex;flex-direction:column;gap:5px;flex:1}
+.gname{font-size:13.5px;line-height:1.3;color:#1d1d1d;overflow:hidden;display:-webkit-box;
+  -webkit-line-clamp:2;-webkit-box-orient:vertical}
+.gname b{font-weight:700}
+.gmeta{color:#555;font-size:11.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.gmeta .disp{color:#2ea860;font-weight:700}
+.gtracks{display:flex;flex-wrap:wrap;gap:2px 12px;border-top:1px solid #b5b2ac;padding-top:5px;
+  max-height:44px;overflow:hidden}
+.gtracks button{background:transparent;border:0;color:#3a3a3a;font-size:11.5px;cursor:pointer;
+  font-family:inherit;padding:1px 0}
+.gtracks button::before{content:"▶ ";font-size:9px}
+.gtracks button:hover{color:#000;text-decoration:underline}
+.gfoot{margin-top:auto;display:flex;align-items:center;justify-content:space-between;gap:8px;padding-top:6px;flex-wrap:wrap}
+.gprice{font-size:17px;font-weight:700;white-space:nowrap}
+.gprice s{color:#8a8a8a;font-weight:400;font-size:12px;margin-right:5px}
+.gbuy{display:inline-block;background:#2ea860;color:#fff;border:0;border-radius:4px;padding:7px 13px;
+  font-size:12.5px;font-weight:700;cursor:pointer;font-family:inherit;text-decoration:none}
+.gbuy:hover{background:#1e7a44;color:#fff}
+.gcart{background:transparent;border:1px solid #999;border-radius:4px;color:#1d1d1d;
+  padding:6px 9px;font-size:11.5px;cursor:pointer;font-family:inherit}
+.gcart:hover{background:#c2bfb9}
+.gcart.in{background:#e8f5ec;color:#1e7a44;border-color:#2ea860}
 .hw-row{display:flex;gap:14px;background:#d6d4d0;color:#1d1d1d;
   padding:12px;margin-bottom:14px}
 .hw-row:nth-child(even){background:#cfccc7}
@@ -70,6 +99,11 @@ a:hover .hw-chip{background:#fff;box-shadow:1px 1px 0 rgba(0,0,0,.15)}
   padding:6px 12px;font-size:12.5px;cursor:pointer;font-family:inherit;white-space:nowrap}
 .hw-cart:hover{background:#c2bfb9}
 .hw-cart.in{background:#e8f5ec;color:#1e7a44;border-color:#2ea860}
+.hw-own{display:inline-block;background:transparent;border:1px solid #999;border-radius:4px;
+  color:#1d1d1d;padding:6px 12px;font-size:12.5px;cursor:pointer;font-family:inherit;
+  white-space:nowrap;text-decoration:none;text-align:center}
+.hw-own:hover{background:#c2bfb9;color:#1d1d1d}
+.hw-own.del{color:#a33}
 /* barra de carrito */
 .cart-bar{position:fixed;left:0;right:0;bottom:0;z-index:70;display:none;align-items:center;
   gap:12px;background:#2e2e2e;border-top:2px solid #2ea860;padding:10px 16px;color:#ddd;
@@ -163,14 +197,15 @@ a:hover .hw-chip{background:#fff;box-shadow:1px 1px 0 rgba(0,0,0,.15)}
 </div>
 
 <script type="module">
-import { sb, renderHeader, fmtPrecio, fotoPrincipal, precioComprador, youtubeId, toast } from "/js/app.js";
+import { sb, renderHeader, fmtPrecio, fotoPrincipal, precioComprador, youtubeId, toast, getUser, ADMIN_ID } from "/js/app.js";
 renderHeader("catalogo");
 
 const esc = (s) => String(s ?? "").replace(/</g, "&lt;").replace(/"/g, "&quot;");
 const DIA = 86400000;
 
-let discos = [];
+let discos = [], usuario = null;
 const filtro = { q: "", genre: "", zona: "", nuevo: "" };
+const esMio = (d) => usuario && (usuario.id === d.seller_id || usuario.id === ADMIN_ID);
 
 // ?q= y ?genre= desde el header u otras páginas
 const params = new URLSearchParams(location.search);
@@ -178,6 +213,7 @@ filtro.q = (params.get("q") || "").toLowerCase().trim();
 filtro.genre = params.get("genre") || "";
 
 async function cargar() {
+  usuario = await getUser();
   const { data, error } = await sb.from("records")
     .select("*").neq("status", "vendido")
     .order("created_at", { ascending: false });
@@ -242,27 +278,26 @@ function pintarSidebar() {
 
 function pintar() {
   const out = visibles();
-  document.getElementById("lista").innerHTML = out.map((d, i) => `
-    <div class="hw-row">
-      <a href="/disco.html?id=${d.id}"><img class="cov" src="${fotoPrincipal(d)}" alt="${esc(d.artist)} – ${esc(d.title)}" loading="lazy"></a>
-      <div class="hw-main">
-        <div class="hw-top">
-          <span class="hw-cat">${esc(d.label || d.format)}</span>
-          <span class="hw-meta">${d.year ? d.year + " |" : ""} <b>${esc(d.format)}</b> |
-            ${esc(d.condition_media)}/${esc(d.condition_sleeve)}${d.zona ? " | 📍 " + esc(d.zona) + (d.localidad ? " · " + esc(d.localidad) : "") : ""}</span>
-        </div>
-        <div><a href="/disco.html?id=${d.id}"><span class="hw-chip"><b>${esc(d.artist)}:</b> ${esc(d.title)}</span></a>${Date.now() - new Date(d.created_at).getTime() < 7 * DIA ? `<span class="tag-nuevo">Nuevo</span>` : ""}</div>
-        ${d.description ? `<div class="hw-desc">${esc(d.description)}</div>` : ""}
+  const lista = document.getElementById("lista");
+  lista.className = "ggrid";
+  lista.innerHTML = out.map((d, i) => `
+    <div class="gcard">
+      <a href="/disco.html?id=${d.id}"><img class="gcov" src="${fotoPrincipal(d)}" alt="${esc(d.artist)} – ${esc(d.title)}" loading="lazy"></a>
+      ${Date.now() - new Date(d.created_at).getTime() < 7 * DIA ? `<span class="gtag">Nuevo</span>` : ""}
+      <div class="gbody">
+        <a class="gname" href="/disco.html?id=${d.id}"><b>${esc(d.artist)}:</b> ${esc(d.title)}</a>
+        <div class="gmeta">${esc(d.label || "")}${d.label ? " · " : ""}${esc(d.format)} · ${esc(d.condition_sleeve)}/${esc(d.condition_media)}${d.zona ? " · 📍 " + esc(d.zona) + (d.localidad ? " · " + esc(d.localidad) : "") : ""}
+          · <span class="${d.status === "disponible" ? "disp" : ""}">● ${d.status}</span></div>
         ${trackBtns(d, i)}
-      </div>
-      <div class="hw-side-r">
-        <span class="hw-est ${d.status === "disponible" ? "disp" : ""}">${d.status}</span>
-        <a class="hw-price" href="/disco.html?id=${d.id}">
-          ${d.old_price && d.old_price > d.price ? `<s>${fmtPrecio(precioComprador(d.old_price))}</s>` : ""}${fmtPrecio(precioComprador(d.price))}</a>
-        ${d.old_price && d.old_price > d.price ? `<span class="ahorro">↓ Bajó de precio</span>` : ""}
-        ${d.status === "disponible" ? `
-          <a class="hw-buy" href="/disco.html?id=${d.id}">Comprar</a>
-          <button class="hw-cart" data-cart="${d.id}">+ Carrito</button>` : ""}
+        <div class="gfoot">
+          <span class="gprice">${d.old_price && d.old_price > d.price ? `<s>${fmtPrecio(precioComprador(d.old_price))}</s>` : ""}${fmtPrecio(precioComprador(d.price))}</span>
+          ${esMio(d) ? `<span style="display:flex;gap:6px">
+            <a class="hw-own" href="/publicar.html?edit=${d.id}">✎</a>
+            <button class="hw-own del" data-del="${d.id}">🗑</button></span>` : d.status === "disponible" ? `<span style="display:flex;gap:6px">
+            <a class="gbuy" href="/disco.html?id=${d.id}">Comprar</a>
+            <button class="gcart" data-cart="${d.id}">+ 🛒</button></span>` : ""}
+        </div>
+        ${d.old_price && d.old_price > d.price ? `<span class="ahorro" style="align-self:flex-start">↓ Bajó de precio</span>` : ""}
       </div>
     </div>`).join("");
   document.getElementById("empty").style.display = out.length ? "none" : "block";
@@ -273,10 +308,21 @@ function pintar() {
     reproducir(d, t);
   });
 
+  // dueño: eliminar
+  document.querySelectorAll("[data-del]").forEach(b => b.onclick = async () => {
+    const d = discos.find(x => x.id === b.dataset.del);
+    if (!confirm(`¿Eliminar "${d.artist} – ${d.title}"? Esta acción no se puede deshacer.`)) return;
+    const { error } = await sb.from("records").delete().eq("id", d.id);
+    if (error) return toast(error.message, true);
+    discos = discos.filter(x => x.id !== d.id);
+    toast("Disco eliminado");
+    pintarSidebar(); pintar();
+  });
+
   // botones de carrito
   document.querySelectorAll("[data-cart]").forEach(b => {
     const rid = b.dataset.cart;
-    b.textContent = carrito.has(rid) ? "✓ En carrito" : "+ Carrito";
+    b.textContent = carrito.has(rid) ? "✓ 🛒" : "+ 🛒";
     b.classList.toggle("in", carrito.has(rid));
     b.onclick = () => {
       carrito.has(rid) ? carrito.delete(rid) : carrito.add(rid);
@@ -368,7 +414,7 @@ async function pagarGrupo(btn, grupo, cantGrupos) {
 function trackBtns(d, i) {
   const conAudio = (d.tracks || []).map((t, ti) => ({ t, ti })).filter(x => x.t.audio_url);
   if (!conAudio.length) return "";
-  return `<div class="hw-tracks">
+  return `<div class="gtracks">
     ${conAudio.map(x => `<button data-play="${i}:${x.ti}" title="${esc(x.t.title)}">${esc(x.t.position || "▶")}</button>`).join("")}
   </div>`;
 }
