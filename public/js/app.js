@@ -5,6 +5,38 @@ const { SUPABASE_URL, SUPABASE_ANON_KEY } = window.SURCOGS_CONFIG;
 export const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 export const GRADOS = ["M", "NM", "VG+", "VG", "G+", "G"];
+
+// Zonas y localidades para perfiles y discos
+export const ZONAS = {
+  "CABA": ["Almagro", "Balvanera", "Belgrano", "Boedo", "Caballito", "Chacarita", "Colegiales",
+    "Flores", "Floresta", "La Boca", "Liniers", "Mataderos", "Monserrat", "Núñez", "Palermo",
+    "Parque Patricios", "Paternal", "Recoleta", "Retiro", "Saavedra", "San Cristóbal", "San Telmo",
+    "Villa Crespo", "Villa Devoto", "Villa del Parque", "Villa Urquiza", "Otro barrio"],
+  "GBA Norte": ["Vicente López", "San Isidro", "San Fernando", "Tigre", "San Martín", "San Miguel",
+    "José C. Paz", "Malvinas Argentinas", "Escobar", "Pilar", "Otra localidad"],
+  "GBA Oeste": ["La Matanza", "Morón", "Hurlingham", "Ituzaingó", "Tres de Febrero", "Merlo",
+    "Moreno", "General Rodríguez", "Marcos Paz", "Otra localidad"],
+  "GBA Sur": ["Avellaneda", "Lanús", "Lomas de Zamora", "Quilmes", "Berazategui",
+    "Florencio Varela", "Almirante Brown", "Esteban Echeverría", "Ezeiza", "Otra localidad"],
+  "La Plata y alrededores": ["La Plata", "Berisso", "Ensenada", "City Bell / Gonnet", "Otra localidad"],
+  "Interior del país": ["Córdoba", "Rosario / Santa Fe", "Mendoza", "Tucumán", "Entre Ríos",
+    "Neuquén", "Río Negro", "Salta", "Corrientes", "Misiones", "Mar del Plata", "Bahía Blanca",
+    "Otra provincia"],
+};
+
+// Llena dos <select> encadenados (zona → localidad). Reusable en registro, cuenta y publicar.
+export function zonaSelector(selZona, selLoc, zonaVal = "", locVal = "") {
+  selZona.innerHTML = `<option value="">Elegí tu zona…</option>` +
+    Object.keys(ZONAS).map(z => `<option ${z === zonaVal ? "selected" : ""}>${z}</option>`).join("");
+  const llenar = (loc) => {
+    const locs = ZONAS[selZona.value] || [];
+    selLoc.innerHTML = `<option value="">Localidad / barrio…</option>` +
+      locs.map(l => `<option ${l === loc ? "selected" : ""}>${l}</option>`).join("");
+    selLoc.disabled = !locs.length;
+  };
+  selZona.onchange = () => llenar("");
+  llenar(locVal);
+}
 export const ADMIN_ID = window.SURCOGS_CONFIG.ADMIN_ID || null;
 
 export const fmtPrecio = (n) => "$" + Number(n).toLocaleString("es-AR");
@@ -41,8 +73,8 @@ export async function renderHeader(activo) {
     <header class="hdr">
       <a class="logo" href="/"><span class="vinilo"></span>SUR<span class="lg-acc">COGS</span></a>
       <nav>
-        <a href="/" class="${activo === "catalogo" ? "on" : ""}">Inicio</a>
-        <a href="/#catalogo">Catálogo</a>
+        <a href="/" class="${activo === "inicio" ? "on" : ""}">Inicio</a>
+        <a href="/catalogo.html" class="${activo === "catalogo" ? "on" : ""}">Catálogo</a>
         <a href="${user ? "/perfil.html?id=" + user.id : "/cuenta.html"}">Mi colección</a>
       </nav>
       <div class="search">
@@ -84,7 +116,7 @@ export async function renderHeader(activo) {
   const dd = document.getElementById("hdr-dd");
   q.addEventListener("keydown", (e) => {
     if (e.key === "Enter" && q.value.trim()) {
-      location.href = "/?q=" + encodeURIComponent(q.value.trim()) + "#catalogo";
+      location.href = "/catalogo.html?q=" + encodeURIComponent(q.value.trim());
     }
     if (e.key === "Escape") dd.style.display = "none";
   });
