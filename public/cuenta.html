@@ -43,7 +43,7 @@ const loginGoogle = async () => {
 function renderAuth() {
   main.innerHTML = `
     <h1>Ingresar</h1>
-    <p class="sub">Registrate gratis. Publicar no cuesta nada: SURCOGS cobra 10% solo cuando vendés.</p>
+    <p class="sub">Registrate gratis. Publicar no cuesta nada: SURCOGS cobra una comisión solo cuando vendés.</p>
     <form class="panel" id="f-auth">
       <button class="btn ghost" type="button" id="btn-google" style="width:100%">Continuar con Google</button>
       <div class="divider"><span>o con tu email</span></div>
@@ -175,7 +175,7 @@ async function renderPanel(user, perfil) {
         <button class="btn small" type="submit">Guardar</button>
       </div>
     </form>
-    <div class="notice">Comisión: <strong>10% por venta</strong>, se suma al precio que ve el comprador y se descuenta automáticamente del pago. Nunca ponés plata de tu bolsillo.</div>
+    <div class="notice">Publicás tu precio y esa plata es tuya. El comprador ve tu precio más la comisión de SURCOGS y Mercado Pago, que se descuentan solas del pago. Nunca ponés plata de tu bolsillo.</div>
     <div id="mp-box"></div>
     <p style="margin:18px 0"><a class="btn" href="/publicar.html">+ Publicar un disco</a>
       <a class="btn ghost" href="/perfil.html?id=${user.id}" style="margin-left:8px">Ver mi perfil público</a>

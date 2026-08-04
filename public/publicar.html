@@ -36,7 +36,7 @@ async function init() {
       <p class="sub">Conectá tu cuenta de Mercado Pago para recibir los pagos directo. Es una sola vez, tarda un minuto y no tiene costo.</p>
       <div class="panel">
         <strong>¿Por qué?</strong>
-        <p class="hint" style="margin:6px 0 14px">Los compradores pagan online con protección de Mercado Pago y la plata te llega a tu cuenta. La comisión de SURCOGS (10%) se suma al precio que ve el comprador: nunca ponés plata de tu bolsillo.</p>
+        <p class="hint" style="margin:6px 0 14px">Los compradores pagan online con protección de Mercado Pago y la plata te llega a tu cuenta. El comprador ve tu precio más la comisión de SURCOGS y Mercado Pago: nunca ponés plata de tu bolsillo.</p>
         <button class="btn" id="btn-mp">Conectar Mercado Pago</button>
       </div>`;
     document.getElementById("btn-mp").onclick = async () => {
@@ -99,7 +99,6 @@ async function init() {
           </div>
         </div>
       </div>
-      <p class="hint" id="hint-precio">Es lo que recibís vos. Las comisiones de Mercado Pago y SURCOGS se suman al precio que ve el comprador.</p>
       <div class="row2">
         <div><label>Estado del vinilo *</label>
           <select id="cm">${GRADOS.map(g => `<option ${g === "VG+" ? "selected" : ""}>${g}</option>`).join("")}</select>
@@ -200,14 +199,6 @@ async function init() {
     }
     btn.disabled = false; btn.textContent = "Traer datos";
   };
-
-  // Mostrar en vivo el precio final que ve el comprador
-  document.getElementById("price").addEventListener("input", (e) => {
-    const n = Number(e.target.value);
-    document.getElementById("hint-precio").textContent = n > 0
-      ? `Vos recibís ${fmtPrecio(n)} → el comprador va a ver ${fmtPrecio(precioComprador(n))} (comisiones incluidas).`
-      : "Ponés lo que querés cobrar vos. Las comisiones se suman arriba y las paga el comprador.";
-  });
 
   document.getElementById("f").onsubmit = async (e) => {
     e.preventDefault();
