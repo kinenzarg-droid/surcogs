@@ -75,6 +75,10 @@ export async function onRequest({ request, env }) {
                   <p>El pago ya está acreditado en tu Mercado Pago (menos comisiones).</p>
                   <p><b>Comprador:</b> ${emailComprador}<br>
                   Escribile hoy para coordinar la entrega: punto de encuentro o envío.</p>
+                  <p style="color:#555;font-size:13px">💰 <b>Tu plata ya está en tu cuenta de Mercado Pago.</b>
+                  MP la libera según el plazo configurado en tu cuenta — mirá la fecha exacta en la app:
+                  Actividad → este cobro → "Disponible el…". Recibís tu precio completo: las comisiones
+                  ya se descontaron solas del precio que pagó el comprador.</p>
                   <p style="color:#555;font-size:13px">📦 <b>Sugerencia de envío:</b> Correo Argentino a sucursal,
                   con seguimiento. Embalado de coleccionista:</p>
                   <ul style="color:#555;font-size:13px;margin:0 0 12px;padding-left:18px">
