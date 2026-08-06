@@ -207,7 +207,9 @@ async function renderPanel(user, perfil) {
       <div class="panel" style="max-width:none">
         <strong>Conectá Mercado Pago para empezar a vender</strong>
         <p class="hint" style="margin:6px 0 8px">Es requisito para publicar: los compradores pagan online con protección de Mercado Pago, la plata te llega directo a tu cuenta y la comisión se descuenta sola. Una sola vez, un minuto, sin costo.</p>
-        <p class="hint" style="margin:0 0 12px">💡 <b>Consejo: configurá la liberación de tu plata antes de vender</b>, no cuando ya vendiste. En la app de MP → Tu negocio → Costos y liberación elegís cuándo se libera cada cobro: inmediata, a 10 o a 18 días (a más días, menos comisión te cobra MP). Y tranquilo con tu precio: siempre recibís el valor completo que pusiste — las comisiones las paga el comprador, y si la de MP variara, la diferencia la absorbe SURCOGS.</p>
+        <p class="hint" style="margin:0 0 8px">💡 <b>Consejo: configurá la liberación de tu plata antes de vender</b>, no cuando ya vendiste. En la app de Mercado Pago: <b>Tu negocio → Costos y liberación</b> → elegí cuándo se libera cada cobro. A más días, menos comisión te cobra MP (aprox., IVA incluido — el número exacto para tu cuenta lo ves ahí mismo):</p>
+        <p class="hint" style="margin:0 0 12px">· Inmediata: ~6,6% &nbsp;· A 10 días: ~4,6% &nbsp;· A 18 días: ~3,6% &nbsp;· A 35 días: ~1,6%<br>
+        Y tranquilo con tu precio: siempre recibís el valor completo que pusiste — las comisiones las paga el comprador, y si la de MP variara, la diferencia la absorbe SURCOGS.</p>
         <button class="btn small" id="btn-mp">Conectar Mercado Pago</button>
       </div>`;
     document.getElementById("btn-mp").onclick = async () => {
