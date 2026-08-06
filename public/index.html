@@ -104,17 +104,30 @@ a:hover .hw-chip{background:#fff;box-shadow:1px 1px 0 rgba(0,0,0,.15)}
   white-space:nowrap;text-decoration:none;text-align:center}
 .hw-own:hover{background:#c2bfb9;color:#1d1d1d}
 .hw-own.del{color:#a33}
-/* barra de carrito */
-.cart-bar{position:fixed;left:0;right:0;bottom:0;z-index:70;display:none;align-items:center;
-  gap:12px;background:#2e2e2e;border-top:2px solid #2ea860;padding:10px 16px;color:#ddd;
-  font-size:13.5px;flex-wrap:wrap}
-.cart-bar .verde{color:#39d17a}
-.cart-covers{display:flex;gap:5px}
-.cart-covers img{width:34px;height:34px;object-fit:cover;border-radius:2px}
-.cart-hint{color:#999;font-size:12px;margin-left:6px}
-.cart-buy-all{margin-left:auto;background:#2ea860;color:#fff;border:0;border-radius:4px;
-  padding:9px 20px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit}
-.cart-buy-all:hover{background:#1e7a44}
+/* carrito estilo Bandcamp: panel derecho (desktop) / bandeja inferior (mobile) */
+@keyframes cartpulse{0%{box-shadow:0 0 0 0 rgba(46,168,96,.75)}100%{box-shadow:0 0 0 16px rgba(46,168,96,0)}}
+.cartp{position:fixed;right:12px;top:120px;width:240px;background:#d6d4d0;color:#1d1d1d;
+  z-index:85;display:none;box-shadow:0 4px 22px rgba(0,0,0,.45);border-radius:4px;
+  max-height:calc(100vh - 200px);overflow:auto}
+.cartp.pulse{animation:cartpulse .55s ease-out 2}
+.cartp-h{font-weight:700;font-size:13.5px;padding:10px 12px;border-bottom:1px solid #b5b2ac}
+.cartp-it{display:flex;gap:8px;align-items:flex-start;padding:9px 12px;border-bottom:1px solid #c4c1bb}
+.cartp-it img{width:34px;height:34px;object-fit:cover;flex:none;border-radius:2px}
+.cartp-it .n{flex:1;font-size:12px;line-height:1.35;min-width:0;color:#1d1d1d}
+.cartp-it .n small{color:#777}
+.cartp-it b{font-size:12px;white-space:nowrap}
+.cartp-it .x{background:transparent;border:0;color:#a33;font-size:13px;cursor:pointer;
+  padding:0 2px;font-family:inherit;flex:none}
+.cartp-sub{display:flex;justify-content:space-between;padding:10px 12px 4px;font-size:13.5px}
+.cartp-sub b{font-size:15px}
+.cartp-note{color:#777;font-size:11px;padding:0 12px 8px}
+.cartp-buy{display:block;width:calc(100% - 24px);margin:0 12px 12px;background:#2ea860;
+  color:#fff;border:0;border-radius:4px;padding:10px;font-size:14px;font-weight:700;
+  cursor:pointer;font-family:inherit}
+.cartp-buy:hover{background:#1e7a44}
+@media(max-width:680px){
+  .cartp{left:0;right:0;top:auto;bottom:0;width:auto;border-radius:8px 8px 0 0;max-height:45vh}
+}
 /* modal de checkout por vendedor */
 .co-bg{position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:90;display:none;
   align-items:center;justify-content:center;padding:16px}
@@ -141,6 +154,14 @@ a:hover .hw-chip{background:#fff;box-shadow:1px 1px 0 rgba(0,0,0,.15)}
 .hw-player .cerrar{margin-left:auto;background:transparent;border:1px solid #444;border-radius:3px;
   color:#bbb;cursor:pointer;padding:3px 10px;font-size:12px}
 .hw-player iframe{display:block;width:100%;height:80px;border:0}
+/* paginador */
+.pager{display:flex;justify-content:center;align-items:center;gap:6px;margin:24px 0 10px;flex-wrap:wrap}
+.pager button{background:#2e2e2e;border:1px solid #3f3f3f;border-radius:4px;color:#ddd;
+  padding:8px 14px;font-size:13px;cursor:pointer;font-family:inherit}
+.pager button:hover:not(:disabled){background:#3a3a3a;color:#fff}
+.pager button.on{background:#d6d4d0;color:#1d1d1d;font-weight:700}
+.pager button:disabled{opacity:.4;cursor:default}
+.pager .info{color:#8a8a8a;font-size:12px;margin:0 6px}
 .hw-footer{color:#777;font-size:12px;padding:10px 16px 30px;line-height:1.7}
 .hw-footer a{color:#2ea860}
 </style>
@@ -157,6 +178,7 @@ a:hover .hw-chip{background:#fff;box-shadow:1px 1px 0 rgba(0,0,0,.15)}
       <select id="m-zona"></select>
     </div>
     <div id="lista"></div>
+    <div class="pager" id="pager"></div>
     <p id="empty" class="sub" style="display:none;padding:20px 0">
       No hay discos que coincidan. Probá otra búsqueda o <a href="/publicar.html" style="color:var(--acc)">publicá el tuyo</a>.
     </p>
@@ -167,11 +189,12 @@ a:hover .hw-chip{background:#fff;box-shadow:1px 1px 0 rgba(0,0,0,.15)}
   </main>
 </div>
 
-<div class="cart-bar" id="cart-bar">
-  <span style="font-size:17px">🛒</span>
-  <div class="cart-covers" id="cart-covers"></div>
-  <span id="cart-info"></span>
-  <button class="cart-buy-all" id="cart-buy">Comprar todo</button>
+<div class="cartp" id="cartp">
+  <div class="cartp-h">🛒 Carrito de compra</div>
+  <div id="cartp-items"></div>
+  <div class="cartp-sub"><span>Subtotal</span><b id="cartp-total"></b></div>
+  <div class="cartp-note" id="cartp-note"></div>
+  <button class="cartp-buy" id="cart-buy">Comprar</button>
 </div>
 
 <div class="co-bg" id="co-bg">
@@ -200,10 +223,12 @@ a:hover .hw-chip{background:#fff;box-shadow:1px 1px 0 rgba(0,0,0,.15)}
 import { sb, renderHeader, fmtPrecio, fotoPrincipal, precioComprador, youtubeId, toast, getUser, ADMIN_ID } from "/js/app.js";
 renderHeader("catalogo");
 
-const esc = (s) => String(s ?? "").replace(/</g, "&lt;").replace(/"/g, "&quot;");
+const esc = (s) => String(s ?? "").replace(/</g, "&lt;").replace(/\"/g, "&quot;");
 const DIA = 86400000;
 
-let discos = [], usuario = null;
+let discos = [], usuario = null, pagina = 1, itemsPagina = [];
+const POR_PAGINA = 48;
+const tracksCache = new Map(); // tracklists solo de la página visible
 const filtro = { q: "", genre: "", zona: "", nuevo: "" };
 const esMio = (d) => usuario && (usuario.id === d.seller_id || usuario.id === ADMIN_ID);
 
@@ -214,8 +239,10 @@ filtro.genre = params.get("genre") || "";
 
 async function cargar() {
   usuario = await getUser();
+  // carga liviana: sin tracklists ni descripciones (se piden por página)
   const { data, error } = await sb.from("records")
-    .select("*").neq("status", "vendido")
+    .select("id, seller_id, artist, title, label, year, format, price, old_price, condition_media, condition_sleeve, zona, localidad, genre, photos, status, created_at")
+    .neq("status", "vendido")
     .order("created_at", { ascending: false });
   if (error) { console.error(error); return; }
   discos = data || [];
@@ -263,6 +290,7 @@ function pintarSidebar() {
 
   document.querySelectorAll("#side a").forEach(a => a.onclick = () => {
     filtro[a.dataset.f] = a.dataset.v;
+    pagina = 1;
     pintarSidebar(); pintar();
   });
 
@@ -272,15 +300,27 @@ function pintarSidebar() {
     Object.keys(generos).map(g => `<option ${filtro.genre === g ? "selected" : ""}>${esc(g)}</option>`).join("");
   mz.innerHTML = `<option value="">Todas las zonas</option>` +
     Object.keys(zonas).map(z => `<option ${filtro.zona === z ? "selected" : ""}>${esc(z)}</option>`).join("");
-  mg.onchange = () => { filtro.genre = mg.value; pintarSidebar(); pintar(); };
-  mz.onchange = () => { filtro.zona = mz.value; pintarSidebar(); pintar(); };
+  mg.onchange = () => { filtro.genre = mg.value; pagina = 1; pintarSidebar(); pintar(); };
+  mz.onchange = () => { filtro.zona = mz.value; pagina = 1; pintarSidebar(); pintar(); };
 }
 
-function pintar() {
+async function pintar(mantenerScroll) {
   const out = visibles();
+  const totalPaginas = Math.max(1, Math.ceil(out.length / POR_PAGINA));
+  if (pagina > totalPaginas) pagina = totalPaginas;
+  itemsPagina = out.slice((pagina - 1) * POR_PAGINA, pagina * POR_PAGINA);
+
+  // tracklists solo de los discos visibles (los que falten en caché)
+  const faltan = itemsPagina.filter(d => !tracksCache.has(d.id)).map(d => d.id);
+  if (faltan.length) {
+    const { data: tr } = await sb.from("records").select("id, tracks").in("id", faltan);
+    (tr || []).forEach(r => tracksCache.set(r.id, r.tracks || []));
+  }
+  itemsPagina.forEach(d => { d.tracks = tracksCache.get(d.id) || []; });
+
   const lista = document.getElementById("lista");
   lista.className = "ggrid";
-  lista.innerHTML = out.map((d, i) => `
+  lista.innerHTML = itemsPagina.map((d, i) => `
     <div class="gcard">
       <a href="/disco.html?id=${d.id}"><img class="gcov" src="${fotoPrincipal(d)}" alt="${esc(d.artist)} – ${esc(d.title)}" loading="lazy"></a>
       ${Date.now() - new Date(d.created_at).getTime() < 7 * DIA ? `<span class="gtag">Nuevo</span>` : ""}
@@ -302,21 +342,48 @@ function pintar() {
     </div>`).join("");
   document.getElementById("empty").style.display = out.length ? "none" : "block";
 
+  // paginador
+  const nums = Array.from({ length: totalPaginas }, (_, n) => n + 1)
+    .filter(n => n === 1 || n === totalPaginas || Math.abs(n - pagina) <= 2);
+  let ult = 0;
+  document.getElementById("pager").innerHTML = totalPaginas > 1 ? `
+    <button ${pagina === 1 ? "disabled" : ""} data-pag="${pagina - 1}">‹ Anterior</button>
+    ${nums.map(n => { const gap = n - ult > 1 ? `<span class="info">…</span>` : ""; ult = n;
+      return gap + `<button class="${n === pagina ? "on" : ""}" data-pag="${n}">${n}</button>`; }).join("")}
+    <button ${pagina === totalPaginas ? "disabled" : ""} data-pag="${pagina + 1}">Siguiente ›</button>
+    <span class="info">${out.length} discos</span>` : "";
+  document.querySelectorAll("#pager [data-pag]").forEach(b => b.onclick = () => {
+    pagina = Number(b.dataset.pag);
+    pintar();
+  });
+  if (!mantenerScroll) window.scrollTo({ top: 0, behavior: "smooth" });
+
   document.querySelectorAll("[data-play]").forEach(b => b.onclick = () => {
     const [di, ti] = b.dataset.play.split(":").map(Number);
-    const d = visibles()[di], t = d.tracks[ti];
+    const d = itemsPagina[di], t = d.tracks[ti];
     reproducir(d, t);
   });
 
   // dueño: eliminar
   document.querySelectorAll("[data-del]").forEach(b => b.onclick = async () => {
     const d = discos.find(x => x.id === b.dataset.del);
-    if (!confirm(`¿Eliminar "${d.artist} – ${d.title}"? Esta acción no se puede deshacer.`)) return;
+    if (!confirm(`¿Eliminar \"${d.artist} – ${d.title}\"? Esta acción no se puede deshacer.`)) return;
     const { error } = await sb.from("records").delete().eq("id", d.id);
-    if (error) return toast(error.message, true);
+    if (error) {
+      if (String(error.code) === "23503") {
+        if (confirm("Este disco tiene compras en el historial y no se puede borrar. ¿Lo saco de la venta (queda como vendido)?")) {
+          const { error: e2 } = await sb.from("records").update({ status: "vendido" }).eq("id", d.id);
+          if (e2) return toast(e2.message, true);
+          discos = discos.filter(x => x.id !== d.id);
+          toast("Disco retirado de la venta"); pintarSidebar(); pintar(true);
+        }
+        return;
+      }
+      return toast(error.message, true);
+    }
     discos = discos.filter(x => x.id !== d.id);
     toast("Disco eliminado");
-    pintarSidebar(); pintar();
+    pintarSidebar(); pintar(true);
   });
 
   // botones de carrito
@@ -325,8 +392,14 @@ function pintar() {
     b.textContent = carrito.has(rid) ? "✓ 🛒" : "+ 🛒";
     b.classList.toggle("in", carrito.has(rid));
     b.onclick = () => {
-      carrito.has(rid) ? carrito.delete(rid) : carrito.add(rid);
-      guardarCarrito(); pintar(); pintarCartBar();
+      const agregando = !carrito.has(rid);
+      agregando ? carrito.add(rid) : carrito.delete(rid);
+      guardarCarrito(); pintar(true); pintarCartBar();
+      if (agregando) {
+        toast("Agregado al carrito ✓");
+        const panel = document.getElementById("cartp");
+        panel.classList.remove("pulse"); void panel.offsetWidth; panel.classList.add("pulse");
+      } else toast("Quitado del carrito");
     };
   });
 }
@@ -342,17 +415,36 @@ function pintarCartBar() {
     if (!d || d.status !== "disponible") carrito.delete(rid);
   });
   guardarCarrito();
-  const bar = document.getElementById("cart-bar");
-  if (!carrito.size) { bar.style.display = "none"; return; }
+  const panel = document.getElementById("cartp");
+  if (!carrito.size) { panel.style.display = "none"; return; }
   const items = [...carrito].map(rid => discos.find(x => x.id === rid));
   const total = items.reduce((s, d) => s + precioComprador(d.price), 0);
   const vendedores = new Set(items.map(d => d.seller_id)).size;
-  document.getElementById("cart-covers").innerHTML =
-    items.map(d => `<img src="${fotoPrincipal(d)}" title="${esc(d.artist)} — ${esc(d.title)}">`).join("");
-  document.getElementById("cart-info").innerHTML =
-    `<b>${carrito.size}</b> disco${carrito.size > 1 ? "s" : ""} · <b class="verde">${fmtPrecio(total)}</b>
-     <span class="cart-hint">${vendedores > 1 ? "de " + vendedores + " vendedores" : "un solo pago · una sola entrega"}</span>`;
-  bar.style.display = "flex";
+  document.getElementById("cartp-items").innerHTML = items.map(d => `
+    <div class="cartp-it">
+      <img src="${fotoPrincipal(d)}" alt="">
+      <div class="n">${esc(d.artist)} - ${esc(d.title)}<br><small>${esc(d.format)} Vinyl</small></div>
+      <b>${fmtPrecio(precioComprador(d.price))}</b>
+      <button class="x" data-x="${d.id}" title="Quitar del carrito">✕</button>
+    </div>`).join("");
+  document.getElementById("cartp-total").textContent = fmtPrecio(total);
+  document.getElementById("cartp-note").textContent = vendedores > 1
+    ? `Discos de ${vendedores} vendedores: ${vendedores} pagos y ${vendedores} entregas.`
+    : "Un solo pago · una sola entrega";
+  panel.style.display = "block";
+  document.querySelectorAll("[data-x]").forEach(b => b.onclick = () => {
+    carrito.delete(b.dataset.x);
+    guardarCarrito(); pintar(true); pintarCartBar();
+    toast("Quitado del carrito");
+  });
+  ajustarBarras();
+}
+
+// en mobile la bandeja del carrito se apila arriba del player (nunca se pisan)
+function ajustarBarras() {
+  const pl = document.getElementById("player");
+  const alto = pl.style.display === "block" ? pl.offsetHeight : 0;
+  document.getElementById("cartp").style.bottom = window.innerWidth <= 680 ? alto + "px" : "";
 }
 
 document.getElementById("cart-buy").onclick = abrirCheckout;
@@ -435,10 +527,12 @@ function reproducir(d, t) {
     `▶ <b>${esc(d.artist)} — ${esc(d.title)}</b> · ${esc(t.position || "")} ${esc(t.title || "")}`;
   document.getElementById("pl-frame").innerHTML = frame;
   document.getElementById("player").style.display = "block";
+  ajustarBarras();
 }
 document.getElementById("pl-cerrar").onclick = () => {
   document.getElementById("pl-frame").innerHTML = "";
   document.getElementById("player").style.display = "none";
+  ajustarBarras();
 };
 
 cargar();

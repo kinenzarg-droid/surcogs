@@ -109,7 +109,18 @@ function pintar() {
     const d = discos.find(x => x.id === b.dataset.del);
     if (!confirm(`¿Eliminar "${d.title}"? Esta acción no se puede deshacer.`)) return;
     const { error } = await sb.from("records").delete().eq("id", d.id);
-    if (error) return toast(error.message, true);
+    if (error) {
+      if (String(error.code) === "23503") {
+        if (confirm("Este disco tiene compras en el historial y no se puede borrar. ¿Lo saco de la venta (queda como vendido)?")) {
+          const { error: e2 } = await sb.from("records").update({ status: "vendido" }).eq("id", d.id);
+          if (e2) return toast(e2.message, true);
+          discos = discos.filter(x => x.id !== d.id);
+          toast("Disco retirado de la venta"); pintar();
+        }
+        return;
+      }
+      return toast(error.message, true);
+    }
     discos = discos.filter(x => x.id !== d.id);
     toast("Disco eliminado"); pintar();
   });
