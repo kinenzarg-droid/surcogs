@@ -104,6 +104,15 @@ a:hover .hw-chip{background:#fff;box-shadow:1px 1px 0 rgba(0,0,0,.15)}
   white-space:nowrap;text-decoration:none;text-align:center}
 .hw-own:hover{background:#c2bfb9;color:#1d1d1d}
 .hw-own.del{color:#a33}
+/* dueño: editar/eliminar chiquitos sobre la tapa */
+.gown{position:absolute;top:8px;right:8px;display:flex;gap:6px;z-index:3}
+.gown a,.gown button{width:27px;height:27px;border-radius:5px;background:rgba(0,0,0,.72);
+  border:0;color:#fff;font-size:12px;cursor:pointer;display:flex;align-items:center;
+  justify-content:center;font-family:inherit;text-decoration:none}
+.gown a:hover{background:#ff5500;color:#fff}
+.gown button.del:hover{background:#ff4d4d}
+.gbtns{display:flex;gap:6px;width:100%}
+.gbtns>*{flex:1;text-align:center}
 /* carrito estilo Bandcamp: panel derecho (desktop) / bandeja inferior (mobile) */
 @keyframes cartpulse{0%{box-shadow:0 0 0 0 rgba(46,168,96,.75)}100%{box-shadow:0 0 0 16px rgba(46,168,96,0)}}
 .cartp{position:fixed;right:12px;top:120px;width:240px;background:#d6d4d0;color:#1d1d1d;
@@ -324,6 +333,9 @@ async function pintar(mantenerScroll) {
     <div class="gcard">
       <a href="/disco.html?id=${d.id}"><img class="gcov" src="${fotoPrincipal(d)}" alt="${esc(d.artist)} – ${esc(d.title)}" loading="lazy"></a>
       ${Date.now() - new Date(d.created_at).getTime() < 7 * DIA ? `<span class="gtag">Nuevo</span>` : ""}
+      ${esMio(d) ? `<span class="gown">
+        <a href="/publicar.html?edit=${d.id}" title="Editar">✎</a>
+        <button class="del" data-del="${d.id}" title="Eliminar">🗑</button></span>` : ""}
       <div class="gbody">
         <a class="gname" href="/disco.html?id=${d.id}"><b>${esc(d.artist)}:</b> ${esc(d.title)}</a>
         <div class="gmeta">${esc(d.label || "")}${d.label ? " · " : ""}${esc(d.format)} · ${esc(d.condition_sleeve)}/${esc(d.condition_media)}${d.zona ? " · 📍 " + esc(d.zona) + (d.localidad ? " · " + esc(d.localidad) : "") : ""}
@@ -331,12 +343,11 @@ async function pintar(mantenerScroll) {
         ${trackBtns(d, i)}
         <div class="gfoot">
           <span class="gprice">${d.old_price && d.old_price > d.price ? `<s>${fmtPrecio(precioComprador(d.old_price))}</s>` : ""}${fmtPrecio(precioComprador(d.price))}</span>
-          ${esMio(d) ? `<span style="display:flex;gap:6px">
-            <a class="hw-own" href="/publicar.html?edit=${d.id}">✎</a>
-            <button class="hw-own del" data-del="${d.id}">🗑</button></span>` : d.status === "disponible" ? `<span style="display:flex;gap:6px">
-            <a class="gbuy" href="/disco.html?id=${d.id}">Comprar</a>
-            <button class="gcart" data-cart="${d.id}">+ 🛒</button></span>` : ""}
         </div>
+        ${d.status === "disponible" ? `<div class="gbtns">
+          <a class="gbuy" href="/disco.html?id=${d.id}">Comprar</a>
+          <button class="gcart" data-cart="${d.id}">Agregar al carrito</button>
+        </div>` : ""}
         ${d.old_price && d.old_price > d.price ? `<span class="ahorro" style="align-self:flex-start">↓ Bajó de precio</span>` : ""}
       </div>
     </div>`).join("");
@@ -389,7 +400,7 @@ async function pintar(mantenerScroll) {
   // botones de carrito
   document.querySelectorAll("[data-cart]").forEach(b => {
     const rid = b.dataset.cart;
-    b.textContent = carrito.has(rid) ? "✓ 🛒" : "+ 🛒";
+    b.textContent = carrito.has(rid) ? "✓ En carrito" : "Agregar al carrito";
     b.classList.toggle("in", carrito.has(rid));
     b.onclick = () => {
       const agregando = !carrito.has(rid);
