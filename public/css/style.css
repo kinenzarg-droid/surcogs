@@ -288,8 +288,14 @@ textarea { min-height: 72px; resize: vertical; }
   .hwh-banner { padding: 14px 0 10px; }
   .hwh-word { font-size: 19px; letter-spacing: 6px; }
   .vinilo-hw { width: 26px; height: 26px; }
-  .hwh-bar { flex-wrap: wrap; }
-  .hwh-bar .search { order: 5; flex-basis: 100%; margin: 6px 0 0; }
+  .hwh-bar { flex-wrap: wrap; gap: 5px; padding: 8px 10px; }
+  .hwh-tabs { gap: 0; }
+  .hwh-tabs a { font-size: 12.5px; padding: 5px 8px; }
+  .btn-cta { font-size: 11.5px; padding: 6px 9px; margin-left: auto; }
+  .btn-ing { font-size: 12px; padding: 5px 5px !important; }
+  .btn-reg { font-size: 12px; padding: 6px 10px !important; }
+  .hdr-links { margin-left: 0; gap: 0; }
+  .hwh-bar .search { order: 5; flex-basis: 100%; margin: 5px 0 0; }
 }
 
 /* Avatar con foto */
