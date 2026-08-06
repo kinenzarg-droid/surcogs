@@ -199,7 +199,8 @@ a:hover .hw-chip{background:#fff;box-shadow:1px 1px 0 rgba(0,0,0,.15)}
 </div>
 
 <div class="cartp" id="cartp">
-  <div class="cartp-h">🛒 Carrito de compra</div>
+  <div class="cartp-h" style="display:flex;justify-content:space-between;align-items:center">🛒 Carrito de compra
+    <button id="cart-clear" title="Vaciar carrito" style="background:transparent;border:0;color:#a33;font-size:15px;cursor:pointer;font-family:inherit;padding:0 2px">✕</button></div>
   <div id="cartp-items"></div>
   <div class="cartp-sub"><span>Subtotal</span><b id="cartp-total"></b></div>
   <div class="cartp-note" id="cartp-note"></div>
@@ -459,6 +460,11 @@ function ajustarBarras() {
 }
 
 document.getElementById("cart-buy").onclick = abrirCheckout;
+document.getElementById("cart-clear").onclick = () => {
+  carrito.clear();
+  guardarCarrito(); pintar(true); pintarCartBar();
+  toast("Carrito vaciado");
+};
 document.getElementById("co-close").onclick = () => { document.getElementById("co-bg").style.display = "none"; };
 document.getElementById("co-bg").onclick = (e) => { if (e.target.id === "co-bg") e.target.style.display = "none"; };
 
