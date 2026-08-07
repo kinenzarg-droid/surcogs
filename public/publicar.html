@@ -129,6 +129,7 @@ async function init() {
       <p class="hint">Si elegís costo fijo, el comprador lo ve antes de pagar y vos lo recibís completo junto con tu precio. Referencia: un vinilo embalado por Correo Argentino a sucursal ronda los $5.000-8.000. Comprando varios discos tuyos se cobra un solo envío (el más caro).</p>
       <label>Temas (se completan solos desde Discogs, o cargalos a mano)</label>
       <div id="tracks-box"></div>
+      <p class="hint">Con los botones buscás el tema ya escrito en cada plataforma: elegí el que suene bien, copiá el link y pegalo. Así los compradores lo escuchan sin salir de tu publicación.</p>
       <button type="button" class="btn small ghost" id="btn-add-track">+ Agregar tema</button>
       <label>Audio de referencia general (opcional, link de YouTube)</label><input id="audio" placeholder="https://youtube.com/watch?v=…">
       <label>Fotos (hasta 4 — tapa, vinilo, etiqueta)</label>
@@ -171,9 +172,25 @@ async function init() {
           <input data-i="${i}" data-k="title" value="${esc(t.title)}" placeholder="Título del tema" style="flex:1">
           <button type="button" class="btn small ghost btn-del-track" data-i="${i}">✕</button>
         </div>
-        <input data-i="${i}" data-k="audio_url" value="${esc(t.audio_url || "")}"
-          placeholder="Link de audio del tema (YouTube, SoundCloud o Spotify)" style="margin-top:6px">
+        <div style="display:flex;gap:6px;margin-top:6px;flex-wrap:wrap">
+          <input data-i="${i}" data-k="audio_url" value="${esc(t.audio_url || "")}"
+            placeholder="Pegá acá el link del tema" style="flex:1;min-width:180px">
+          <button type="button" class="btn small ghost btn-buscar" data-i="${i}" data-p="yt">YouTube</button>
+          <button type="button" class="btn small ghost btn-buscar" data-i="${i}" data-p="sc">SoundCloud</button>
+          <button type="button" class="btn small ghost btn-buscar" data-i="${i}" data-p="sp">Spotify</button>
+        </div>
       </div>`).join("") || `<p class="hint">Sin temas cargados. Traelos desde Discogs o agregalos a mano.</p>`;
+
+    box.querySelectorAll(".btn-buscar").forEach(b => b.onclick = () => {
+      const t = tracks[Number(b.dataset.i)];
+      const q = encodeURIComponent(((document.getElementById("artist").value || "") + " " + (t.title || "")).trim());
+      const urls = {
+        yt: "https://www.youtube.com/results?search_query=" + q,
+        sc: "https://soundcloud.com/search?q=" + q,
+        sp: "https://open.spotify.com/search/" + q,
+      };
+      window.open(urls[b.dataset.p], "_blank");
+    });
 
     box.querySelectorAll("input[data-i]").forEach(inp => inp.oninput = () => {
       tracks[Number(inp.dataset.i)][inp.dataset.k] = inp.value;
