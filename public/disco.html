@@ -8,6 +8,9 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Space+Grotesk:wght@400;500;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/css/style.css">
+<style>.tsrch{font-size:11px;color:var(--dim);border:1px solid var(--line);border-radius:3px;
+  padding:2px 8px;white-space:nowrap;text-decoration:none}
+.tsrch:hover{color:#fff;border-color:var(--acc)}</style>
 <script src="/js/config.js"></script>
 </head>
 <body>
@@ -144,10 +147,15 @@ async function cargar() {
           <p class="meta" style="margin-bottom:6px">TRACKLIST</p>
           ${d.tracks.map((t, i) => `
             <div style="border-top:1px solid var(--line);padding:7px 0">
-              <div style="display:flex;align-items:center;gap:10px">
+              <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
                 <span class="meta" style="min-width:34px">${esc(t.position || "")}</span>
-                <span style="flex:1;font-size:14px">${esc(t.title)}</span>
+                <span style="flex:1;font-size:14px;min-width:140px">${esc(t.title)}</span>
                 <span class="meta">${esc(t.duration || "")}</span>
+                <span style="display:flex;gap:5px">
+                  <a class="tsrch" target="_blank" href="https://www.youtube.com/results?search_query=${encodeURIComponent(d.artist + " " + t.title)}">YouTube</a>
+                  <a class="tsrch" target="_blank" href="https://soundcloud.com/search?q=${encodeURIComponent(d.artist + " " + t.title)}">SoundCloud</a>
+                  <a class="tsrch" target="_blank" href="https://open.spotify.com/search/${encodeURIComponent(d.artist + " " + t.title)}">Spotify</a>
+                </span>
                 ${t.audio_url ? `<button class="btn small ghost btn-play" data-i="${i}">▶</button>` : ""}
               </div>
               <div id="player-${i}"></div>
