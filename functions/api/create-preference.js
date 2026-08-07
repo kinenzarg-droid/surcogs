@@ -62,6 +62,21 @@ export async function onRequestPost({ request, env }) {
     });
   }
 
+  // Envío: un solo cargo por compra (el más caro del grupo) que va completo al vendedor.
+  // Se engrosa solo por la reserva de MP: SURCOGS no cobra comisión sobre el envío.
+  const costosEnvio = recs
+    .filter((r) => r.shipping_mode === "fijo" && r.shipping_cost > 0)
+    .map((r) => r.shipping_cost);
+  const envio = costosEnvio.length ? Math.max(...costosEnvio) : 0;
+  if (envio > 0) {
+    items.push({
+      title: "Envío",
+      quantity: 1,
+      unit_price: Math.round(envio / (1 - RESERVA_MP)),
+      currency_id: "ARS",
+    });
+  }
+
   // Crear las órdenes (una por disco, agrupadas por purchase_id)
   const ins = await fetch(`${SUPA}/rest/v1/orders`, {
     method: "POST",
