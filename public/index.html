@@ -241,6 +241,12 @@ const POR_PAGINA = 48;
 const tracksCache = new Map(); // tracklists solo de la página visible
 const filtro = { q: "", genre: "", zona: "", nuevo: "" };
 const esMio = (d) => usuario && (usuario.id === d.seller_id || usuario.id === ADMIN_ID);
+const envLabel = (d) =>
+  d.shipping_mode === "gratis" ? "📦 Envío gratis" :
+  d.shipping_mode === "retiro" ? "🤝 Solo retiro en mano" + (d.zona ? " (" + esc(d.zona) + ")" : "") :
+  d.shipping_mode === "fijo" && d.shipping_cost ? "📦 Envío " + fmtPrecio(Math.round(d.shipping_cost / 0.92)) + " a todo el país" :
+  "📦 Envío a coordinar con el vendedor";
+const envCosto = (d) => (d.shipping_mode === "fijo" && d.shipping_cost > 0) ? d.shipping_cost : 0;
 
 // ?q= y ?genre= desde el header u otras páginas
 const params = new URLSearchParams(location.search);
@@ -251,7 +257,7 @@ async function cargar() {
   usuario = await getUser();
   // carga liviana: sin tracklists ni descripciones (se piden por página)
   const { data, error } = await sb.from("records")
-    .select("id, seller_id, artist, title, label, year, format, price, old_price, condition_media, condition_sleeve, zona, localidad, genre, photos, status, created_at")
+    .select("id, seller_id, artist, title, label, year, format, price, old_price, condition_media, condition_sleeve, zona, localidad, genre, photos, status, created_at, shipping_mode, shipping_cost")
     .neq("status", "vendido")
     .order("created_at", { ascending: false });
   if (error) { console.error(error); return; }
@@ -341,6 +347,7 @@ async function pintar(mantenerScroll) {
         <a class="gname" href="/disco.html?id=${d.id}"><b>${esc(d.artist)}:</b> ${esc(d.title)}</a>
         <div class="gmeta">${esc(d.label || "")}${d.label ? " · " : ""}${esc(d.format)} · ${esc(d.condition_sleeve)}/${esc(d.condition_media)}${d.zona ? " · 📍 " + esc(d.zona) + (d.localidad ? " · " + esc(d.localidad) : "") : ""}
           · <span class="${d.status === "disponible" ? "disp" : ""}">● ${d.status}</span></div>
+        <div class="gmeta" style="color:#1e7a44">${envLabel(d)}</div>
         ${trackBtns(d, i)}
         <div class="gfoot">
           <span class="gprice">${d.old_price && d.old_price > d.price ? `<s>${fmtPrecio(precioComprador(d.old_price))}</s>` : ""}${fmtPrecio(precioComprador(d.price))}</span>
@@ -430,19 +437,33 @@ function pintarCartBar() {
   const panel = document.getElementById("cartp");
   if (!carrito.size) { panel.style.display = "none"; return; }
   const items = [...carrito].map(rid => discos.find(x => x.id === rid));
-  const total = items.reduce((s, d) => s + precioComprador(d.price), 0);
-  const vendedores = new Set(items.map(d => d.seller_id)).size;
+  const subDiscos = items.reduce((s, d) => s + precioComprador(d.price), 0);
+  const porVend = {};
+  items.forEach(d => { (porVend[d.seller_id] = porVend[d.seller_id] || []).push(d); });
+  let envTotal = 0, envLineas = "";
+  Object.values(porVend).forEach(ds => {
+    const e = Math.max(...ds.map(envCosto));
+    const eComprador = e > 0 ? Math.round(e / 0.92) : 0;
+    envTotal += eComprador;
+    if (ds.some(d => d.shipping_mode === "fijo" || d.shipping_mode === "gratis")) {
+      envLineas += `<div class="cartp-it" style="border-bottom:0;padding:4px 12px">
+        <div class="n" style="color:#777">Envío${Object.keys(porVend).length > 1 ? " (grupo)" : ""}</div>
+        <b>${eComprador === 0 ? "gratis" : fmtPrecio(eComprador)}</b><span style="width:17px"></span></div>`;
+    }
+  });
+  const total = subDiscos + envTotal;
+  const vendedores = Object.keys(porVend).length;
   document.getElementById("cartp-items").innerHTML = items.map(d => `
     <div class="cartp-it">
       <img src="${fotoPrincipal(d)}" alt="">
       <div class="n">${esc(d.artist)} - ${esc(d.title)}<br><small>${esc(d.format)} Vinyl</small></div>
       <b>${fmtPrecio(precioComprador(d.price))}</b>
       <button class="x" data-x="${d.id}" title="Quitar del carrito">✕</button>
-    </div>`).join("");
+    </div>`).join("") + envLineas;
   document.getElementById("cartp-total").textContent = fmtPrecio(total);
-  document.getElementById("cartp-note").textContent = vendedores > 1
-    ? `Discos de ${vendedores} vendedores: ${vendedores} pagos y ${vendedores} entregas.`
-    : "Un solo pago · una sola entrega";
+  document.getElementById("cartp-note").textContent = (vendedores > 1
+    ? `Discos de ${vendedores} vendedores: ${vendedores} pagos y ${vendedores} entregas. `
+    : "Un solo pago · una sola entrega. ") + "Varios discos del mismo vendedor pagan un solo envío.";
   panel.style.display = "block";
   document.querySelectorAll("[data-x]").forEach(b => b.onclick = () => {
     carrito.delete(b.dataset.x);
@@ -486,10 +507,15 @@ async function abrirCheckout() {
     : `Un solo pago por ${items.length} disco${items.length > 1 ? "s" : ""}, una sola entrega.`;
   document.getElementById("co-groups").innerHTML = sellerIds.map(sid => {
     const g = grupos[sid];
-    const t = g.reduce((s, d) => s + precioComprador(d.price), 0);
+    const e = Math.max(...g.map(envCosto));
+    const eComprador = e > 0 ? Math.round(e / 0.92) : 0;
+    const t = g.reduce((s, d) => s + precioComprador(d.price), 0) + eComprador;
+    const envTxt = eComprador > 0 ? " · envío " + fmtPrecio(eComprador)
+      : g.some(d => d.shipping_mode === "gratis") ? " · envío gratis"
+      : g.some(d => d.shipping_mode === "retiro") ? " · retiro en mano" : " · envío a coordinar";
     return `<div class="co-g">
       <div><b>${esc(nombre(sid))}</b> · ${g.length} disco${g.length > 1 ? "s" : ""} · <b>${fmtPrecio(t)}</b><br>
-        <span class="co-list">${g.map(d => esc(d.artist + " – " + d.title)).join(" · ")}</span></div>
+        <span class="co-list">${g.map(d => esc(d.artist + " – " + d.title)).join(" · ")}${envTxt}</span></div>
       <button class="co-pay" data-sid="${sid}">Pagar</button>
     </div>`;
   }).join("");

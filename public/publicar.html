@@ -112,6 +112,20 @@ async function init() {
         <div><label>Zona</label><select id="zona"></select></div>
         <div><label>Localidad / barrio</label><input id="loc"></div>
       </div>
+      <div class="row2">
+        <div><label>Entrega *</label>
+          <select id="entrega">
+            <option value="coordinar">A coordinar con el comprador</option>
+            <option value="fijo">Envío con costo fijo a todo el país</option>
+            <option value="gratis">Envío gratis (lo absorbo yo)</option>
+            <option value="retiro">Solo retiro en mano (mi zona)</option>
+          </select>
+        </div>
+        <div id="env-box" style="display:none"><label>Costo del envío</label>
+          <input id="env-costo" type="number" min="0" placeholder="5500">
+        </div>
+      </div>
+      <p class="hint">Si elegís costo fijo, el comprador lo ve antes de pagar y vos lo recibís completo junto con tu precio. Referencia: un vinilo embalado por Correo Argentino a sucursal ronda los $5.000-8.000. Comprando varios discos tuyos se cobra un solo envío (el más caro).</p>
       <label>Temas (se completan solos desde Discogs, o cargalos a mano)</label>
       <div id="tracks-box"></div>
       <button type="button" class="btn small ghost" id="btn-add-track">+ Agregar tema</button>
@@ -121,6 +135,11 @@ async function init() {
       <label>Notas (opcional)</label><textarea id="desc" placeholder="Warp leve que no afecta reproducción, edición original US…"></textarea>
       <br><button class="btn" type="submit" id="btn-pub">${editRec ? "Guardar cambios" : "Publicar"}</button>
     </form>`;
+
+  // Entrega: mostrar el costo solo si es envío fijo
+  const selEntrega = document.getElementById("entrega");
+  const envBox = document.getElementById("env-box");
+  selEntrega.onchange = () => { envBox.style.display = selEntrega.value === "fijo" ? "block" : "none"; };
 
   // Zona → localidad: hereda la del perfil (o la del disco en modo edición)
   zonaSelector(document.getElementById("zona"), document.getElementById("loc"),
@@ -135,6 +154,9 @@ async function init() {
     set("genre", editRec.genre || "Techno");
     set("cm", editRec.condition_media); set("cs", editRec.condition_sleeve);
     set("audio", editRec.audio_url); set("desc", editRec.description);
+    set("entrega", editRec.shipping_mode || "coordinar");
+    set("env-costo", editRec.shipping_cost);
+    envBox.style.display = (editRec.shipping_mode === "fijo") ? "block" : "none";
   }
 
   // ---- Tracklist con audio por tema ----
@@ -223,6 +245,8 @@ async function init() {
         genre: v("genre"),
         condition_media: v("cm"), condition_sleeve: v("cs"),
         zona: v("zona") || null, localidad: v("loc") || null, audio_url: v("audio") || null,
+        shipping_mode: v("entrega") || "coordinar",
+        shipping_cost: v("entrega") === "fijo" ? Number(v("env-costo")) || null : null,
         description: v("desc") || null,
         tracks: tracks.filter(t => (t.title || "").trim()).map(t => ({
           position: (t.position || "").trim(),

@@ -128,6 +128,11 @@ async function cargar() {
         <span class="badge ${disponible ? "ok" : d.status === "reservado" ? "res" : "sold"}">${d.status}</span>
       </div>
       <div class="price-big">${d.old_price && d.old_price > d.price ? `<span class="p-old" style="font-size:18px">${fmtPrecio(precioComprador(d.old_price))}</span>` : ""}${fmtPrecio(precioComprador(d.price))}</div>
+      <p class="meta" style="margin:2px 0 6px">${
+        d.shipping_mode === "gratis" ? "📦 Envío gratis" :
+        d.shipping_mode === "retiro" ? "🤝 Solo retiro en mano" + (d.zona ? " (" + d.zona + ")" : "") :
+        d.shipping_mode === "fijo" && d.shipping_cost ? "📦 Envío " + fmtPrecio(Math.round(d.shipping_cost / 0.92)) + " a todo el país — se suma al pagar" :
+        "📦 Envío a coordinar con el vendedor"}</p>
       <p class="meta">Vende <a href="/perfil.html?id=${d.seller_id}"><strong>${p?.name || "—"}</strong></a>${d.zona || p?.zona ? " · " + (d.zona || p.zona) : ""} · <a href="/perfil.html?id=${d.seller_id}">ver su discografía →</a></p>
       ${esMio ? `<p style="margin:10px 0">
         <a class="btn small ghost" href="/publicar.html?edit=${d.id}">✎ Editar</a>
