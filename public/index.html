@@ -260,6 +260,7 @@ renderHeader("catalogo");
 
 const esc = (s) => String(s ?? "").replace(/</g, "&lt;").replace(/\"/g, "&quot;");
 const DIA = 86400000;
+const CART_ICON = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#e6a817" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="pointer-events:none;flex:none"><circle cx="9" cy="20" r="1.7" fill="#e6a817" stroke="none"/><circle cx="17" cy="20" r="1.7" fill="#e6a817" stroke="none"/><path d="M3 3h2.5l2.2 12.2a1.5 1.5 0 0 0 1.5 1.3h7.9a1.5 1.5 0 0 0 1.5-1.2L20.5 8H6"/></svg>';
 
 let discos = [], usuario = null, pagina = 1, itemsPagina = [];
 const POR_PAGINA = 48;
@@ -385,7 +386,7 @@ async function pintar(mantenerScroll) {
         </div>
         ${d.status === "disponible" ? `<div class="gbtns">
           <a class="gbuy" href="/disco.html?id=${d.id}">Comprar</a>
-          <button class="gcart" data-cart="${d.id}">🛒 Agregar al carrito</button>
+          <button class="gcart" data-cart="${d.id}">${CART_ICON} Agregar al carrito</button>
         </div>` : ""}
         ${d.old_price && d.old_price > d.price ? `<span class="ahorro" style="align-self:flex-start">↓ Bajó de precio</span>` : ""}
       </div>
@@ -439,7 +440,7 @@ async function pintar(mantenerScroll) {
   // botones de carrito
   document.querySelectorAll("[data-cart]").forEach(b => {
     const rid = b.dataset.cart;
-    b.textContent = carrito.has(rid) ? "✓ En carrito" : "🛒 Agregar al carrito";
+    b.innerHTML = carrito.has(rid) ? "✓ En carrito" : CART_ICON + " Agregar al carrito";
     b.classList.toggle("in", carrito.has(rid));
     b.onclick = () => {
       const agregando = !carrito.has(rid);
