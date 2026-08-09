@@ -105,6 +105,7 @@ export async function renderHeader(activo) {
       <a href="/"><span class="hwh-word">SURC</span><span class="vinilo-o"></span><span class="hwh-word">GS</span></a>
     </div>
     <header class="hwh-bar">
+      <a class="hwh-brand-m" href="/">SURC<span class="vinilo-o"></span>GS</a>
       <nav class="hwh-tabs">
         <a href="/" class="${activo === "catalogo" ? "on" : ""}">Catálogo</a>
       </nav>
