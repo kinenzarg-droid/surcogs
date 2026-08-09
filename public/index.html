@@ -129,7 +129,7 @@ a:hover .hw-chip{background:#fff;box-shadow:1px 1px 0 rgba(0,0,0,.15)}
 .gown a:hover{background:#ff5500;color:#fff}
 .gown button.del:hover{background:#ff4d4d}
 .gbtns{display:flex;gap:6px;width:100%}
-.gbtns>*{flex:1;text-align:center}
+.gbtns>*{flex:1;display:flex;align-items:center;justify-content:center;gap:5px;text-align:center}
 /* carrito estilo Bandcamp: panel derecho (desktop) / bandeja inferior (mobile) */
 @keyframes cartpulse{0%{box-shadow:0 0 0 0 rgba(46,168,96,.75)}100%{box-shadow:0 0 0 16px rgba(46,168,96,0)}}
 .cartp{position:fixed;right:12px;top:120px;width:240px;background:#d6d4d0;color:#1d1d1d;
@@ -385,7 +385,7 @@ async function pintar(mantenerScroll) {
         </div>
         ${d.status === "disponible" ? `<div class="gbtns">
           <a class="gbuy" href="/disco.html?id=${d.id}">Comprar</a>
-          <button class="gcart" data-cart="${d.id}">Agregar al carrito</button>
+          <button class="gcart" data-cart="${d.id}">🛒 Agregar al carrito</button>
         </div>` : ""}
         ${d.old_price && d.old_price > d.price ? `<span class="ahorro" style="align-self:flex-start">↓ Bajó de precio</span>` : ""}
       </div>
@@ -439,7 +439,7 @@ async function pintar(mantenerScroll) {
   // botones de carrito
   document.querySelectorAll("[data-cart]").forEach(b => {
     const rid = b.dataset.cart;
-    b.textContent = carrito.has(rid) ? "✓ En carrito" : "Agregar al carrito";
+    b.textContent = carrito.has(rid) ? "✓ En carrito" : "🛒 Agregar al carrito";
     b.classList.toggle("in", carrito.has(rid));
     b.onclick = () => {
       const agregando = !carrito.has(rid);
