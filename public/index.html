@@ -5,9 +5,14 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>SURCOGS — Vinilos de mano en mano</title>
 <meta name="description" content="Marketplace P2P de vinilos. Escuchá cada tema, pagá con Mercado Pago, coordiná la entrega. Buenos Aires.">
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+<link rel="preconnect" href="https://cdrexpdauogollnqvmoe.supabase.co" crossorigin>
+<link rel="preconnect" href="https://i.discogs.com">
 <link rel="stylesheet" href="/css/style.css">
 <script src="/js/config.js"></script>
 <style>
+.skc{aspect-ratio:.72;background:#1d1d1d;border-radius:2px;animation:skp 1.2s ease-in-out infinite}
+@keyframes skp{0%,100%{opacity:.55}50%{opacity:1}}
 /* ===== Catálogo estilo Hard Wax ===== */
 .hw-layout{display:grid;grid-template-columns:210px 1fr;gap:0}
 .hw-rows>*{max-width:1030px}
@@ -203,7 +208,10 @@ a:hover .hw-chip{background:#fff;box-shadow:1px 1px 0 rgba(0,0,0,.15)}
         <option value="desc">Precio: mayor a menor</option>
       </select>
     </div>
-    <div id="lista"></div>
+    <div id="lista" class="ggrid">
+      <div class="skc"></div><div class="skc"></div><div class="skc"></div><div class="skc"></div>
+      <div class="skc"></div><div class="skc"></div><div class="skc"></div><div class="skc"></div>
+    </div>
     <div class="pager" id="pager"></div>
     <p id="empty" class="sub" style="display:none;padding:20px 0">
       No hay discos que coincidan. Probá otra búsqueda o <a href="/publicar.html" style="color:var(--acc)">publicá el tuyo</a>.
@@ -271,12 +279,15 @@ filtro.q = (params.get("q") || "").toLowerCase().trim();
 filtro.genre = params.get("genre") || "";
 
 async function cargar() {
-  usuario = await getUser();
-  // carga liviana: sin tracklists ni descripciones (se piden por página)
-  const { data, error } = await sb.from("records")
-    .select("id, seller_id, artist, title, label, year, format, price, old_price, condition_media, condition_sleeve, zona, localidad, genre, photos, status, created_at, shipping_mode, shipping_cost")
-    .neq("status", "vendido")
-    .order("created_at", { ascending: false });
+  // login y catálogo en paralelo: nada espera a nadie
+  const [u, { data, error }] = await Promise.all([
+    getUser(),
+    sb.from("records")
+      .select("id, seller_id, artist, title, label, year, format, price, old_price, condition_media, condition_sleeve, zona, localidad, genre, photos, status, created_at, shipping_mode, shipping_cost")
+      .neq("status", "vendido")
+      .order("created_at", { ascending: false }),
+  ]);
+  usuario = u;
   if (error) { console.error(error); return; }
   discos = data || [];
   pintarSidebar();
@@ -352,13 +363,6 @@ async function pintar(mantenerScroll) {
   const totalPaginas = Math.max(1, Math.ceil(out.length / POR_PAGINA));
   if (pagina > totalPaginas) pagina = totalPaginas;
   itemsPagina = out.slice((pagina - 1) * POR_PAGINA, pagina * POR_PAGINA);
-
-  // tracklists solo de los discos visibles (los que falten en caché)
-  const faltan = itemsPagina.filter(d => !tracksCache.has(d.id)).map(d => d.id);
-  if (faltan.length) {
-    const { data: tr } = await sb.from("records").select("id, tracks").in("id", faltan);
-    (tr || []).forEach(r => tracksCache.set(r.id, r.tracks || []));
-  }
   itemsPagina.forEach(d => { d.tracks = tracksCache.get(d.id) || []; });
 
   const lista = document.getElementById("lista");
@@ -448,6 +452,14 @@ async function pintar(mantenerScroll) {
       } else toast("Quitado del carrito");
     };
   });
+
+  // tracklists en segundo plano: no frenan el primer render
+  const faltan = itemsPagina.filter(d => !tracksCache.has(d.id)).map(d => d.id);
+  if (faltan.length) {
+    const { data: tr } = await sb.from("records").select("id, tracks").in("id", faltan);
+    (tr || []).forEach(r => tracksCache.set(r.id, r.tracks || []));
+    pintar(true);
+  }
 }
 
 /* ===== Carrito global (persiste entre visitas) ===== */
