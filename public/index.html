@@ -27,6 +27,18 @@
   .hw-side{display:none}
   .hw-mobile-filters{display:flex}
 }
+@media(max-width:680px){
+  .hw-rows{padding:8px 8px 110px}
+  .ggrid{grid-template-columns:1fr 1fr;gap:8px}
+  .gbody{padding:8px 9px 10px;gap:4px}
+  .gname{font-size:12px}
+  .gmeta{font-size:10.5px}
+  .gtracks{display:none}
+  .gprice{font-size:14px}
+  .gbtns{flex-direction:column}
+  .gbuy,.gcart{font-size:11.5px;padding:6px 8px}
+  .gown a,.gown button{width:24px;height:24px;font-size:11px}
+}
 .hw-rows{padding:14px 16px 110px}
 /* grilla híbrida: tapa grande + lo esencial */
 .ggrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(225px,1fr));gap:14px}
@@ -185,6 +197,11 @@ a:hover .hw-chip{background:#fff;box-shadow:1px 1px 0 rgba(0,0,0,.15)}
     <div class="hw-mobile-filters">
       <select id="m-genre"></select>
       <select id="m-zona"></select>
+      <select id="m-orden">
+        <option value="">Más nuevos</option>
+        <option value="asc">Precio: menor a mayor</option>
+        <option value="desc">Precio: mayor a menor</option>
+      </select>
     </div>
     <div id="lista"></div>
     <div class="pager" id="pager"></div>
@@ -239,7 +256,7 @@ const DIA = 86400000;
 let discos = [], usuario = null, pagina = 1, itemsPagina = [];
 const POR_PAGINA = 48;
 const tracksCache = new Map(); // tracklists solo de la página visible
-const filtro = { q: "", genre: "", zona: "", nuevo: "" };
+const filtro = { q: "", genre: "", zona: "", nuevo: "", orden: "" };
 const esMio = (d) => usuario && (usuario.id === d.seller_id || usuario.id === ADMIN_ID);
 const envLabel = (d) =>
   d.shipping_mode === "gratis" ? "📦 Envío gratis" :
@@ -269,7 +286,7 @@ async function cargar() {
 
 function visibles() {
   const hoy = Date.now();
-  return discos.filter(d => {
+  const out = discos.filter(d => {
     if (filtro.genre && d.genre !== filtro.genre) return false;
     if (filtro.zona && d.zona !== filtro.zona) return false;
     if (filtro.q && !`${d.artist} ${d.title} ${d.label || ""}`.toLowerCase().includes(filtro.q)) return false;
@@ -279,6 +296,9 @@ function visibles() {
     if (filtro.nuevo === "rebajados" && !(d.old_price && d.old_price > d.price)) return false;
     return true;
   });
+  if (filtro.orden === "asc") out.sort((a, b) => a.price - b.price);
+  if (filtro.orden === "desc") out.sort((a, b) => b.price - a.price);
+  return out;
 }
 
 function pintarSidebar() {
@@ -294,6 +314,10 @@ function pintarSidebar() {
     <a data-f="nuevo" data-v="semana" class="${filtro.nuevo === "semana" ? "on" : ""}">Esta semana</a>
     <a data-f="nuevo" data-v="anterior" class="${filtro.nuevo === "anterior" ? "on" : ""}">Semana pasada</a>
     <a data-f="nuevo" data-v="rebajados" class="${filtro.nuevo === "rebajados" ? "on" : ""}">Rebajados</a>
+    <h4>Orden</h4>
+    <a data-f="orden" data-v="" class="${filtro.orden === "" ? "on" : ""}">Más nuevos</a>
+    <a data-f="orden" data-v="asc" class="${filtro.orden === "asc" ? "on" : ""}">Precio: menor a mayor</a>
+    <a data-f="orden" data-v="desc" class="${filtro.orden === "desc" ? "on" : ""}">Precio: mayor a menor</a>
     <h4>Géneros</h4>
     <a data-f="genre" data-v="" class="${filtro.genre === "" ? "on" : ""}">Todos</a>
     ${Object.entries(generos).sort((a, b) => b[1] - a[1]).map(([g, n]) => `
@@ -318,6 +342,9 @@ function pintarSidebar() {
     Object.keys(zonas).map(z => `<option ${filtro.zona === z ? "selected" : ""}>${esc(z)}</option>`).join("");
   mg.onchange = () => { filtro.genre = mg.value; pagina = 1; pintarSidebar(); pintar(); };
   mz.onchange = () => { filtro.zona = mz.value; pagina = 1; pintarSidebar(); pintar(); };
+  const mo = document.getElementById("m-orden");
+  mo.value = filtro.orden;
+  mo.onchange = () => { filtro.orden = mo.value; pagina = 1; pintar(); };
 }
 
 async function pintar(mantenerScroll) {
