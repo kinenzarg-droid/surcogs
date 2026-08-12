@@ -139,8 +139,26 @@ a:hover .hw-chip{background:#fff;box-shadow:1px 1px 0 rgba(0,0,0,.15)}
   color:#fff;border:0;border-radius:4px;padding:10px;font-size:14px;font-weight:700;
   cursor:pointer;font-family:inherit}
 .cartp-buy:hover{background:#1e7a44}
+/* chips de filtro deslizables (mobile, estilo Bandcamp) */
+.chips{display:none;gap:8px;overflow-x:auto;padding:2px 12px 10px;scrollbar-width:none}
+.chips::-webkit-scrollbar{display:none}
+.chips button{background:transparent;border:1px solid #3a3a3a;border-radius:999px;
+  color:#ddd;padding:8px 15px;font-size:12.5px;white-space:nowrap;cursor:pointer;font-family:inherit}
+.chips button.on{background:#fff;color:#111;border-color:#fff;font-weight:700}
 @media(max-width:680px){
-  .cartp{left:0;right:0;top:auto;bottom:0;width:auto;border-radius:8px 8px 0 0;max-height:45vh}
+  .chips{display:flex}
+  .hw-rows{padding:6px 8px 110px}
+  .hw-mobile-filters{padding:0 12px 12px;gap:8px}
+  .hw-mobile-filters select{border-radius:999px;padding:8px 12px}
+  .ggrid{grid-template-columns:1fr 1fr;gap:10px}
+  .gbody{padding:9px 10px 11px;gap:4px}
+  .gname{font-size:12.5px;-webkit-line-clamp:3}
+  .gmeta{font-size:10.5px;white-space:normal}
+  .gtracks{max-height:22px}
+  .gprice{font-size:15px}
+  .gbtns{flex-direction:column}
+  .gbuy,.gcart{font-size:11.5px;padding:7px 8px}
+  .gown a,.gown button{width:24px;height:24px;font-size:11px}
 }
 /* modal de checkout por vendedor */
 .co-bg{position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:90;display:none;
@@ -200,6 +218,7 @@ a:hover .hw-chip{background:#fff;box-shadow:1px 1px 0 rgba(0,0,0,.15)}
   <aside class="hw-side" id="side"></aside>
 
   <main class="hw-rows">
+    <div class="chips" id="m-chips"></div>
     <div class="hw-mobile-filters">
       <select id="m-genre"></select>
       <select id="m-zona"></select>
@@ -358,6 +377,15 @@ function pintarSidebar() {
   const mo = document.getElementById("m-orden");
   mo.value = filtro.orden;
   mo.onchange = () => { filtro.orden = mo.value; pagina = 1; pintar(); };
+
+  // chips de género deslizables
+  const chips = document.getElementById("m-chips");
+  chips.innerHTML = `<button data-g="" class="${filtro.genre === "" ? "on" : ""}">todos los géneros</button>` +
+    Object.entries(generos).sort((a, b) => b[1] - a[1])
+      .map(([g, n]) => `<button data-g="${esc(g)}" class="${filtro.genre === g ? "on" : ""}">${esc(g).toLowerCase()} ${n}</button>`).join("");
+  chips.querySelectorAll("button").forEach(b => b.onclick = () => {
+    filtro.genre = b.dataset.g; pagina = 1; pintarSidebar(); pintar();
+  });
 }
 
 async function pintar(mantenerScroll) {
