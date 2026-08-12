@@ -14,6 +14,13 @@ export async function onRequestPost({ request, env }) {
   const body = await request.json().catch(() => ({}));
   const ids = body.record_ids?.length ? body.record_ids : (body.record_id ? [body.record_id] : []);
   const buyer_email = body.buyer_email || null;
+  const envio = {
+    buyer_name: body.buyer_name || null,
+    buyer_phone: body.buyer_phone || null,
+    buyer_addr: body.buyer_addr || null,
+    buyer_localidad: body.buyer_localidad || null,
+    buyer_zona: body.buyer_zona || null,
+  };
   if (!ids.length || ids.length > 20) return json({ error: "Falta el disco" }, 400);
 
   // Traer todos los discos
@@ -59,6 +66,7 @@ export async function onRequestPost({ request, env }) {
       amount: precioFinal,
       fee: Math.max(fee, 0),
       purchase_id: purchaseId,
+      ...envio,
     });
   }
 

@@ -45,6 +45,40 @@ export async function onRequest({ request, env }) {
         body: JSON.stringify({ status: "vendido" }),
       });
 
+      // Crear el paquete para el courier (uno por compra = uno por vendedor)
+      try {
+        const yaExiste = await fetch(
+          `${SUPA}/rest/v1/shipments?purchase_id=eq.${refEsperada}&select=id`,
+          { headers: hdrs(KEY) }
+        ).then((r) => r.json());
+        if (!yaExiste.length) {
+          const [vend, discos] = await Promise.all([
+            fetch(`${SUPA}/rest/v1/profiles?id=eq.${ords[0].seller_id}&select=name,whatsapp,direccion,zona,localidad`,
+              { headers: hdrs(KEY) }).then((r) => r.json()),
+            fetch(`${SUPA}/rest/v1/records?id=in.(${recordIds})&select=artist,title,format`,
+              { headers: hdrs(KEY) }).then((r) => r.json()),
+          ]);
+          const v = vend?.[0] || {};
+          const o = ords[0];
+          const cod = "SC-" + Math.random().toString(36).slice(2, 6).toUpperCase();
+          const detalle = `${discos.length} vinilo${discos.length > 1 ? "s" : ""} — ` +
+            discos.map((d) => `${d.artist} – ${d.title}`).join(", ");
+          const montoVendedor = ords.reduce((s, x) => s + (x.amount - x.fee), 0);
+          await fetch(`${SUPA}/rest/v1/shipments`, {
+            method: "POST", headers: hdrs(KEY),
+            body: JSON.stringify({
+              purchase_id: refEsperada, seller_id: o.seller_id,
+              code: cod, token: crypto.randomUUID().replace(/-/g, ""),
+              seller_name: v.name, seller_phone: v.whatsapp, seller_addr: v.direccion,
+              seller_zona: [v.zona, v.localidad].filter(Boolean).join(" · "),
+              buyer_name: o.buyer_name, buyer_phone: o.buyer_phone, buyer_addr: o.buyer_addr,
+              buyer_zona: o.buyer_zona, buyer_localidad: o.buyer_localidad, buyer_email: o.buyer_email,
+              detalle, monto_vendedor: montoVendedor,
+            }),
+          });
+        }
+      } catch (_) { /* si falla, el paquete se puede crear a mano */ }
+
       // Avisar al vendedor por email (Resend) — si falla, no rompe nada
       if (env.RESEND_API_KEY) {
         try {
