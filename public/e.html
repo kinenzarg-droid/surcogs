@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SURCOGS — Paquete</title>
+<link rel="stylesheet" href="/css/style.css">
+<style>
+.sc{max-width:380px;margin:26px auto;background:var(--panel);border:1px solid var(--line);
+  border-radius:12px;padding:22px;text-align:center}
+.sc .em{font-size:34px}
+.cd2{font-family:ui-monospace,monospace;color:var(--acc);font-size:13px;margin-top:6px}
+.sc h1{font-size:19px;margin:8px 0 4px}
+.sc .p{color:var(--dim);font-size:13px;line-height:1.6}
+.big{width:100%;background:#2ea860;border:0;border-radius:8px;color:#fff;font-size:16px;
+  font-weight:700;padding:15px;margin-top:18px;cursor:pointer;font-family:inherit}
+.big:disabled{opacity:.5}
+.big.gris{background:#3a3a3a}
+</style>
+</head>
+<body>
+<div class="sc" id="sc"><p class="p">Cargando…</p></div>
+<script>
+const t = new URLSearchParams(location.search).get("t") || location.pathname.split("/").pop();
+const esc = (s) => String(s ?? "").replace(/</g, "&lt;");
+const sc = document.getElementById("sc");
+
+async function cargar() {
+  const r = await fetch("/api/courier?e=" + encodeURIComponent(t));
+  if (!r.ok) { sc.innerHTML = `<div class="em">🚫</div><h1>Paquete no encontrado</h1>`; return; }
+  const { envio: e } = await r.json();
+  if (e.estado === "entregado") return listo(e, "Ya estaba entregado");
+  const retiro = e.estado === "pendiente";
+  sc.innerHTML = `
+    <div class="em">📦</div>
+    <div class="cd2">${esc(e.code)}</div>
+    <h1>${retiro ? "Retirar de " + esc(e.seller_name || "") : "Entregar a " + esc(e.buyer_name || "")}</h1>
+    <p class="p">${retiro
+      ? esc([e.seller_addr, e.seller_zona].filter(Boolean).join(" · "))
+      : esc([e.buyer_addr, e.buyer_localidad || e.buyer_zona].filter(Boolean).join(" · "))}<br>
+      ${esc(e.detalle || "")}</p>
+    <button class="big" id="go">${retiro ? "Confirmar retiro" : "Confirmar entrega"}</button>
+    <p class="p" style="margin-top:10px;font-size:12px">${retiro
+      ? "Confirmá cuando tengas el paquete en la mano."
+      : "Al confirmar, el vendedor queda listo para cobrar y el comprador recibe el aviso."}</p>`;
+  document.getElementById("go").onclick = async (ev) => {
+    ev.target.disabled = true; ev.target.textContent = "Guardando…";
+    const rr = await fetch("/api/courier", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ token: t, accion: retiro ? "retirado" : "entregado" }),
+    });
+    if (rr.ok) listo(e, retiro ? "Retiro confirmado" : "Entrega confirmada");
+    else { ev.target.disabled = false; ev.target.textContent = "Error, reintentar"; }
+  };
+}
+function listo(e, txt) {
+  sc.innerHTML = `<div class="em">✅</div><h1>${txt}</h1>
+    <div class="cd2">${esc(e.code)} · ${new Date().toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" })}</div>
+    <p class="p" style="margin-top:8px">${esc(e.detalle || "")}</p>
+    <a class="big gris" href="/courier.html" style="display:block;text-decoration:none;box-sizing:border-box">Volver a la lista</a>`;
+}
+cargar();
+</script>
+</body>
+</html>

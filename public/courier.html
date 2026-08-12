@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SURCOGS — Courier</title>
+<link rel="stylesheet" href="/css/style.css">
+<style>
+body{padding:0}
+.chdr{padding:14px 16px 10px;border-bottom:1px solid var(--line)}
+.chdr .t{font-weight:700;font-size:15px;letter-spacing:4px}
+.chdr .s{color:var(--dim);font-size:12px;margin-top:3px}
+.tabs{display:flex;gap:6px;padding:10px 12px 4px;max-width:560px}
+.tabs button{flex:1;background:transparent;border:1px solid var(--line);border-radius:999px;color:#ddd;
+  padding:8px;font-size:12.5px;cursor:pointer;font-family:inherit}
+.tabs button.on{background:#fff;color:#111;border-color:#fff;font-weight:700}
+.list{padding:8px 12px 40px;display:flex;flex-direction:column;gap:9px;max-width:560px}
+.it{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:11px 12px}
+.it .top{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.cod{font-family:ui-monospace,monospace;font-size:11.5px;color:var(--acc)}
+.who{font-weight:700;font-size:14px}
+.addr{color:var(--dim);font-size:12px;margin-top:2px}
+.addr a{color:#8fd4ab}
+.discos{color:#c9c5be;font-size:12px;margin-top:6px;border-top:1px solid var(--line);padding-top:6px}
+.act{display:flex;gap:7px;margin-top:9px}
+.act button{flex:1;border:0;border-radius:5px;padding:10px;font-size:12.5px;font-weight:700;cursor:pointer;font-family:inherit}
+.ok{background:#2ea860;color:#fff}
+.vacio{color:var(--dim);padding:20px 12px;font-size:13px}
+</style>
+</head>
+<body>
+<div class="chdr">
+  <div class="t">SURC<span class="vinilo-o" style="display:inline-block;vertical-align:-1px"></span>GS · courier</div>
+  <div class="s" id="resumen">Cargando…</div>
+</div>
+<div class="tabs">
+  <button id="t-r" class="on">Retiros</button>
+  <button id="t-e">Entregas</button>
+</div>
+<div class="list" id="lista"></div>
+
+<script>
+const K = new URLSearchParams(location.search).get("k") || "";
+let data = { retiros: [], entregas: [] }, modo = "r";
+const esc = (s) => String(s ?? "").replace(/</g, "&lt;");
+
+async function cargar() {
+  const r = await fetch("/api/courier?k=" + encodeURIComponent(K));
+  if (!r.ok) { document.getElementById("resumen").textContent = "Link inválido"; return; }
+  data = await r.json();
+  const f = new Date().toLocaleDateString("es-AR", { weekday: "long", day: "numeric", month: "numeric" });
+  document.getElementById("resumen").textContent =
+    `${f} · ${data.retiros.length} retiros · ${data.entregas.length} entregas`;
+  document.getElementById("t-r").textContent = `Retiros (${data.retiros.length})`;
+  document.getElementById("t-e").textContent = `Entregas (${data.entregas.length})`;
+  pintar();
+}
+
+function pintar() {
+  const items = modo === "r" ? data.retiros : data.entregas;
+  const lista = document.getElementById("lista");
+  if (!items.length) { lista.innerHTML = `<p class="vacio">Nada pendiente por acá.</p>`; return; }
+  lista.innerHTML = items.map(x => {
+    const nombre = modo === "r" ? x.seller_name : x.buyer_name;
+    const dir = modo === "r"
+      ? [x.seller_addr, x.seller_zona].filter(Boolean).join(" · ")
+      : [x.buyer_addr, x.buyer_localidad || x.buyer_zona].filter(Boolean).join(" · ");
+    const tel = modo === "r" ? x.seller_phone : x.buyer_phone;
+    return `
+    <div class="it">
+      <div class="top"><span class="who">${esc(nombre || "—")}</span><span class="cod">${esc(x.code)}</span></div>
+      <div class="addr">${esc(dir || "sin dirección")}${tel ? ` · <a href="tel:${esc(tel)}">${esc(tel)}</a>` : ""}</div>
+      <div class="discos">${esc(x.detalle || "")}</div>
+      <div class="act">
+        <button class="ok" data-t="${x.token}">${modo === "r" ? "Marcar retirado" : "Marcar entregado"}</button>
+      </div>
+    </div>`;
+  }).join("");
+  lista.querySelectorAll("[data-t]").forEach(b => b.onclick = async () => {
+    b.disabled = true; b.textContent = "Guardando…";
+    const r = await fetch("/api/courier", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ token: b.dataset.t, accion: modo === "r" ? "retirado" : "entregado" }),
+    });
+    if (r.ok) cargar(); else { b.disabled = false; b.textContent = "Error, reintentar"; }
+  });
+}
+
+document.getElementById("t-r").onclick = () => { modo = "r"; marcar(); };
+document.getElementById("t-e").onclick = () => { modo = "e"; marcar(); };
+function marcar() {
+  document.getElementById("t-r").classList.toggle("on", modo === "r");
+  document.getElementById("t-e").classList.toggle("on", modo === "e");
+  pintar();
+}
+cargar();
+</script>
+</body>
+</html>

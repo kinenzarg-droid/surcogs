@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SURCOGS — Etiquetas</title>
+<link rel="stylesheet" href="/css/style.css">
+<style>
+.barra{padding:14px 16px;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.hojas{display:flex;gap:14px;flex-wrap:wrap;padding:0 16px 40px}
+.lab{width:302px;background:#fff;color:#111;border-radius:4px;padding:14px}
+.lab .mk{font-weight:800;letter-spacing:3px;font-size:13px;display:flex;align-items:center;gap:4px}
+.lab .vin{width:11px;height:11px;border-radius:50%;
+  background:radial-gradient(circle,#ff5500 20%,#111 21%,#111 55%,#999 56%)}
+.lab .cd{font-family:ui-monospace,monospace;font-size:19px;font-weight:700;margin:8px 0 10px;letter-spacing:1px}
+.lab .row{font-size:11.5px;line-height:1.45;border-top:1px solid #ddd;padding-top:7px;margin-top:7px;color:#111}
+.lab .row b{display:block;font-size:9.5px;text-transform:uppercase;letter-spacing:1px;color:#777}
+.lab .qr{display:flex;justify-content:center;margin:11px 0 4px}
+.lab .frag{background:#111;color:#fff;font-size:10px;font-weight:700;letter-spacing:2px;
+  text-align:center;padding:4px;border-radius:2px;margin-top:9px}
+@media print{
+  body{background:#fff}
+  .barra,.hdr,.hwh-banner,.hwh-bar{display:none!important}
+  .hojas{padding:0;gap:8px}
+  .lab{page-break-inside:avoid;border:1px dashed #bbb}
+}
+</style>
+</head>
+<body>
+<div class="barra">
+  <a class="btn small ghost" href="/liquidaciones.html">← Volver</a>
+  <button class="btn small" onclick="print()">🖨 Imprimir</button>
+  <span class="hint">Se imprime una etiqueta por paquete. Pegala del lado de afuera, bien visible.</span>
+</div>
+<div class="hojas" id="hojas"><p class="hint" style="padding:0 16px">Cargando…</p></div>
+
+<script src="https://cdn.jsdelivr.net/npm/qrious@4.0.2/dist/qrious.min.js"></script>
+<script>
+const K = new URLSearchParams(location.search).get("k") || "";
+const esc = (s) => String(s ?? "").replace(/</g, "&lt;");
+
+(async () => {
+  const r = await fetch("/api/courier?k=" + encodeURIComponent(K));
+  if (!r.ok) { document.getElementById("hojas").innerHTML = `<p class="hint" style="padding:0 16px">Link inválido.</p>`; return; }
+  const d = await r.json();
+  const todos = [...d.retiros, ...d.entregas];
+  if (!todos.length) { document.getElementById("hojas").innerHTML = `<p class="hint" style="padding:0 16px">No hay paquetes pendientes.</p>`; return; }
+  document.getElementById("hojas").innerHTML = todos.map((x, i) => `
+    <div class="lab">
+      <div class="mk">SURC<span class="vin"></span>GS</div>
+      <div class="cd">${esc(x.code)}</div>
+      <div class="row"><b>Retirar en</b>${esc(x.seller_name || "")} · ${esc(x.seller_addr || "")}<br>${esc(x.seller_zona || "")}${x.seller_phone ? " · " + esc(x.seller_phone) : ""}</div>
+      <div class="row"><b>Entregar a</b>${esc(x.buyer_name || "")} · ${esc(x.buyer_addr || "")}<br>${esc([x.buyer_localidad, x.buyer_zona].filter(Boolean).join(", "))}${x.buyer_phone ? " · " + esc(x.buyer_phone) : ""}</div>
+      <div class="row"><b>Contenido</b>${esc(x.detalle || "")}</div>
+      <div class="qr"><canvas id="q${i}"></canvas></div>
+      <div class="frag">FRÁGIL — NO DOBLAR</div>
+    </div>`).join("");
+  todos.forEach((x, i) => {
+    const url = location.origin + "/e.html?t=" + x.token;
+    if (window.QRious) new QRious({ element: document.getElementById("q" + i), value: url, size: 112, level: "M", background: "#fff", foreground: "#111" });
+  });
+})();
+</script>
+</body>
+</html>

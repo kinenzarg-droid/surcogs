@@ -113,6 +113,9 @@ async function init() {
         <div><label>Zona</label><select id="zona"></select></div>
         <div><label>Localidad / barrio</label><input id="loc"></div>
       </div>
+      <label>Dirección de retiro * (calle y número)</label>
+      <input id="dir" placeholder="Av. San Martín 1234, 2º A" required>
+      <p class="hint">La usa el courier de SURCOGS para pasar a buscar el disco cuando lo vendas. No se muestra en la publicación: solo la ve el courier el día del retiro.</p>
       <div class="row2">
         <div><label>Entrega *</label>
           <select id="entrega">
@@ -137,6 +140,10 @@ async function init() {
       <label>Notas (opcional)</label><textarea id="desc" placeholder="Warp leve que no afecta reproducción, edición original US…"></textarea>
       <br><button class="btn" type="submit" id="btn-pub">${editRec ? "Guardar cambios" : "Publicar"}</button>
     </form>`;
+
+  // Dirección de retiro: viene del perfil y se puede corregir acá
+  const inpDir = document.getElementById("dir");
+  if (perfil.direccion) inpDir.value = perfil.direccion;
 
   // Entrega: mostrar el costo solo si es envío fijo
   const selEntrega = document.getElementById("entrega");
@@ -274,6 +281,10 @@ async function init() {
         })),
       };
       if (photos.length) datos.photos = photos;
+      const dirRetiro = v("dir");
+      if (dirRetiro && dirRetiro !== perfil.direccion) {
+        await sb.from("profiles").update({ direccion: dirRetiro }).eq("id", user.id);
+      }
 
       let error;
       if (editRec) {

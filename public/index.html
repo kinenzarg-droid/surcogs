@@ -260,8 +260,16 @@ a:hover .hw-chip{background:#fff;box-shadow:1px 1px 0 rgba(0,0,0,.15)}
   <div class="co-modal">
     <h3>Finalizar compra</h3>
     <p class="co-sub" id="co-sub"></p>
-    <label>Tu email (comprobante y contacto del vendedor)</label>
+    <label>Tu email (comprobante y seguimiento)</label>
     <input id="co-email" type="email" placeholder="tu@email.com" autocomplete="email">
+    <label>Nombre y apellido</label>
+    <input id="co-nombre" placeholder="Juan Pérez" autocomplete="name">
+    <label>Teléfono (para el día de la entrega)</label>
+    <input id="co-tel" type="tel" placeholder="11 2345 6789" autocomplete="tel">
+    <label>Dirección de entrega (calle y número)</label>
+    <input id="co-dir" placeholder="Thames 880, 3º B" autocomplete="street-address">
+    <label>Localidad o barrio</label>
+    <input id="co-loc" placeholder="Palermo" autocomplete="address-level2">
     <div id="co-groups"></div>
     <p style="color:#8fd4ab;font-size:12.5px;background:#1d2b22;border-radius:4px;padding:10px 12px;margin:0 0 12px">
       🛡 <b>Pago protegido por Mercado Pago.</b> Si el disco no te llega, abrís un reclamo
@@ -598,13 +606,21 @@ async function abrirCheckout() {
 
 async function pagarGrupo(btn, grupo, cantGrupos) {
   const email = document.getElementById("co-email").value.trim();
+  const nombre = document.getElementById("co-nombre").value.trim();
+  const tel = document.getElementById("co-tel").value.trim();
+  const dir = document.getElementById("co-dir").value.trim();
+  const loc = document.getElementById("co-loc").value.trim();
   if (!email || !email.includes("@")) return toast("Poné tu email para el comprobante", true);
+  if (!nombre || !tel || !dir || !loc) return toast("Completá nombre, teléfono, dirección y localidad para la entrega", true);
   btn.disabled = true; btn.textContent = "Generando…";
   try {
     const r = await fetch("/api/create-preference", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ record_ids: grupo.map(d => d.id), buyer_email: email }),
+      body: JSON.stringify({
+        record_ids: grupo.map(d => d.id), buyer_email: email,
+        buyer_name: nombre, buyer_phone: tel, buyer_addr: dir, buyer_localidad: loc,
+      }),
     });
     const j = await r.json();
     if (!r.ok) throw new Error(j.error || "Error");

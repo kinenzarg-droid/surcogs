@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SURCOGS — Liquidaciones</title>
+<link rel="stylesheet" href="/css/style.css">
+<style>
+.w{max-width:820px;margin:0 auto;padding:20px 16px 60px}
+.tot{display:flex;gap:12px;flex-wrap:wrap;margin:14px 0 6px}
+.kpi{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:12px 16px;flex:1;min-width:150px}
+.kpi .n{font-size:22px;font-weight:700}
+.kpi .l{color:var(--dim);font-size:12px}
+.it{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:12px;margin-bottom:9px;
+  display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+.it .g{flex:1;min-width:200px}
+.cod{font-family:ui-monospace,monospace;color:var(--acc);font-size:11.5px}
+.hint2{color:var(--dim);font-size:12px}
+.pill{font-size:10.5px;border:1px solid var(--line);border-radius:999px;padding:2px 9px;color:var(--dim)}
+.pill.ok{color:#8fd4ab;border-color:#2ea86055}
+</style>
+</head>
+<body>
+<div class="w">
+  <h1>Liquidaciones</h1>
+  <p class="sub">Cuando el courier confirma la entrega, el vendedor aparece acá. Le transferís y tocás “Ya le pagué”.</p>
+  <div class="tot" id="kpis"></div>
+  <h2 style="margin:22px 0 10px">Listos para pagar</h2>
+  <div id="pend"><p class="hint2">Cargando…</p></div>
+  <h2 style="margin:26px 0 10px">En curso</h2>
+  <div id="curso"></div>
+  <h2 style="margin:26px 0 10px">Pagados hace poco</h2>
+  <div id="listos"></div>
+  <p class="hint2" style="margin-top:20px">
+    <a href="/etiquetas.html" id="lnk-et" style="color:var(--acc)">🖨 Imprimir etiquetas de los paquetes pendientes</a></p>
+</div>
+<script>
+const K = new URLSearchParams(location.search).get("k") || "";
+const esc = (s) => String(s ?? "").replace(/</g, "&lt;");
+const $ = (id) => document.getElementById(id);
+const fmt = (n) => "$" + Number(n || 0).toLocaleString("es-AR");
+
+async function cargar() {
+  const r = await fetch("/api/liquidaciones?k=" + encodeURIComponent(K));
+  if (!r.ok) { $("pend").innerHTML = `<p class="hint2">Link inválido: falta la clave de admin.</p>`; return; }
+  const d = await r.json();
+  const aPagar = d.pendientes.reduce((s, x) => s + (x.monto_vendedor || 0), 0);
+  $("kpis").innerHTML = `
+    <div class="kpi"><div class="n">${fmt(aPagar)}</div><div class="l">a liquidar (${d.pendientes.length})</div></div>
+    <div class="kpi"><div class="n">${d.enCurso.length}</div><div class="l">paquetes en la calle</div></div>
+    <div class="kpi"><div class="n">${d.listos.length}</div><div class="l">pagados (últimos)</div></div>`;
+
+  $("pend").innerHTML = d.pendientes.map(x => `
+    <div class="it">
+      <div class="g">
+        <b>${esc(x.seller_name || "Vendedor")}</b> <span class="cod">${esc(x.code)}</span><br>
+        <span class="hint2">${esc(x.detalle || "")} · entregado ${x.delivered_at ? new Date(x.delivered_at).toLocaleDateString("es-AR") : ""}</span>
+      </div>
+      <b style="font-size:17px">${fmt(x.monto_vendedor)}</b>
+      <button class="btn small" data-id="${x.id}">Ya le pagué</button>
+    </div>`).join("") || `<p class="hint2">Nada pendiente. Todo al día.</p>`;
+
+  $("curso").innerHTML = d.enCurso.map(x => `
+    <div class="it">
+      <div class="g"><b>${esc(x.seller_name || "")}</b> → ${esc(x.buyer_name || "")} <span class="cod">${esc(x.code)}</span><br>
+        <span class="hint2">${esc(x.detalle || "")}</span></div>
+      <span class="pill">${x.estado === "pendiente" ? "a retirar" : "en camino"}</span>
+      <b>${fmt(x.monto_vendedor)}</b>
+    </div>`).join("") || `<p class="hint2">Sin paquetes en curso.</p>`;
+
+  $("listos").innerHTML = d.listos.map(x => `
+    <div class="it">
+      <div class="g"><b>${esc(x.seller_name || "")}</b> <span class="cod">${esc(x.code)}</span><br>
+        <span class="hint2">${esc(x.detalle || "")}</span></div>
+      <span class="pill ok">pagado ${x.liquidado_at ? new Date(x.liquidado_at).toLocaleDateString("es-AR") : ""}</span>
+      <b>${fmt(x.monto_vendedor)}</b>
+    </div>`).join("") || `<p class="hint2">Todavía no liquidaste ninguno.</p>`;
+
+  document.querySelectorAll("[data-id]").forEach(b => b.onclick = async () => {
+    if (!confirm("¿Confirmás que ya le transferiste al vendedor?")) return;
+    b.disabled = true; b.textContent = "Guardando…";
+    const rr = await fetch("/api/liquidaciones", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ k: K, id: b.dataset.id }),
+    });
+    if (rr.ok) cargar(); else { b.disabled = false; b.textContent = "Error"; }
+  });
+  $("lnk-et").href = "/etiquetas.html?k=" + encodeURIComponent(K);
+}
+cargar();
+</script>
+</body>
+</html>
