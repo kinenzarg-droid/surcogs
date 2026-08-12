@@ -324,3 +324,9 @@ textarea { min-height: 72px; resize: vertical; }
   .hwh-bar .btn-cta { display: none; }
   .hwh-brand-m { display: inline-flex; margin-right: auto; }
 }
+
+/* Anti-desborde horizontal: el encabezado siempre ocupa todo el ancho */
+html, body { max-width: 100%; overflow-x: hidden; }
+.hwh-bar, .hwh-banner { width: 100%; box-sizing: border-box; }
+.hwh-bar > *, .hwh-tabs a, .search { min-width: 0; }
+img, iframe { max-width: 100%; }
