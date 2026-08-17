@@ -176,7 +176,7 @@ async function renderPanel(user, perfil) {
       </div>
     </form>
     <div class="notice">Publicás tu precio y esa plata es tuya. El comprador ve tu precio más la comisión de SURCOGS y Mercado Pago, que se descuentan solas del pago. Nunca ponés plata de tu bolsillo.</div>
-    <div id="mp-box"></div>
+    <div id="cobro-box"></div>
     <p style="margin:18px 0"><a class="btn" href="/publicar.html">+ Publicar un disco</a>
       <a class="btn ghost" href="/perfil.html?id=${user.id}" style="margin-left:8px">Ver mi perfil público</a>
       <button class="btn ghost" id="btn-out" style="margin-left:8px">Salir</button></p>
@@ -197,30 +197,44 @@ async function renderPanel(user, perfil) {
         </div>`).join("") || "<p class='sub'>Todavía no tenés ventas.</p>"}
     </div>`;
 
-  // Estado Mercado Pago
-  const mpBox = document.getElementById("mp-box");
-  if (perfil.mp_connected) {
-    mpBox.innerHTML = `<p class="sub">✅ Mercado Pago conectado — tus discos se venden con pago online.</p>
-      <p class="hint" style="margin-bottom:14px">💰 Cuando vendés, la plata entra directo a <b>tu</b> cuenta de Mercado Pago y se libera según el plazo configurado en tu cuenta (app de MP → Tu negocio → Costos y liberación: inmediata, 10 o 18 días — a más días, menos comisión). Siempre recibís tu precio completo: las comisiones salen del precio que paga el comprador, y si la comisión de MP variara, la diferencia la absorbe SURCOGS.</p>`;
-  } else {
-    mpBox.innerHTML = `
-      <div class="panel" style="max-width:none">
-        <strong>Conectá Mercado Pago para empezar a vender</strong>
-        <p class="hint" style="margin:6px 0 8px">Es requisito para publicar: los compradores pagan online con protección de Mercado Pago, la plata te llega directo a tu cuenta y la comisión se descuenta sola. Una sola vez, un minuto, sin costo.</p>
-        <p class="hint" style="margin:0 0 8px">💡 <b>Consejo: configurá la liberación de tu plata antes de vender</b>, no cuando ya vendiste. En la app de Mercado Pago: <b>Tu negocio → Costos y liberación</b> → elegí cuándo se libera cada cobro. A más días, menos comisión te cobra MP (aprox., IVA incluido — el número exacto para tu cuenta lo ves ahí mismo):</p>
-        <p class="hint" style="margin:0 0 12px">· Inmediata: ~6,6% &nbsp;· A 10 días: ~4,6% &nbsp;· A 18 días: ~3,6% &nbsp;· A 35 días: ~1,6%<br>
-        Y tranquilo con tu precio: siempre recibís el valor completo que pusiste — las comisiones las paga el comprador, y si la de MP variara, la diferencia la absorbe SURCOGS.</p>
-        <button class="btn small" id="btn-mp">Conectar Mercado Pago</button>
+  // Dónde cobrás tus ventas
+  const cobroBox = document.getElementById("cobro-box");
+  const pintarCobro = (p) => {
+    const tiene = !!(p.alias && p.alias.trim());
+    cobroBox.innerHTML = `
+      <div class="panel" style="max-width:none;${tiene ? "" : "border-color:var(--acc)"}">
+        <strong>${tiene ? "✅ Dónde cobrás tus ventas" : "Cargá tu alias para poder cobrar"}</strong>
+        <p class="hint" style="margin:6px 0 10px">
+          ${tiene
+            ? `Te transferimos a <b>${p.alias}</b>${p.titular ? " (" + p.titular + ")" : ""} dentro de las 48hs hábiles de que el comprador confirme que recibió el disco.`
+            : "El comprador te paga a través de SURCOGS. Cuando confirma que recibió el disco, te transferimos a tu alias dentro de las 48hs hábiles. Sin alias no podemos pagarte."}
+        </p>
+        <form id="f-cobro" style="display:${tiene ? "none" : "flex"};gap:8px;flex-wrap:wrap;align-items:center">
+          <input id="c-alias" placeholder="Tu alias o CBU" value="${p.alias || ""}" style="flex:1;min-width:180px">
+          <input id="c-titular" placeholder="Titular de la cuenta" value="${p.titular || ""}" style="flex:1;min-width:180px">
+          <button class="btn small" type="submit">Guardar</button>
+        </form>
+        ${tiene ? `<a href="#" id="btn-cobro" style="color:var(--acc);font-size:12.5px">cambiar</a>` : ""}
       </div>`;
-    document.getElementById("btn-mp").onclick = async () => {
-      const { data: { session } } = await sb.auth.getSession();
-      const r = await fetch("/api/mp-oauth-start", {
-        headers: { Authorization: "Bearer " + session.access_token },
-      });
-      const j = await r.json();
-      if (j.url) location.href = j.url; else toast(j.error || "Error", true);
+    const btn = document.getElementById("btn-cobro");
+    if (btn) btn.onclick = (e) => {
+      e.preventDefault();
+      document.getElementById("f-cobro").style.display = "flex";
+      btn.style.display = "none";
     };
-  }
+    document.getElementById("f-cobro").onsubmit = async (e) => {
+      e.preventDefault();
+      const alias = document.getElementById("c-alias").value.trim();
+      const titular = document.getElementById("c-titular").value.trim() || null;
+      if (alias.length < 6) return toast("Revisá el alias, parece incompleto", true);
+      const { error } = await sb.from("profiles").update({ alias, titular }).eq("id", user.id);
+      if (error) return toast(error.message, true);
+      Object.assign(perfil, { alias, titular });
+      toast("Listo, ya podemos transferirte");
+      pintarCobro(perfil);
+    };
+  };
+  pintarCobro(perfil);
 
   // Lista de discos con acciones
   const lista = document.getElementById("lista");

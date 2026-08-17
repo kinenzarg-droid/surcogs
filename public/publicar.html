@@ -30,24 +30,16 @@ async function init() {
   const perfil = await getPerfil(user.id);
   if (!perfil) { location.href = "/cuenta.html"; return; }
 
-  // Requisito para vender: Mercado Pago conectado (así el comprador paga online y la comisión se descuenta sola)
-  if (!perfil.mp_connected) {
+  // Requisito para vender: tener el alias cargado, para poder transferirle
+  if (!perfil.alias) {
     main.innerHTML = `
       <h1>Un paso antes de publicar</h1>
-      <p class="sub">Conectá tu cuenta de Mercado Pago para recibir los pagos directo. Es una sola vez, tarda un minuto y no tiene costo.</p>
+      <p class="sub">Cargá el alias donde querés cobrar tus ventas. Es una sola vez y tarda diez segundos.</p>
       <div class="panel">
         <strong>¿Por qué?</strong>
-        <p class="hint" style="margin:6px 0 14px">Los compradores pagan online con protección de Mercado Pago y la plata te llega a tu cuenta. El comprador ve tu precio más la comisión de SURCOGS y Mercado Pago: nunca ponés plata de tu bolsillo.</p>
-        <button class="btn" id="btn-mp">Conectar Mercado Pago</button>
+        <p class="hint" style="margin:6px 0 14px">El comprador paga a través de SURCOGS y su plata queda protegida hasta que confirma que recibió el disco. Ahí te transferimos a vos, dentro de las 48hs hábiles. Recibís exactamente el precio que publicás: las comisiones las paga el comprador.</p>
+        <a class="btn" href="/cuenta.html">Cargar mi alias</a>
       </div>`;
-    document.getElementById("btn-mp").onclick = async () => {
-      const { data: { session } } = await sb.auth.getSession();
-      const r = await fetch("/api/mp-oauth-start?next=/publicar.html", {
-        headers: { Authorization: "Bearer " + session.access_token },
-      });
-      const j = await r.json();
-      if (j.url) location.href = j.url; else toast(j.error || "Error", true);
-    };
     return;
   }
 
@@ -113,9 +105,13 @@ async function init() {
         <div><label>Zona</label><select id="zona"></select></div>
         <div><label>Localidad / barrio</label><input id="loc"></div>
       </div>
-      <label>Dirección de retiro * (calle y número)</label>
-      <input id="dir" placeholder="Av. San Martín 1234, 2º A" required>
-      <p class="hint">La usa el courier de SURCOGS para pasar a buscar el disco cuando lo vendas. No se muestra en la publicación: solo la ve el courier el día del retiro.</p>
+      <div class="row2">
+        <div><label>Dirección de despacho *</label>
+          <input id="dir" placeholder="Av. San Martín 1234, 2º A" required></div>
+        <div><label>Código postal *</label>
+          <input id="cp" placeholder="1688" inputmode="numeric" required></div>
+      </div>
+      <p class="hint">Con tu código postal calculamos el envío a cada comprador. La dirección va en la etiqueta de Andreani y no se muestra en la publicación.</p>
       <div class="row2">
         <div><label>Entrega *</label>
           <select id="entrega">
@@ -141,9 +137,9 @@ async function init() {
       <br><button class="btn" type="submit" id="btn-pub">${editRec ? "Guardar cambios" : "Publicar"}</button>
     </form>`;
 
-  // Dirección de retiro: viene del perfil y se puede corregir acá
-  const inpDir = document.getElementById("dir");
-  if (perfil.direccion) inpDir.value = perfil.direccion;
+  // Dirección y CP de despacho: vienen del perfil y se pueden corregir acá
+  if (perfil.direccion) document.getElementById("dir").value = perfil.direccion;
+  if (perfil.cp) document.getElementById("cp").value = perfil.cp;
 
   // Entrega: mostrar el costo solo si es envío fijo
   const selEntrega = document.getElementById("entrega");
@@ -182,9 +178,9 @@ async function init() {
         <div style="display:flex;gap:6px;margin-top:6px;flex-wrap:wrap">
           <input data-i="${i}" data-k="audio_url" value="${esc(t.audio_url || "")}"
             placeholder="Pegá acá el link del tema" style="flex:1;min-width:180px">
-          <button type="button" class="btn small ghost btn-buscar" data-i="${i}" data-p="yt">YouTube</button>
-          <button type="button" class="btn small ghost btn-buscar" data-i="${i}" data-p="sc">SoundCloud</button>
-          <button type="button" class="btn small ghost btn-buscar" data-i="${i}" data-p="sp">Spotify</button>
+          <button type="button" class="btn small ghost btn-buscar" data-i="${i}" data-p="yt" title="Buscar en YouTube" style="padding:6px 9px"><svg width="17" height="17" viewBox="0 0 24 24" style="pointer-events:none;vertical-align:-3px"><rect x="1" y="4.5" width="22" height="15" rx="4" fill="#FF0000"/><path d="M9.8 9l6.2 3-6.2 3z" fill="#fff"/></svg></button>
+          <button type="button" class="btn small ghost btn-buscar" data-i="${i}" data-p="sc" title="Buscar en SoundCloud" style="padding:6px 9px"><svg width="17" height="17" viewBox="0 0 24 24" style="pointer-events:none;vertical-align:-3px" fill="#FF5500"><rect x="2" y="12" width="2" height="6" rx="1"/><rect x="5.5" y="10" width="2" height="8" rx="1"/><rect x="9" y="8" width="2" height="10" rx="1"/><path d="M13 18h5.2a3.8 3.8 0 0 0 .6-7.56A5.5 5.5 0 0 0 13 7.5z"/></svg></button>
+          <button type="button" class="btn small ghost btn-buscar" data-i="${i}" data-p="sp" title="Buscar en Spotify" style="padding:6px 9px"><svg width="17" height="17" viewBox="0 0 24 24" style="pointer-events:none;vertical-align:-3px"><circle cx="12" cy="12" r="11" fill="#1DB954"/><g fill="none" stroke="#fff" stroke-linecap="round"><path d="M6.5 9.3c3.7-1.1 8-0.7 11 1.1" stroke-width="1.9"/><path d="M7 12.5c3.1-0.9 6.7-0.5 9.3 1" stroke-width="1.6"/><path d="M7.5 15.5c2.5-0.7 5.3-0.4 7.4 0.9" stroke-width="1.4"/></g></svg></button>
         </div>
       </div>`).join("") || `<p class="hint">Sin temas cargados. Traelos desde Discogs o agregalos a mano.</p>`;
 
@@ -281,9 +277,10 @@ async function init() {
         })),
       };
       if (photos.length) datos.photos = photos;
-      const dirRetiro = v("dir");
-      if (dirRetiro && dirRetiro !== perfil.direccion) {
-        await sb.from("profiles").update({ direccion: dirRetiro }).eq("id", user.id);
+      // guardar la dirección de retiro en el perfil (la usa el courier)
+      const dirRetiro = v("dir"), cpRetiro = v("cp");
+      if ((dirRetiro && dirRetiro !== perfil.direccion) || (cpRetiro && cpRetiro !== perfil.cp)) {
+        await sb.from("profiles").update({ direccion: dirRetiro || null, cp: cpRetiro || null }).eq("id", user.id);
       }
 
       let error;
