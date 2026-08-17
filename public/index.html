@@ -47,6 +47,9 @@
 .gname b{font-weight:700}
 .gmeta{color:#555;font-size:11.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .gmeta .disp{color:#2ea860;font-weight:700}
+.lk-sello{color:inherit;text-decoration:none;border-bottom:1px dotted #aaa;cursor:pointer}
+.lk-sello:hover{color:#ff5500;border-bottom-color:#ff5500}
+.hw-player .lk-sello{color:#555}
 .gtracks{display:flex;flex-wrap:wrap;gap:2px 12px;border-top:1px solid #eee;padding-top:5px;
   max-height:44px;overflow:hidden}
 .gtracks button{background:transparent;border:0;color:#3a3a3a;font-size:11.5px;cursor:pointer;
@@ -412,7 +415,7 @@ async function pintar(mantenerScroll) {
         <button class="del" data-del="${d.id}" title="Eliminar">🗑</button></span>` : ""}
       <div class="gbody">
         <a class="gname" href="/disco.html?id=${d.id}"><b>${esc(d.artist)}:</b> ${esc(d.title)}</a>
-        <div class="gmeta">${esc(d.label || "")}${d.label ? " · " : ""}${esc(d.format)} · ${esc(d.condition_sleeve)}/${esc(d.condition_media)}${d.zona ? " · 📍 " + esc(d.zona) + (d.localidad ? " · " + esc(d.localidad) : "") : ""}
+        <div class="gmeta">${d.label ? `<a class="lk-sello" data-q="${esc(d.label)}" href="/?q=${encodeURIComponent(d.label)}">${esc(d.label)}</a> · ` : ""}${esc(d.format)} · ${esc(d.condition_sleeve)}/${esc(d.condition_media)}${d.zona ? " · 📍 " + esc(d.zona) + (d.localidad ? " · " + esc(d.localidad) : "") : ""}
           · <span class="${d.status === "disponible" ? "disp" : ""}">● ${d.status}</span></div>
         <div class="gmeta" style="color:#1e7a44">${envLabel(d)}</div>
         ${trackBtns(d, i)}
@@ -690,6 +693,20 @@ async function pagarTransferencia(btn, grupo) {
   }
 }
 
+// Click en un sello o artista: filtra el catálogo sin recargar la página
+document.addEventListener("click", (ev) => {
+  const a = ev.target.closest(".lk-sello");
+  if (!a) return;
+  ev.preventDefault(); ev.stopPropagation();
+  const texto = a.dataset.q || a.textContent.trim();
+  filtro.q = texto.toLowerCase();
+  document.querySelectorAll(".search input").forEach(i => i.value = texto);
+  history.replaceState(null, "", "/?q=" + encodeURIComponent(texto));
+  pagina = 1;
+  pintar();
+  window.scrollTo({ top: 0, behavior: "smooth" });
+});
+
 function trackBtns(d, i) {
   const conAudio = (d.tracks || []).map((t, ti) => ({ t, ti })).filter(x => x.t.audio_url);
   if (!conAudio.length) return "";
@@ -711,7 +728,10 @@ function reproducir(d, t) {
   else { window.open(url, "_blank"); return; }
 
   document.getElementById("pl-titulo").innerHTML =
-    `▶ <b>${esc(d.artist)} — ${esc(d.title)}</b> · ${esc(t.position || "")} ${esc(t.title || "")}`;
+    `▶ <a class="lk-sello" data-q="${esc(d.artist)}" href="/?q=${encodeURIComponent(d.artist)}">${esc(d.artist)}</a>` +
+    ` — <b>${esc(d.title)}</b>` +
+    (d.label ? ` · <a class="lk-sello" data-q="${esc(d.label)}" href="/?q=${encodeURIComponent(d.label)}">${esc(d.label)}</a>` : "") +
+    ` · ${esc(t.position || "")} ${esc(t.title || "")}`;
   document.getElementById("pl-frame").innerHTML = frame;
   document.getElementById("player").style.display = "block";
   ajustarBarras();
