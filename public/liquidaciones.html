@@ -6,87 +6,79 @@
 <title>SURCOGS — Liquidaciones</title>
 <link rel="stylesheet" href="/css/style.css">
 <style>
-.w{max-width:820px;margin:0 auto;padding:20px 16px 60px}
-.tot{display:flex;gap:12px;flex-wrap:wrap;margin:14px 0 6px}
-.kpi{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:12px 16px;flex:1;min-width:150px}
-.kpi .n{font-size:22px;font-weight:700}
-.kpi .l{color:var(--dim);font-size:12px}
-.it{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:12px;margin-bottom:9px;
-  display:flex;gap:12px;align-items:center;flex-wrap:wrap}
-.it .g{flex:1;min-width:200px}
-.cod{font-family:ui-monospace,monospace;color:var(--acc);font-size:11.5px}
-.hint2{color:var(--dim);font-size:12px}
-.pill{font-size:10.5px;border:1px solid var(--line);border-radius:999px;padding:2px 9px;color:var(--dim)}
-.pill.ok{color:#8fd4ab;border-color:#2ea86055}
+.lq{max-width:760px;margin:0 auto;padding:24px 16px 80px}
+.card{border:1px solid var(--line);border-radius:8px;padding:14px;margin-bottom:10px;background:#fff}
+.card.go{border-color:#2ea860;background:#f5fbf7}
+.mt{font-size:20px;font-weight:700}
+.al{font-family:ui-monospace,monospace;background:#f1f1f1;border-radius:4px;padding:3px 8px;font-size:13px;
+  cursor:pointer;display:inline-block}
+.st{font-size:12px;color:var(--dim);margin-top:4px}
+h2{margin:26px 0 10px;font-size:16px}
 </style>
 </head>
 <body>
-<div class="w">
-  <h1>Liquidaciones</h1>
-  <p class="sub">Cuando el courier confirma la entrega, el vendedor aparece acá. Le transferís y tocás “Ya le pagué”.</p>
-  <div class="tot" id="kpis"></div>
-  <h2 style="margin:22px 0 10px">Listos para pagar</h2>
-  <div id="pend"><p class="hint2">Cargando…</p></div>
-  <h2 style="margin:26px 0 10px">En curso</h2>
-  <div id="curso"></div>
-  <h2 style="margin:26px 0 10px">Pagados hace poco</h2>
-  <div id="listos"></div>
-  <p class="hint2" style="margin-top:20px">
-    <a href="/etiquetas.html" id="lnk-et" style="color:var(--acc)">🖨 Imprimir etiquetas de los paquetes pendientes</a></p>
+<div class="lq">
+  <h1 style="margin-bottom:4px">Liquidaciones</h1>
+  <p class="sub" id="sub">A quién le tengo que transferir.</p>
+  <div id="out"></div>
 </div>
+
 <script>
-const K = new URLSearchParams(location.search).get("k") || "";
-const esc = (s) => String(s ?? "").replace(/</g, "&lt;");
-const $ = (id) => document.getElementById(id);
-const fmt = (n) => "$" + Number(n || 0).toLocaleString("es-AR");
+const key = new URLSearchParams(location.search).get("key") || prompt("Clave de admin");
+const out = document.getElementById("out");
+const pesos = (n) => "$" + Number(n || 0).toLocaleString("es-AR");
+const fecha = (d) => d ? new Date(d).toLocaleDateString("es-AR") : "—";
+
+const card = (o, go) => `
+  <div class="card ${go ? "go" : ""}">
+    <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:flex-start">
+      <div style="flex:1;min-width:200px">
+        <b>${o.artist} – ${o.title}</b>
+        <div class="st">${o.vendedor || "vendedor"} · ${o.metodo_pago} · ${go
+          ? (o.entregado_at ? "confirmó la entrega el " + fecha(o.entregado_at) : "pasaron 10 días")
+          : "esperando confirmación del comprador"}</div>
+        <div style="margin-top:7px">
+          ${o.vendedor_alias
+            ? `<span class="al" onclick="navigator.clipboard.writeText('${o.vendedor_alias}');this.textContent='copiado ✓'">${o.vendedor_alias}</span>`
+            : `<span style="color:var(--err);font-size:13px">⚠ el vendedor no cargó su alias</span>`}
+          ${o.vendedor_titular ? `<span class="st"> · ${o.vendedor_titular}</span>` : ""}
+        </div>
+      </div>
+      <div style="text-align:right">
+        <div class="mt">${pesos(o.monto_vendedor)}</div>
+        ${go ? `<button class="btn small" onclick="pagar('${o.id}',this)">Ya le transferí</button>` : ""}
+      </div>
+    </div>
+  </div>`;
 
 async function cargar() {
-  const r = await fetch("/api/liquidaciones?k=" + encodeURIComponent(K));
-  if (!r.ok) { $("pend").innerHTML = `<p class="hint2">Link inválido: falta la clave de admin.</p>`; return; }
-  const d = await r.json();
-  const aPagar = d.pendientes.reduce((s, x) => s + (x.monto_vendedor || 0), 0);
-  $("kpis").innerHTML = `
-    <div class="kpi"><div class="n">${fmt(aPagar)}</div><div class="l">a liquidar (${d.pendientes.length})</div></div>
-    <div class="kpi"><div class="n">${d.enCurso.length}</div><div class="l">paquetes en la calle</div></div>
-    <div class="kpi"><div class="n">${d.listos.length}</div><div class="l">pagados (últimos)</div></div>`;
-
-  $("pend").innerHTML = d.pendientes.map(x => `
-    <div class="it">
-      <div class="g">
-        <b>${esc(x.seller_name || "Vendedor")}</b> <span class="cod">${esc(x.code)}</span><br>
-        <span class="hint2">${esc(x.detalle || "")} · entregado ${x.delivered_at ? new Date(x.delivered_at).toLocaleDateString("es-AR") : ""}</span>
-      </div>
-      <b style="font-size:17px">${fmt(x.monto_vendedor)}</b>
-      <button class="btn small" data-id="${x.id}">Ya le pagué</button>
-    </div>`).join("") || `<p class="hint2">Nada pendiente. Todo al día.</p>`;
-
-  $("curso").innerHTML = d.enCurso.map(x => `
-    <div class="it">
-      <div class="g"><b>${esc(x.seller_name || "")}</b> → ${esc(x.buyer_name || "")} <span class="cod">${esc(x.code)}</span><br>
-        <span class="hint2">${esc(x.detalle || "")}</span></div>
-      <span class="pill">${x.estado === "pendiente" ? "a retirar" : "en camino"}</span>
-      <b>${fmt(x.monto_vendedor)}</b>
-    </div>`).join("") || `<p class="hint2">Sin paquetes en curso.</p>`;
-
-  $("listos").innerHTML = d.listos.map(x => `
-    <div class="it">
-      <div class="g"><b>${esc(x.seller_name || "")}</b> <span class="cod">${esc(x.code)}</span><br>
-        <span class="hint2">${esc(x.detalle || "")}</span></div>
-      <span class="pill ok">pagado ${x.liquidado_at ? new Date(x.liquidado_at).toLocaleDateString("es-AR") : ""}</span>
-      <b>${fmt(x.monto_vendedor)}</b>
-    </div>`).join("") || `<p class="hint2">Todavía no liquidaste ninguno.</p>`;
-
-  document.querySelectorAll("[data-id]").forEach(b => b.onclick = async () => {
-    if (!confirm("¿Confirmás que ya le transferiste al vendedor?")) return;
-    b.disabled = true; b.textContent = "Guardando…";
-    const rr = await fetch("/api/liquidaciones", {
-      method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ k: K, id: b.dataset.id }),
-    });
-    if (rr.ok) cargar(); else { b.disabled = false; b.textContent = "Error"; }
-  });
-  $("lnk-et").href = "/etiquetas.html?k=" + encodeURIComponent(K);
+  const r = await fetch("/api/liquidaciones?key=" + encodeURIComponent(key));
+  const j = await r.json();
+  if (!r.ok) return out.innerHTML = `<p class="sub">${j.error}</p>`;
+  const total = j.liberables.reduce((s, o) => s + Number(o.monto_vendedor || 0), 0);
+  document.getElementById("sub").innerHTML =
+    `Tenés <b>${j.liberables.length}</b> transferencia${j.liberables.length === 1 ? "" : "s"} para hacer por <b>${pesos(total)}</b>.`;
+  out.innerHTML =
+    `<h2>Para transferir ya (${j.liberables.length})</h2>` +
+    (j.liberables.map(o => card(o, true)).join("") || "<p class='sub'>Nada pendiente. 👌</p>") +
+    `<h2>Esperando confirmación (${j.esperando.length})</h2>` +
+    (j.esperando.map(o => card(o, false)).join("") || "<p class='sub'>Nada en curso.</p>") +
+    `<h2>Últimas liquidadas</h2>` +
+    (j.liquidadas.map(o => `<div class="card"><span class="st">${fecha(o.liquidado_at)}</span> · ${pesos(o.monto_vendedor)}</div>`).join("")
+      || "<p class='sub'>Todavía ninguna.</p>");
 }
+
+async function pagar(id, btn) {
+  if (!confirm("¿Confirmás que ya le transferiste al vendedor?")) return;
+  btn.disabled = true; btn.textContent = "Guardando…";
+  const r = await fetch("/api/liquidaciones", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ key, id }),
+  });
+  r.ok ? cargar() : (btn.disabled = false, btn.textContent = "Ya le transferí");
+}
+
 cargar();
 </script>
 </body>

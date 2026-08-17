@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SURCOGS — Confirmar que recibí el disco</title>
+<link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<div class="wrap" style="max-width:520px;text-align:center;padding-top:60px">
+  <a href="/" style="font-weight:800;font-size:20px;letter-spacing:1px">SURC⊙GS</a>
+  <div id="box" style="margin-top:30px"></div>
+</div>
+
+<script>
+const p = new URLSearchParams(location.search);
+const box = document.getElementById("box");
+const o = p.get("o"), t = p.get("t");
+
+if (!o || !t) {
+  box.innerHTML = `<h1>Link inválido</h1><p class="sub">Revisá el link del mail o escribinos.</p>`;
+} else {
+  box.innerHTML = `
+    <h1>¿Recibiste tu disco?</h1>
+    <p class="sub" style="margin:10px 0 22px">Al confirmar, le pagamos al vendedor. Confirmá solo
+      cuando lo tengas en la mano y esté en las condiciones publicadas.</p>
+    <button class="btn" id="si" style="padding:12px 26px;font-size:15px">Sí, lo recibí</button>
+    <p class="hint" style="margin-top:18px">¿Hubo un problema? Escribinos a
+      <a href="mailto:info@surcogs.com.ar" style="color:var(--acc)">info@surcogs.com.ar</a>
+      antes de confirmar.</p>`;
+  document.getElementById("si").onclick = async (e) => {
+    e.target.disabled = true; e.target.textContent = "Confirmando…";
+    try {
+      const r = await fetch("/api/recibido", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ order_id: o, token: t }),
+      });
+      const j = await r.json();
+      if (!r.ok) throw new Error(j.error || "Error");
+      box.innerHTML = `<h1>¡Listo!</h1>
+        <p class="sub" style="margin:10px 0 22px">${j.ya ? "Ya habías confirmado esta compra." : "Gracias. Le avisamos al vendedor y le acreditamos su plata."}</p>
+        <a class="btn" href="/">Volver al catálogo</a>`;
+    } catch (err) {
+      e.target.disabled = false; e.target.textContent = "Sí, lo recibí";
+      alert("No pudimos confirmar: " + err.message);
+    }
+  };
+}
+</script>
+</body>
+</html>
