@@ -310,21 +310,21 @@ textarea { min-height: 72px; resize: vertical; }
 .btn-reg:hover { background: #e04b00; }
 
 /* Logo: el vinilo es la O de SURCOGS */
-.vinilo-o { width: 26px; height: 26px; border-radius: 50%; flex: none; box-sizing: border-box;
-  margin: 0 -1px; background: #000; border: 3.5px solid #fff; position: relative;
-  display: inline-block; vertical-align: -3px; }
-.vinilo-o::after { content: ""; position: absolute; left: 50%; top: 50%; width: 6px; height: 6px;
-  margin: -3px 0 0 -3px; border-radius: 50%; background: var(--acc); }
+.vinilo-o { width: 30px; height: 30px; flex: none; margin: 0 -1px; vertical-align: -5px;
+  display: inline-block; overflow: visible; }
+.vo-gira { animation: vo-girar 3.5s linear infinite; transform-origin: 50% 50%; }
+@keyframes vo-girar { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .vo-gira { animation: none; } }
 @media (max-width: 680px) {
-  .vinilo-o { width: 19px; height: 19px; border-width: 2.5px; vertical-align: -2px; }
-  .vinilo-o::after { width: 5px; height: 5px; margin: -2.5px 0 0 -2.5px; }
+  .vinilo-o { width: 20px; height: 20px; vertical-align: -3px; }
+  .vinilo-o .vo-txt { display: none; }
 }
 
 /* Mobile estilo Bandcamp: marca en la barra, sin banner ni tabs */
 .hwh-brand-m { display: none; align-items: center; font-family: Arial, Helvetica, sans-serif;
   font-weight: 700; font-size: 19px; letter-spacing: -.8px; color: #fff !important; }
-.hwh-brand-m .vinilo-o { width: 15px; height: 15px; border-width: 2px; margin: 0; }
-.hwh-brand-m .vinilo-o::after { width: 4px; height: 4px; margin: -2px 0 0 -2px; }
+.hwh-brand-m .vinilo-o { width: 17px; height: 17px; margin: 0; vertical-align: -3px; }
+.hwh-brand-m .vinilo-o .vo-txt { display: none; }
 @media (max-width: 680px) {
   .hwh-banner { display: none; }
   .hwh-tabs { display: none; }
