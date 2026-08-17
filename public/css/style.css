@@ -285,10 +285,10 @@ textarea { min-height: 72px; resize: vertical; }
 .hwh-tabs a { color: #fff; }
 .hwh-tabs a.on { color: #fff; background: transparent; border-radius: 0;
   border-bottom: 2px solid var(--acc); }
-.hwh-bar .search input { background: #3a3a3a; border: 0; border-radius: 4px;
-  color: #fff; caret-color: var(--acc); }
-.hwh-bar .search input::placeholder { color: #9a9a9a; }
-.hwh-bar .search svg { stroke: #cfcfcf; }
+.hwh-bar .search input { background: #fff; border: 0; border-radius: 4px;
+  color: #111; caret-color: var(--acc); }
+.hwh-bar .search input::placeholder { color: #8a8a8a; }
+.hwh-bar .search svg { stroke: #555; opacity: 1; }
 .hwh-bar .search input:focus { background: #454545; }
 @media (max-width: 680px) {
   .hwh-banner { padding: 14px 0 10px; }
