@@ -37,7 +37,7 @@ export async function onRequest({ request, env }) {
     if (pay.status === "approved" && String(pay.external_reference) === refEsperada) {
       await fetch(`${SUPA}/rest/v1/orders?${filtro}`, {
         method: "PATCH", headers: hdrs(KEY),
-        body: JSON.stringify({ status: "pagada", mp_payment_id: String(paymentId) }),
+        body: JSON.stringify({ status: "pagada", mp_payment_id: String(paymentId), pagado_at: new Date().toISOString() }),
       });
       const recordIds = ords.map((o) => o.record_id).join(",");
       await fetch(`${SUPA}/rest/v1/records?id=in.(${recordIds})`, {
@@ -87,11 +87,39 @@ export async function onRequest({ request, env }) {
             fetch(`${SUPA}/rest/v1/records?id=in.(${recordIds})&select=artist,title`, { headers: hdrs(KEY) }).then((r) => r.json()),
           ]);
           const buyer = await fetch(
-            `${SUPA}/rest/v1/orders?id=eq.${ords[0].id}&select=buyer_email`,
+            `${SUPA}/rest/v1/orders?id=eq.${ords[0].id}&select=buyer_email,rating_token`,
             { headers: hdrs(KEY) }
           ).then((r) => r.json());
           const lista = (discos || []).map((d) => `• ${d.artist} – ${d.title}`).join("<br>");
           const emailComprador = buyer?.[0]?.buyer_email || "no dejó email";
+
+          // Mail al comprador con el link para confirmar la entrega
+          if (buyer?.[0]?.buyer_email) {
+            const link = `${env.SITE_URL}/r.html?o=${ords[0].id}&t=${buyer[0].rating_token || ""}`;
+            await fetch("https://api.resend.com/emails", {
+              method: "POST",
+              headers: { Authorization: `Bearer ${env.RESEND_API_KEY}`, "Content-Type": "application/json" },
+              body: JSON.stringify({
+                from: "SURCOGS <ventas@surcogs.com.ar>",
+                to: [buyer[0].buyer_email],
+                subject: "Tu compra en SURCOGS está confirmada",
+                html: `<div style="font-family:sans-serif;max-width:520px">
+                  <h2>¡Gracias por tu compra!</h2>
+                  <p>${lista}</p>
+                  <p>El vendedor ya está avisado y te va a escribir para coordinar la entrega.</p>
+                  <p style="background:#f0f7f3;border-radius:6px;padding:12px 14px;color:#3c5a4a">
+                    🛡 <b>Tu plata está protegida.</b> El vendedor cobra recién cuando nos confirmes
+                    que recibiste el disco. Si en 10 días no nos decís nada y no hubo reclamo,
+                    se le acredita automáticamente.</p>
+                  <p style="margin:20px 0"><a href="${link}"
+                    style="background:#2ea860;color:#fff;padding:12px 22px;border-radius:5px;
+                    text-decoration:none;font-weight:bold">Ya lo recibí</a></p>
+                  <p style="color:#555;font-size:13px">¿Algún problema? Respondé este mail
+                    <b>antes</b> de confirmar y lo resolvemos.</p>
+                </div>`,
+              }),
+            }).catch(() => {});
+          }
           if (vendedor?.email) {
             await fetch("https://api.resend.com/emails", {
               method: "POST",
@@ -106,13 +134,13 @@ export async function onRequest({ request, env }) {
                 html: `<div style="font-family:sans-serif;max-width:520px">
                   <h2>¡Felicitaciones, vendiste!</h2>
                   <p>${lista}</p>
-                  <p>El pago ya está acreditado en tu Mercado Pago (menos comisiones).</p>
+                  <p>El pago ya está confirmado y guardado por SURCOGS.</p>
                   <p><b>Comprador:</b> ${emailComprador}<br>
                   Escribile hoy para coordinar la entrega: punto de encuentro o envío.</p>
-                  <p style="color:#555;font-size:13px">💰 <b>Tu plata ya está en tu cuenta de Mercado Pago.</b>
-                  MP la libera según el plazo configurado en tu cuenta — mirá la fecha exacta en la app:
-                  Actividad → este cobro → "Disponible el…". Recibís tu precio completo: las comisiones
-                  ya se descontaron solas del precio que pagó el comprador.</p>
+                  <p style="color:#555;font-size:13px">💰 <b>Cuándo cobrás.</b> Te transferimos a tu alias
+                  dentro de las 48hs hábiles de que el comprador confirme que recibió el disco, o a los
+                  10 días del envío si no hay reclamo. Recibís tu precio completo: las comisiones las paga
+                  el comprador. Revisá que tengas tu alias cargado en Mi cuenta.</p>
                   <p style="color:#555;font-size:13px">📦 <b>Sugerencia de envío:</b> Correo Argentino a sucursal,
                   con seguimiento. Embalado de coleccionista:</p>
                   <ul style="color:#555;font-size:13px;margin:0 0 12px;padding-left:18px">

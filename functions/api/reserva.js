@@ -1,0 +1,122 @@
+// Cloudflare Pages Function — compra por TRANSFERENCIA con 10% de descuento.
+//
+// Reserva los discos por 24hs (salen del catálogo), crea las órdenes en estado
+// "reservado" y devuelve el texto listo para abrir el WhatsApp de SURCOGS.
+// Si en 24hs no se concreta, la reserva vence y los discos vuelven al catálogo.
+const RECARGO = 0.15;
+const DTO = 0.10;
+const HORAS_RESERVA = 24;
+
+export async function onRequestPost({ request, env }) {
+  const SUPA = env.SUPABASE_URL;
+  const KEY = env.SUPABASE_SERVICE_ROLE_KEY;
+  const WA = (env.WHATSAPP_SURCOGS || "").replace(/\D/g, ""); // ej: 5491122334455
+
+  // 1) Liberar reservas vencidas antes que nada
+  await fetch(
+    `${SUPA}/rest/v1/records?status=eq.reservado&reservado_hasta=lt.${new Date().toISOString()}`,
+    { method: "PATCH", headers: hdrs(KEY), body: JSON.stringify({ status: "disponible", reservado_hasta: null }) }
+  ).catch(() => {});
+
+  const body = await request.json().catch(() => ({}));
+  const ids = body.record_ids?.length ? body.record_ids : (body.record_id ? [body.record_id] : []);
+  if (!ids.length || ids.length > 20) return json({ error: "Falta el disco" }, 400);
+
+  const datosEnvio = {
+    buyer_email: body.buyer_email || null,
+    buyer_name: body.buyer_name || null,
+    buyer_phone: body.buyer_phone || null,
+    buyer_addr: body.buyer_addr || null,
+    buyer_localidad: body.buyer_localidad || null,
+    buyer_zona: body.buyer_zona || null,
+    buyer_cp: body.buyer_cp || null,
+  };
+
+  const recs = await fetch(
+    `${SUPA}/rest/v1/records?id=in.(${ids.join(",")})&select=*`,
+    { headers: hdrs(KEY) }
+  ).then((r) => r.json());
+  if (!Array.isArray(recs) || recs.length !== ids.length) {
+    return json({ error: "Algún disco del carrito ya no existe" }, 404);
+  }
+  if (recs.some((r) => r.status !== "disponible")) {
+    return json({ error: "Algún disco del carrito ya no está disponible" }, 409);
+  }
+  const sellerId = recs[0].seller_id;
+  if (recs.some((r) => r.seller_id !== sellerId)) {
+    return json({ error: "El carrito solo puede tener discos de un mismo vendedor" }, 400);
+  }
+
+  // 2) Precios con descuento
+  const purchaseId = crypto.randomUUID();
+  const hasta = new Date(Date.now() + HORAS_RESERVA * 3600 * 1000).toISOString();
+  const codigo = "SC-" + purchaseId.slice(0, 4).toUpperCase();
+  const ordenes = [];
+  let total = 0;
+  for (const rec of recs) {
+    const conDto = Math.round(Math.round(rec.price * (1 + RECARGO)) * (1 - DTO));
+    total += conDto;
+    ordenes.push({
+      record_id: rec.id,
+      seller_id: sellerId,
+      amount: conDto,
+      fee: conDto - rec.price,
+      monto_vendedor: rec.price,
+      metodo_pago: "transferencia",
+      status: "reservado",
+      purchase_id: purchaseId,
+      ...datosEnvio,
+    });
+  }
+  const costosEnvio = recs
+    .filter((r) => r.shipping_mode === "fijo" && r.shipping_cost > 0)
+    .map((r) => r.shipping_cost);
+  const costoEnvio = costosEnvio.length ? Math.max(...costosEnvio) : 0;
+  if (costoEnvio > 0) { total += costoEnvio; ordenes[0].shipping_cost = costoEnvio; }
+
+  // 3) Reservar los discos y crear las órdenes
+  await fetch(`${SUPA}/rest/v1/records?id=in.(${ids.join(",")})`, {
+    method: "PATCH",
+    headers: hdrs(KEY),
+    body: JSON.stringify({ status: "reservado", reservado_hasta: hasta }),
+  });
+  const ins = await fetch(`${SUPA}/rest/v1/orders`, {
+    method: "POST",
+    headers: { ...hdrs(KEY), Prefer: "return=representation" },
+    body: JSON.stringify(ordenes),
+  }).then((r) => r.json());
+  if (!Array.isArray(ins) || !ins.length) {
+    // rollback de la reserva
+    await fetch(`${SUPA}/rest/v1/records?id=in.(${ids.join(",")})`, {
+      method: "PATCH", headers: hdrs(KEY),
+      body: JSON.stringify({ status: "disponible", reservado_hasta: null }),
+    });
+    return json({ error: "No se pudo reservar" }, 500);
+  }
+
+  // 4) Mensaje de WhatsApp
+  const lista = recs.map((r) => `• ${r.artist} – ${r.title}`).join("\n");
+  const msg =
+    `Hola SURCOGS! Quiero hacer esta compra con el 10% de descuento pagando por transferencia.\n\n` +
+    `${lista}\n\n` +
+    (costoEnvio > 0 ? `Envío: $${miles(costoEnvio)}\n` : "") +
+    `Total con descuento: $${miles(total)}\n` +
+    `Código de compra: ${codigo}` +
+    (datosEnvio.buyer_name ? `\nA nombre de: ${datosEnvio.buyer_name}` : "");
+
+  return json({
+    codigo,
+    total,
+    reservado_hasta: hasta,
+    wa: `https://wa.me/${WA}?text=${encodeURIComponent(msg)}`,
+  });
+}
+
+const miles = (n) => Number(n).toLocaleString("es-AR");
+const hdrs = (KEY) => ({
+  apikey: KEY,
+  Authorization: `Bearer ${KEY}`,
+  "Content-Type": "application/json",
+});
+const json = (b, s = 200) =>
+  new Response(JSON.stringify(b), { status: s, headers: { "Content-Type": "application/json" } });
