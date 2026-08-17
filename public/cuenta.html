@@ -8,6 +8,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Space+Grotesk:wght@400;500;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/css/style.css">
+<style>#compras,#ventas{scroll-margin-top:90px}</style>
 <script src="/js/config.js"></script>
 </head>
 <body>
@@ -150,9 +151,10 @@ function renderCrearPerfil(user) {
 /* ---------- PANEL ---------- */
 async function renderPanel(user, perfil) {
 
-  const [{ data: discos }, { data: ventas }] = await Promise.all([
+  const [{ data: discos }, { data: ventas }, { data: compras }] = await Promise.all([
     sb.from("records").select("*").eq("seller_id", user.id).order("created_at", { ascending: false }),
     sb.from("orders").select("*, records(artist, title)").eq("seller_id", user.id).eq("status", "pagada").order("created_at", { ascending: false }),
+    sb.from("orders").select("*, records(artist, title)").eq("buyer_email", user.email).in("status", ["pagada", "enviado", "entregado", "reservado"]).order("created_at", { ascending: false }),
   ]);
 
   const iniciales = (perfil.name || "").trim().split(/\s+/).map(w => w[0]).slice(0, 2).join("").toUpperCase() || "YO";
@@ -184,7 +186,23 @@ async function renderPanel(user, perfil) {
       <h2 style="font-size:18px;margin-bottom:12px">Mis discos (${(discos || []).length})</h2>
       <div id="lista"></div>
     </div>
-    <div class="mis-discos">
+    <div class="mis-discos" id="compras">
+      <h2 style="font-size:18px;margin-bottom:12px">Mis compras (${(compras || []).length})</h2>
+      ${(compras || []).map(c => {
+        const estado = c.entregado_at ? "✅ Recibido"
+          : c.status === "reservado" ? "⏳ Reservado — coordinamos por WhatsApp"
+          : "📦 Pagado — esperando la entrega";
+        return `
+        <div class="list-item">
+          <div class="grow">
+            <strong>${c.records ? c.records.artist + " – " + c.records.title : "Disco"}</strong><br>
+            <span class="hint">${fmtPrecio(c.amount)} · ${new Date(c.created_at).toLocaleDateString("es-AR")} · ${estado}</span>
+          </div>
+          ${!c.entregado_at && c.rating_token ? `<a class="btn small" href="/r.html?o=${c.id}&t=${c.rating_token}">Ya lo recibí</a>` : ""}
+        </div>`;
+      }).join("") || "<p class='sub'>Todavía no compraste nada. <a href='/' style='color:var(--acc)'>Ver el catálogo</a></p>"}
+    </div>
+    <div class="mis-discos" id="ventas">
       <h2 style="font-size:18px;margin-bottom:12px">Ventas concretadas (${(ventas || []).length})</h2>
       ${(ventas || []).map(v => `
         <div class="list-item">
