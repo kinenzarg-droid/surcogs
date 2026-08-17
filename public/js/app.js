@@ -72,10 +72,14 @@ export const fmtPrecio = (n) => "$" + Number(n).toLocaleString("es-AR");
 // El precio guardado (records.price) es lo que RECIBE el vendedor.
 // El comprador ve el precio con comisiones incluidas.
 // Debe coincidir con functions/api/create-preference.js
-export const RESERVA_MP = 0.08;      // reserva para Mercado Pago (con colchón)
-export const TASA_SURCOGS = 0.10;
+// El vendedor cobra su precio intacto. El comprador paga ese precio + 15%,
+// que cubre la comisión de Mercado Pago y el servicio de SURCOGS.
+export const RECARGO = 0.15;
+export const DTO_TRANSFER = 0.10;    // descuento por pagar con transferencia
 export const precioComprador = (neto) =>
-  Math.round(Number(neto) / (1 - RESERVA_MP - TASA_SURCOGS));
+  Math.round(Number(neto) * (1 + RECARGO));
+export const precioTransferencia = (neto) =>
+  Math.round(precioComprador(neto) * (1 - DTO_TRANSFER));
 
 export async function getUser() {
   const { data } = await sb.auth.getUser();
@@ -128,7 +132,13 @@ export async function renderHeader(activo) {
           <a class="btn-ing" href="/cuenta.html">Ingresar</a>
           <a class="btn-reg" href="/cuenta.html?registro=1">Registrarse</a>`}
       </div>
-    </header>`;
+    </header>
+    <div class="tira" aria-label="10% de descuento pagando por transferencia">
+      <div class="tira-in">
+        <span>10% de descuento pagando por transferencia&nbsp;&nbsp;·&nbsp;&nbsp;Tu plata protegida: el vendedor cobra cuando confirmás que recibiste el disco&nbsp;&nbsp;·&nbsp;&nbsp;Publicar es gratis&nbsp;&nbsp;·&nbsp;&nbsp;</span>
+        <span>10% de descuento pagando por transferencia&nbsp;&nbsp;·&nbsp;&nbsp;Tu plata protegida: el vendedor cobra cuando confirmás que recibiste el disco&nbsp;&nbsp;·&nbsp;&nbsp;Publicar es gratis&nbsp;&nbsp;·&nbsp;&nbsp;</span>
+      </div>
+    </div>`;
 
   // Menú del avatar
   if (user) {
