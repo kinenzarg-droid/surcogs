@@ -125,7 +125,8 @@ export async function renderHeader(activo) {
             <button class="avatar" id="avatar-btn" title="Menú">${avatarInner}</button>
             <div class="avatar-menu" id="avatar-menu">
               <a href="/cuenta.html">Mi cuenta</a>
-              <a href="/perfil.html?id=${user.id}">Mi colección</a>
+              <a href="/cuenta.html#compras">Compras</a>
+              <a href="/cuenta.html#ventas">Ventas</a>
               <a href="#" class="salir" id="btn-salir">Salir</a>
             </div>
           </div>` : `
