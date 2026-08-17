@@ -281,9 +281,14 @@ textarea { min-height: 72px; resize: vertical; }
 .hwh-tabs { display: flex; gap: 4px; flex: none; }
 .hwh-tabs a { color: #bbb; font-weight: 700; font-size: 14px; padding: 6px 10px;
   border-radius: 4px; white-space: nowrap; }
-.hwh-tabs a:hover { color: #fff; }
-.hwh-tabs a.on { color: #000; background: #fff; }
-.hwh-bar .search input { background: #3a3a3a; border: 0; border-radius: 4px; }
+.hwh-tabs a:hover { color: var(--acc); }
+.hwh-tabs a { color: #fff; }
+.hwh-tabs a.on { color: #fff; background: transparent; border-radius: 0;
+  border-bottom: 2px solid var(--acc); }
+.hwh-bar .search input { background: #3a3a3a; border: 0; border-radius: 4px;
+  color: #fff; caret-color: var(--acc); }
+.hwh-bar .search input::placeholder { color: #9a9a9a; }
+.hwh-bar .search svg { stroke: #cfcfcf; }
 .hwh-bar .search input:focus { background: #454545; }
 @media (max-width: 680px) {
   .hwh-banner { padding: 14px 0 10px; }
