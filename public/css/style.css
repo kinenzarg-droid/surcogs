@@ -269,11 +269,11 @@ textarea { min-height: 72px; resize: vertical; }
 
 /* ===== Header Hard Wax: banner centrado + barra de pestañas ===== */
 .hwh-banner { padding: 18px 0 12px; text-align: center; background: #000; }
-.hwh-banner a { display: inline-flex; align-items: center; gap: 12px; text-decoration: none; }
+.hwh-banner a { display: inline-flex; align-items: center; gap: 0; gap: 12px; text-decoration: none; }
 .vinilo-hw { width: 34px; height: 34px; border-radius: 50%; flex: none;
   background: radial-gradient(circle, #ff5500 16%, #0d0d0d 17%, #0d0d0d 44%, #3a3a3a 45%, #181818 100%); }
-.hwh-word { font-family: Arial, Helvetica, sans-serif; font-weight: 700; font-size: 26px;
-  letter-spacing: 9px; color: #fff; }
+.hwh-word { font-family: Arial, Helvetica, sans-serif; font-weight: 700; font-size: 30px;
+  letter-spacing: -1.5px; color: #fff; }
 .hwh-bar { display: flex; align-items: center; gap: 10px; padding: 10px 16px;
   border-top: 1px solid #333; border-bottom: 1px solid #333;
   position: sticky; top: 0; background: #000; z-index: 40; }
@@ -286,7 +286,7 @@ textarea { min-height: 72px; resize: vertical; }
 .hwh-bar .search input:focus { background: #454545; }
 @media (max-width: 680px) {
   .hwh-banner { padding: 14px 0 10px; }
-  .hwh-word { font-size: 19px; letter-spacing: 6px; }
+  .hwh-word { font-size: 22px; letter-spacing: -1px; }
   .vinilo-hw { width: 26px; height: 26px; }
   .hwh-bar { flex-wrap: wrap; gap: 5px; padding: 8px 10px; }
   .hwh-tabs { gap: 0; }
@@ -310,14 +310,21 @@ textarea { min-height: 72px; resize: vertical; }
 .btn-reg:hover { background: #e04b00; }
 
 /* Logo: el vinilo es la O de SURCOGS */
-.vinilo-o { width: 26px; height: 26px; border-radius: 50%; flex: none; margin-right: 9px;
-  background: radial-gradient(circle, #ff5500 16%, #0d0d0d 17%, #0d0d0d 44%, #3a3a3a 45%, #181818 100%); }
-@media (max-width: 680px) { .vinilo-o { width: 19px; height: 19px; margin-right: 6px; } }
+.vinilo-o { width: 26px; height: 26px; border-radius: 50%; flex: none; box-sizing: border-box;
+  margin: 0 -1px; background: #000; border: 3.5px solid #fff; position: relative;
+  display: inline-block; vertical-align: -3px; }
+.vinilo-o::after { content: ""; position: absolute; left: 50%; top: 50%; width: 6px; height: 6px;
+  margin: -3px 0 0 -3px; border-radius: 50%; background: var(--acc); }
+@media (max-width: 680px) {
+  .vinilo-o { width: 19px; height: 19px; border-width: 2.5px; vertical-align: -2px; }
+  .vinilo-o::after { width: 5px; height: 5px; margin: -2.5px 0 0 -2.5px; }
+}
 
 /* Mobile estilo Bandcamp: marca en la barra, sin banner ni tabs */
 .hwh-brand-m { display: none; align-items: center; font-family: Arial, Helvetica, sans-serif;
-  font-weight: 700; font-size: 17px; letter-spacing: 4px; color: #fff !important; }
-.hwh-brand-m .vinilo-o { width: 15px; height: 15px; margin-right: 3px; }
+  font-weight: 700; font-size: 19px; letter-spacing: -.8px; color: #fff !important; }
+.hwh-brand-m .vinilo-o { width: 15px; height: 15px; border-width: 2px; margin: 0; }
+.hwh-brand-m .vinilo-o::after { width: 4px; height: 4px; margin: -2px 0 0 -2px; }
 @media (max-width: 680px) {
   .hwh-banner { display: none; }
   .hwh-tabs { display: none; }
