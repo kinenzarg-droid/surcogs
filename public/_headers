@@ -1,0 +1,21 @@
+# Cloudflare Pages — control de caché
+#
+# El código (JS, CSS y HTML) se revalida siempre: el navegador pregunta
+# "¿cambió?" antes de usar su copia. Si no cambió, Cloudflare responde
+# "no" y no se descarga nada, así que sigue siendo rápido. Pero cuando
+# deployamos, todos ven la versión nueva sin tener que limpiar caché.
+/js/*
+  Cache-Control: public, max-age=0, must-revalidate
+
+/css/*
+  Cache-Control: public, max-age=0, must-revalidate
+
+/*.html
+  Cache-Control: public, max-age=0, must-revalidate
+
+/
+  Cache-Control: public, max-age=0, must-revalidate
+
+# Las imágenes que suben los usuarios no cambian nunca: se cachean un año.
+/img/*
+  Cache-Control: public, max-age=31536000, immutable
