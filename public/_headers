@@ -5,16 +5,16 @@
 # "no" y no se descarga nada, así que sigue siendo rápido. Pero cuando
 # deployamos, todos ven la versión nueva sin tener que limpiar caché.
 /js/*
-  Cache-Control: public, max-age=0, must-revalidate
+  Cache-Control: no-cache
 
 /css/*
-  Cache-Control: public, max-age=0, must-revalidate
+  Cache-Control: no-cache
 
 /*.html
-  Cache-Control: public, max-age=0, must-revalidate
+  Cache-Control: no-cache
 
 /
-  Cache-Control: public, max-age=0, must-revalidate
+  Cache-Control: no-cache
 
 # Las imágenes que suben los usuarios no cambian nunca: se cachean un año.
 /img/*
