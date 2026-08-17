@@ -112,6 +112,8 @@ export async function renderHeader(activo) {
       <a class="hwh-brand-m" href="/">SURC<svg class="vinilo-o" viewBox="0 0 40 40" aria-hidden="true"><g class="vo-gira"><circle cx="20" cy="20" r="18" fill="#000" stroke="#ff5500" stroke-width="4.5"/><circle cx="20" cy="20" r="9.5" fill="#ff5500"/><text class="vo-txt" x="20" y="22.2" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="7" font-weight="700" fill="#000">SCS</text><circle cx="20" cy="20" r="1.2" fill="#000"/><path d="M20 2.8 L20 6.5" stroke="#fff" stroke-width="1.5"/></g></svg>GS</a>
       <nav class="hwh-tabs">
         <a href="/" class="${activo === "catalogo" ? "on" : ""}">Catálogo</a>
+        <a href="${user ? "/perfil.html?id=" + user.id : "/cuenta.html"}"
+           class="${activo === "coleccion" ? "on" : ""}">Mi colección</a>
       </nav>
       <div class="search">
         <input id="hdr-q" type="search" placeholder="Buscar artista, disco o sello" autocomplete="off">
