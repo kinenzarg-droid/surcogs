@@ -289,7 +289,8 @@ textarea { min-height: 72px; resize: vertical; }
   color: #111; caret-color: var(--acc); }
 .hwh-bar .search input::placeholder { color: #8a8a8a; }
 .hwh-bar .search svg { stroke: #555; opacity: 1; }
-.hwh-bar .search input:focus { background: #454545; }
+.hwh-bar .search input:focus { background: #fff; outline: none;
+  box-shadow: 0 0 0 2px var(--acc); }
 @media (max-width: 680px) {
   .hwh-banner { padding: 14px 0 10px; }
   .hwh-word { font-size: 24px; letter-spacing: 1px; }
