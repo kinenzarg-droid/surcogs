@@ -435,3 +435,12 @@ img, iframe { max-width: 100%; }
 @media (prefers-reduced-motion: reduce) {
   #btn-arriba { transition: none; }
 }
+
+/* ===== Celular: el vinilo de SURCOGS centrado en la barra ===== */
+/* Va absoluto para que quede en el centro real de la pantalla y no corrido
+   por el ancho de la campanita y el avatar. */
+@media (max-width: 680px) {
+  .hwh-bar { position: relative; }
+  .hwh-brand-m { position: absolute; left: 50%; transform: translateX(-50%); margin: 0; top: 14px; }
+  .hdr-links { margin-left: auto; }
+}
