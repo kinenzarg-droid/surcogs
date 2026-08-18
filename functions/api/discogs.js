@@ -14,17 +14,27 @@ export async function onRequestGet({ request, env }) {
   const conToken = Boolean(env.DISCOGS_TOKEN);
   if (conToken) headers.Authorization = `Discogs token=${env.DISCOGS_TOKEN}`;
 
-  // Discogs a veces devuelve 429 aislados: reintentar una vez tras una pausa
+  // Discogs a veces devuelve 429 aislados: reintentar una vez tras una pausa.
+  // Guardamos los headers de cuota de la última respuesta para poder diagnosticar:
+  // si el límite dice 25 es que Discogs NO nos está viendo como autenticados.
+  let cuota = {};
   const fetchDg = async (u) => {
     let r = await fetch(u, { headers });
     if (r.status === 429) {
       await new Promise((res) => setTimeout(res, 1500));
       r = await fetch(u, { headers });
     }
+    cuota = {
+      limite: r.headers.get("X-Discogs-Ratelimit"),
+      usado: r.headers.get("X-Discogs-Ratelimit-Used"),
+      restante: r.headers.get("X-Discogs-Ratelimit-Remaining"),
+    };
     return r;
   };
   const err429 = () => json({
     error: `Discogs está limitando las consultas${conToken ? "" : " (token no configurado)"}. Esperá un minuto y probá de nuevo.`,
+    con_token: conToken,
+    cuota,
   }, 429);
 
   // Extraer el ID: release directo, o master → su edición principal
