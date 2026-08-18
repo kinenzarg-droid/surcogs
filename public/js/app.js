@@ -92,6 +92,18 @@ export async function getPerfil(userId) {
 }
 
 // Header compartido — estilo SoundCloud
+// Texto de la tira: frases encadenadas sin huecos. Se repite lo suficiente
+// para cubrir cualquier ancho de pantalla, así el verde nunca queda vacío.
+function tiraTexto() {
+  const frases = [
+    "10% de descuento pagando por transferencia",
+    "Tu plata protegida: el vendedor cobra cuando confirmás que recibiste el disco",
+    "Publicar es gratis",
+    "Vinilos de mano en mano, entre coleccionistas",
+  ];
+  return `<span>${(frases.join(" · ") + " · ").repeat(3)}</span>`;
+}
+
 export async function renderHeader(activo) {
   const user = await getUser();
   let avatarInner = "";
@@ -137,10 +149,7 @@ export async function renderHeader(activo) {
       </div>
     </header>
     <div class="tira" aria-label="10% de descuento pagando por transferencia">
-      <div class="tira-in">
-        <span>10% de descuento pagando por transferencia&nbsp;&nbsp;·&nbsp;&nbsp;Tu plata protegida: el vendedor cobra cuando confirmás que recibiste el disco&nbsp;&nbsp;·&nbsp;&nbsp;Publicar es gratis&nbsp;&nbsp;·&nbsp;&nbsp;</span>
-        <span>10% de descuento pagando por transferencia&nbsp;&nbsp;·&nbsp;&nbsp;Tu plata protegida: el vendedor cobra cuando confirmás que recibiste el disco&nbsp;&nbsp;·&nbsp;&nbsp;Publicar es gratis&nbsp;&nbsp;·&nbsp;&nbsp;</span>
-      </div>
+      <div class="tira-in">${tiraTexto()}${tiraTexto()}</div>
     </div>`;
 
   // Menú del avatar
