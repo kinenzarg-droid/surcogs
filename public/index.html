@@ -19,6 +19,9 @@
 @keyframes skp{0%,100%{opacity:.55}50%{opacity:1}}
 /* ===== Catálogo estilo Hard Wax ===== */
 .hw-layout{display:grid;grid-template-columns:210px 1fr;gap:0}
+/* Sin esto, la tira de géneros (que es más ancha que la pantalla) estira toda
+   la columna y en el celular queda todo cortado y las tarjetas gigantes. */
+.hw-layout>*{min-width:0}
 .hw-rows>*{max-width:1030px}
 .hw-side{background:#fafafa;padding:14px 0;border-right:1px solid #e6e6e6;min-height:70vh}
 .hw-side h4{display:flex;align-items:center;gap:8px;font-size:13.5px;color:#111;
@@ -247,7 +250,7 @@ a:hover .hw-chip{background:#fff;box-shadow:1px 1px 0 rgba(0,0,0,.15)}
   .hw-rows{padding:6px 8px 110px}
   .hw-mobile-filters{padding:0 12px 12px;gap:8px}
   .hw-mobile-filters select{border-radius:999px;padding:8px 12px}
-  .ggrid{grid-template-columns:1fr 1fr;gap:10px}
+  .ggrid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
   .gbody{padding:9px 10px 11px;gap:4px}
   .gname{font-size:12.5px;-webkit-line-clamp:3}
   .gmeta{font-size:10.5px;white-space:normal}
