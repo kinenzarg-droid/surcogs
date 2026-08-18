@@ -181,6 +181,9 @@ a:hover .hw-chip{background:#fff;box-shadow:1px 1px 0 rgba(0,0,0,.15)}
   padding:0 2px;font-family:inherit;flex:none}
 .cartp-sub{display:flex;justify-content:space-between;padding:10px 12px 4px;font-size:13.5px}
 .cartp-sub b{font-size:15px}
+.cartp-tr{padding:2px 12px 4px;color:#1e7a44;font-size:12.5px;align-items:baseline}
+.cartp-tr b{font-size:14px;color:#1e7a44}
+.cartp-tr span b{font-size:11px;background:#e6f5ec;border-radius:3px;padding:1px 4px}
 .cartp-note{color:#777;font-size:11px;padding:0 12px 8px}
 .cartp-buy{display:block;width:calc(100% - 24px);margin:0 12px 12px;background:#2ea860;
   color:#fff;border:0;border-radius:4px;padding:10px;font-size:14px;font-weight:700;
@@ -283,7 +286,7 @@ a:hover .hw-chip{background:#fff;box-shadow:1px 1px 0 rgba(0,0,0,.15)}
       No hay discos que coincidan. Probá otra búsqueda o <a href="/publicar.html" style="color:var(--acc)">publicá el tuyo</a>.
     </p>
     <p class="hw-footer">
-      <strong>Grading Goldmine:</strong> NM casi perfecto · VG+ uso leve · VG uso evidente, ruido leve · G ruido considerable.<br>
+      <strong>Grading Goldmine:</strong> M sellado o nunca reproducido · NM casi perfecto · VG+ uso leve · VG uso evidente, ruido leve · G+ / G ruido considerable.<br>
       Pago protegido por Mercado Pago · Precios en pesos argentinos · SURCOGS · Buenos Aires ·
       <a href="https://instagram.com/surcogs">@surcogs</a> · Contacto: <a href="mailto:info@surcogs.com.ar">info@surcogs.com.ar</a>
     </p>
@@ -295,6 +298,7 @@ a:hover .hw-chip{background:#fff;box-shadow:1px 1px 0 rgba(0,0,0,.15)}
     <button id="cart-clear" title="Vaciar carrito" style="background:transparent;border:0;color:#a33;font-size:15px;cursor:pointer;font-family:inherit;padding:0 2px">✕</button></div>
   <div id="cartp-items"></div>
   <div class="cartp-sub"><span>Subtotal</span><b id="cartp-total"></b></div>
+  <div class="cartp-sub cartp-tr"><span>Con transferencia <b>10% OFF</b></span><b id="cartp-total-tr"></b></div>
   <div class="cartp-note" id="cartp-note"></div>
   <button class="cartp-buy" id="cart-buy">Comprar</button>
 </div>
@@ -474,7 +478,7 @@ async function pintar(mantenerScroll) {
         <div class="gfoot">
           <span class="gprecio">
             <span class="gprice">${d.old_price && d.old_price > d.price ? `<s>${fmtPrecio(precioComprador(d.old_price))}</s>` : ""}${fmtPrecio(precioComprador(d.price))}</span>
-            <span class="gtr">${fmtPrecio(Math.round(precioComprador(d.price) * 0.9))} <b>10% OFF</b> transferencia</span>
+            <span class="gtr">${fmtPrecio(Math.round(precioComprador(d.price) * 0.9))} <b>10% OFF</b> con transferencia</span>
           </span>
         </div>
         ${d.status === "disponible" ? `<div class="gbtns">
@@ -594,6 +598,10 @@ function pintarCartBar() {
       <button class="x" data-x="${d.id}" title="Quitar del carrito">✕</button>
     </div>`).join("") + envLineas;
   document.getElementById("cartp-total").textContent = fmtPrecio(total);
+  // Total pagando por transferencia: 10% off sobre los discos, el envío va igual.
+  // Se redondea disco por disco, igual que lo calcula el servidor en /api/reserva.
+  const totalTr = items.reduce((s, d) => s + Math.round(precioComprador(d.price) * 0.9), 0) + envTotal;
+  document.getElementById("cartp-total-tr").textContent = fmtPrecio(totalTr);
   document.getElementById("cartp-note").textContent = (vendedores > 1
     ? `Discos de ${vendedores} vendedores: ${vendedores} pagos y ${vendedores} entregas. `
     : "Un solo pago · una sola entrega. ") + "Varios discos del mismo vendedor pagan un solo envío.";
