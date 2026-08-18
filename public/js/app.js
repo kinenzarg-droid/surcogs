@@ -185,7 +185,9 @@ export async function renderHeader(activo) {
   const cerrarPaneles = (menos) => paneles.forEach(p => { if (p && p !== menos) p.style.display = "none"; });
   document.addEventListener("keydown", (e) => { if (e.key === "Escape") cerrarPaneles(); });
   document.addEventListener("click", (e) => {
-    if (e.target.closest(".campana-wrap, .avatar-wrap, .search")) return;
+    // tocar el buscador cierra los otros dos, pero no su propio desplegable
+    if (e.target.closest(".search")) { cerrarPaneles(document.getElementById("hdr-dd")); return; }
+    if (e.target.closest(".campana-wrap, .avatar-wrap")) return;
     cerrarPaneles();
   });
 
