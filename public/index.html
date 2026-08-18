@@ -50,6 +50,20 @@
 .lk-sello{color:inherit;text-decoration:none;border-bottom:1px dotted #aaa;cursor:pointer}
 .lk-sello:hover{color:#ff5500;border-bottom-color:#ff5500}
 .hw-player .lk-sello{color:#555}
+.gtks{border-top:1px solid #eee;padding-top:4px;margin-top:2px}
+.gtk-list{max-height:54px;overflow:hidden;scroll-behavior:smooth}
+.gtk{display:flex;align-items:baseline;gap:6px;width:100%;background:transparent;border:0;
+  color:#3a3a3a;font-size:11.5px;cursor:pointer;font-family:inherit;padding:2px 0;text-align:left;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.gtk::before{content:"▶";font-size:8px;color:#2ea860;flex:none}
+.gtk-pos{color:#999;font-size:10.5px;flex:none;min-width:16px}
+.gtk:hover{color:#000;text-decoration:underline}
+.gtk-off{color:#aaa;cursor:default}
+.gtk-off::before{content:"·";color:#ccc}
+.gtk-off:hover{color:#aaa;text-decoration:none}
+.gtk-nav{width:100%;border:0;background:#f0f0f0;color:#777;cursor:pointer;padding:0;
+  font-size:9px;line-height:12px;border-radius:2px}
+.gtk-nav:hover{background:#e2e2e2;color:#111}
 .gtracks{display:flex;flex-wrap:wrap;gap:2px 12px;border-top:1px solid #eee;padding-top:5px;
   max-height:44px;overflow:hidden}
 .gtracks button{background:transparent;border:0;color:#3a3a3a;font-size:11.5px;cursor:pointer;
@@ -169,6 +183,13 @@ a:hover .hw-chip{background:#fff;box-shadow:1px 1px 0 rgba(0,0,0,.15)}
   z-index:60;display:none}
 .hw-player .bar{display:flex;align-items:center;gap:12px;padding:8px 16px;color:#555;font-size:12.5px}
 .hw-player .bar b{color:#111}
+.pl-nav{background:transparent;border:1px solid #ccc;border-radius:4px;color:#333;cursor:pointer;
+  font-size:12px;padding:3px 8px;font-family:inherit;flex:none}
+.pl-nav:hover:not(:disabled){background:#f0f0f0;border-color:#888;color:#000}
+.pl-nav:disabled{opacity:.35;cursor:default}
+.pl-cnt{font-family:ui-monospace,monospace;font-size:12px;color:#777;background:#f4f4f4;
+  border-radius:3px;padding:2px 7px;flex:none}
+.pl-pos{color:#999;font-size:11.5px}
 .hw-player .cerrar{margin-left:auto;background:transparent;border:1px solid #444;border-radius:3px;
   color:#555;cursor:pointer;padding:3px 10px;font-size:12px}
 .hw-player iframe{display:block;width:100%;height:80px;border:0}
@@ -449,8 +470,7 @@ async function pintar(mantenerScroll) {
 
   document.querySelectorAll("[data-play]").forEach(b => b.onclick = () => {
     const [di, ti] = b.dataset.play.split(":").map(Number);
-    const d = itemsPagina[di], t = d.tracks[ti];
-    reproducir(d, t);
+    reproducirDisco(itemsPagina[di], ti);
   });
 
   // dueño: eliminar
@@ -701,21 +721,73 @@ document.addEventListener("click", (ev) => {
   const texto = a.dataset.q || a.textContent.trim();
   filtro.q = texto.toLowerCase();
   document.querySelectorAll(".search input").forEach(i => i.value = texto);
-  history.replaceState(null, "", "/?q=" + encodeURIComponent(texto));
+  history.pushState({ q: texto }, "", "/?q=" + encodeURIComponent(texto));
   pagina = 1;
+  cerrarPlayer();
   pintar();
   window.scrollTo({ top: 0, behavior: "smooth" });
 });
 
+// Botón "atrás" del navegador: vuelve al filtro anterior en vez de quedarse trabado
+window.addEventListener("popstate", () => {
+  filtro.q = (new URLSearchParams(location.search).get("q") || "").toLowerCase().trim();
+  document.querySelectorAll(".search input").forEach(i => i.value = filtro.q);
+  pagina = 1;
+  pintar();
+});
+
+// Flechitas de la lista de temas
+document.addEventListener("click", (ev) => {
+  const b = ev.target.closest(".gtk-nav");
+  if (!b) return;
+  ev.preventDefault(); ev.stopPropagation();
+  const lista = b.parentElement.querySelector(".gtk-list");
+  if (lista) lista.scrollBy({ top: Number(b.dataset.tk) * 36, behavior: "smooth" });
+});
+
 function trackBtns(d, i) {
-  const conAudio = (d.tracks || []).map((t, ti) => ({ t, ti })).filter(x => x.t.audio_url);
-  if (!conAudio.length) return "";
-  return `<div class="gtracks">
-    ${conAudio.map(x => `<button data-play="${i}:${x.ti}" title="${esc(x.t.title)}">${esc(x.t.position || "▶")}</button>`).join("")}
+  // Se listan TODOS los temas del disco. Los que tienen audio se pueden tocar;
+  // los que no, se ven como texto plano: ni link, ni ▶, ni cursor de mano.
+  const tracks = (d.tracks || []).filter(t => (t.title || "").trim() || t.position);
+  if (!tracks.length) return "";
+  const flechas = tracks.length > 3;
+  return `<div class="gtks">
+    ${flechas ? `<button class="gtk-nav" data-tk="-1" title="Temas anteriores">▲</button>` : ""}
+    <div class="gtk-list">
+      ${tracks.map((t) => {
+        const ti = (d.tracks || []).indexOf(t);
+        const nombre = `<span class="gtk-pos">${esc(t.position || "")}</span>${esc(t.title || "Tema")}`;
+        return t.audio_url
+          ? `<button class="gtk" data-play="${i}:${ti}" title="Escuchar ${esc(t.title)}">${nombre}</button>`
+          : `<span class="gtk gtk-off" title="Este tema todavía no tiene audio">${nombre}</span>`;
+      }).join("")}
+    </div>
+    ${flechas ? `<button class="gtk-nav" data-tk="1" title="Más temas">▼</button>` : ""}
   </div>`;
 }
 
 // ===== Player fijo abajo =====
+// Cola de reproducción: solo los temas que tienen audio cargado.
+// Los que no tienen no entran, así "siguiente" nunca cae en el vacío.
+let cola = { disco: null, temas: [], pos: 0 };
+
+function reproducirDisco(d, ti) {
+  const temas = (d.tracks || []).filter(t => t.audio_url);
+  if (!temas.length) return;
+  const buscado = (d.tracks || [])[ti];
+  const pos = Math.max(0, temas.findIndex(t => t === buscado));
+  cola = { disco: d, temas, pos };
+  reproducir(d, temas[pos]);
+}
+
+function moverCola(n) {
+  if (!cola.temas.length) return;
+  const nueva = cola.pos + n;
+  if (nueva < 0 || nueva >= cola.temas.length) return;
+  cola.pos = nueva;
+  reproducir(cola.disco, cola.temas[nueva]);
+}
+
 function reproducir(d, t) {
   const url = t.audio_url || "";
   const yt = youtubeId(url);
@@ -727,19 +799,35 @@ function reproducir(d, t) {
   else if (sp) frame = `<iframe src="https://open.spotify.com/embed/track/${sp[1]}" allow="autoplay; encrypted-media"></iframe>`;
   else { window.open(url, "_blank"); return; }
 
+  const total = cola.temas.length || 1;
+  const nro = (cola.pos || 0) + 1;
+  const dosDig = (x) => String(x).padStart(2, "0");
   document.getElementById("pl-titulo").innerHTML =
-    `▶ <a class="lk-sello" data-q="${esc(d.artist)}" href="/?q=${encodeURIComponent(d.artist)}">${esc(d.artist)}</a>` +
-    ` — <b>${esc(d.title)}</b>` +
-    (d.label ? ` · <a class="lk-sello" data-q="${esc(d.label)}" href="/?q=${encodeURIComponent(d.label)}">${esc(d.label)}</a>` : "") +
-    ` · ${esc(t.position || "")} ${esc(t.title || "")}`;
+    `<button class="pl-nav" id="pl-prev" title="Tema anterior" ${nro === 1 ? "disabled" : ""}>⏮</button>` +
+    `<button class="pl-nav" id="pl-next" title="Tema siguiente" ${nro === total ? "disabled" : ""}>⏭</button>` +
+    `<span class="pl-cnt">${dosDig(nro)}/${dosDig(total)}</span>` +
+    `<a class="lk-sello" data-q="${esc(d.artist)}" href="/?q=${encodeURIComponent(d.artist)}">${esc(d.artist)}</a>` +
+    ` — <b>${esc(t.title || d.title)}</b>` +
+    (t.position ? ` <span class="pl-pos">(${esc(t.position)})</span>` : "") +
+    (d.label ? ` · <a class="lk-sello" data-q="${esc(d.label)}" href="/?q=${encodeURIComponent(d.label)}">${esc(d.label)}</a>` : "");
+  const prev = document.getElementById("pl-prev");
+  const next = document.getElementById("pl-next");
+  if (prev) prev.onclick = () => moverCola(-1);
+  if (next) next.onclick = () => moverCola(1);
   document.getElementById("pl-frame").innerHTML = frame;
   document.getElementById("player").style.display = "block";
   ajustarBarras();
 }
-document.getElementById("pl-cerrar").onclick = () => {
-  document.getElementById("pl-frame").innerHTML = "";
-  document.getElementById("player").style.display = "none";
+function cerrarPlayer() {
+  const f = document.getElementById("pl-frame");
+  const p = document.getElementById("player");
+  if (!f || !p) return;
+  f.innerHTML = "";           // corta el audio: si no, sigue sonando de fondo
+  p.style.display = "none";
   ajustarBarras();
+}
+document.getElementById("pl-cerrar").onclick = () => {
+  cerrarPlayer();
 };
 
 cargar();
