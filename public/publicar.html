@@ -96,11 +96,8 @@ async function init() {
         </div>
       </div>
       <div class="row2">
-        <div><label>Estado del vinilo *</label>
+        <div><label>Estado del disco *</label>
           <select id="cm">${GRADOS.map(g => `<option ${g === "VG+" ? "selected" : ""}>${g}</option>`).join("")}</select>
-        </div>
-        <div><label>Estado de la tapa *</label>
-          <select id="cs">${GRADOS.map(g => `<option ${g === "VG+" ? "selected" : ""}>${g}</option>`).join("")}</select>
         </div>
       </div>
       <p class="hint">Goldmine: NM casi perfecto · VG+ uso leve · VG uso evidente · G ruido considerable. Ante la duda, poné el grado más bajo.</p>
@@ -137,7 +134,6 @@ async function init() {
       <div id="tracks-box"></div>
       <p class="hint">Los discos que se pueden escuchar se venden bastante más rápido. No hace falta cargar todos los temas: con uno o dos alcanza.</p>
       <button type="button" class="btn small ghost" id="btn-add-track">+ Agregar tema</button>
-      <label>Audio de referencia general (opcional, link de YouTube)</label><input id="audio" placeholder="https://youtube.com/watch?v=…">
       <label>Fotos (hasta 4 — tapa, vinilo, etiqueta)</label>
       <input id="fotos" type="file" accept="image/*" multiple>
       <label>Notas (opcional)</label><textarea id="desc" placeholder="Warp leve que no afecta reproducción, edición original US…"></textarea>
@@ -164,7 +160,7 @@ async function init() {
     set("artist", editRec.artist); set("title", editRec.title); set("label", editRec.label);
     set("year", editRec.year); set("format", editRec.format); set("price", editRec.price);
     set("genre", editRec.genre || "Techno");
-    set("cm", editRec.condition_media); set("cs", editRec.condition_sleeve);
+    set("cm", editRec.condition_media);
     set("audio", editRec.audio_url); set("desc", editRec.description);
     set("entrega", editRec.shipping_mode || "coordinar");
     set("env-costo", editRec.shipping_cost);
@@ -271,8 +267,8 @@ async function init() {
         year: v("year") ? Number(v("year")) : null,
         format: v("format"), price: Number(v("price")),
         genre: v("genre"),
-        condition_media: v("cm"), condition_sleeve: v("cs"),
-        zona: v("zona") || null, localidad: v("loc") || null, audio_url: v("audio") || null,
+        condition_media: v("cm"), condition_sleeve: v("cm"),   // se guarda igual: la tapa ya no se pide
+        zona: v("zona") || null, localidad: v("loc") || null,
         shipping_mode: v("entrega") || "coordinar",
         shipping_cost: v("entrega") === "fijo" ? Number(v("env-costo")) || null : null,
         description: v("desc") || null,

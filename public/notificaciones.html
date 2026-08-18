@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SURCOGS — Notificaciones</title>
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="/favicon.ico" sizes="32x32">
+<link rel="apple-touch-icon" href="/icono-192.png">
+<link rel="stylesheet" href="/css/style.css">
+<style>
+.nlist { max-width: 640px; }
+.nfila {
+  display: flex; gap: 12px; align-items: flex-start; padding: 14px;
+  border: 1px solid var(--line); border-radius: 8px; margin-bottom: 8px;
+  background: #fff; color: var(--txt);
+}
+.nfila:hover { border-color: #bbb; color: var(--txt); }
+.nfila.sin-leer { border-left: 3px solid var(--acc); background: #fff8f4; }
+.nico { font-size: 18px; line-height: 1.2; flex: none; }
+.ntxt { flex: 1; min-width: 0; }
+.ntit { font-weight: 600; font-size: 14.5px; line-height: 1.35; }
+.ndet { color: var(--dim); font-size: 13px; margin-top: 3px; }
+.nfec { color: #aaa; font-size: 11.5px; margin-top: 4px; }
+</style>
+<script src="/js/config.js"></script>
+</head>
+<body>
+<div id="header"></div>
+<div class="wrap" id="main"></div>
+
+<script type="module">
+import { sb, renderHeader, getUser, toast, hace } from "/js/app.js?v=3";
+renderHeader("");
+const main = document.getElementById("main");
+
+const ICONOS = {
+  venta: "💿", entrega: "✅", pago: "💸", reserva: "⏳", bienvenida: "👋",
+};
+
+(async () => {
+  const user = await getUser();
+  if (!user) {
+    main.innerHTML = `<h1>Notificaciones</h1>
+      <p class="sub" style="margin:10px 0 20px">Entrá a tu cuenta para ver tus novedades.</p>
+      <a class="btn" href="/cuenta.html">Ingresar</a>`;
+    return;
+  }
+
+  const { data, error } = await sb.from("notificaciones")
+    .select("*").eq("user_id", user.id)
+    .order("created_at", { ascending: false }).limit(100);
+  if (error) return toast(error.message, true);
+
+  main.innerHTML = `
+    <h1>Notificaciones</h1>
+    <p class="sub" style="margin:6px 0 18px">Todo lo que pasó con tus compras y tus ventas.</p>
+    <div class="nlist">
+      ${(data || []).map(n => `
+        <a class="nfila ${n.leida ? "" : "sin-leer"}" href="${n.link || "/cuenta.html"}">
+          <span class="nico">${ICONOS[n.tipo] || "•"}</span>
+          <span class="ntxt">
+            <span class="ntit">${n.titulo}</span>
+            ${n.detalle ? `<span class="ndet">${n.detalle}</span>` : ""}
+            <span class="nfec">${hace(n.created_at)}</span>
+          </span>
+        </a>`).join("") || `
+        <p class="sub">Todavía no tenés novedades. Cuando vendas, compres o te
+          acreditemos una venta, va a aparecer acá.</p>
+        <a class="btn" href="/" style="margin-top:12px">Ver el catálogo</a>`}
+    </div>`;
+
+  // Al entrar acá, todas quedan vistas
+  await sb.from("notificaciones").update({ leida: true })
+    .eq("user_id", user.id).eq("leida", false);
+})();
+</script>
+</body>
+</html>
