@@ -4,6 +4,9 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>SURCOGS — Nueva contraseña</title>
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="/favicon.ico" sizes="32x32">
+<link rel="apple-touch-icon" href="/icono-192.png">
 <link rel="stylesheet" href="/css/style.css">
 <script src="/js/config.js"></script>
 </head>
@@ -17,6 +20,7 @@ renderHeader("");
 const main = document.getElementById("main");
 
 // Supabase deja la sesión de recuperación en el link del mail.
+// Esperamos a que la procese antes de mostrar el formulario.
 const { data: { session } } = await sb.auth.getSession();
 const hash = location.hash || "";
 const esRecuperacion = !!session || hash.includes("type=recovery");
