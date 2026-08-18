@@ -104,6 +104,18 @@ function tiraTexto() {
   return `<span>${(frases.join(" · ") + " · ").repeat(3)}</span>`;
 }
 
+// "hace 5 min", "hace 2 h", "ayer"… más humano que una fecha suelta
+export function hace(fecha) {
+  const seg = Math.floor((Date.now() - new Date(fecha).getTime()) / 1000);
+  if (seg < 60) return "recién";
+  if (seg < 3600) return `hace ${Math.floor(seg / 60)} min`;
+  if (seg < 86400) return `hace ${Math.floor(seg / 3600)} h`;
+  const d = Math.floor(seg / 86400);
+  if (d === 1) return "ayer";
+  if (d < 30) return `hace ${d} días`;
+  return new Date(fecha).toLocaleDateString("es-AR");
+}
+
 export async function renderHeader(activo) {
   const user = await getUser();
   let avatarInner = "";
@@ -135,6 +147,21 @@ export async function renderHeader(activo) {
       <a class="btn-cta" href="/publicar.html">Vender gratis</a>
       <div class="hdr-links">
         ${user ? `
+          <div class="campana-wrap">
+            <button class="campana" id="campana-btn" title="Notificaciones" aria-label="Notificaciones">
+              <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+                <path d="M13.7 21a2 2 0 0 1-3.4 0"/>
+              </svg>
+              <span class="campana-n" id="campana-n" style="display:none">0</span>
+            </button>
+            <div class="notif-panel" id="notif-panel">
+              <div class="notif-h">Notificaciones</div>
+              <div id="notif-lista"><p class="notif-vacio">Cargando…</p></div>
+              <a class="notif-todas" href="/notificaciones.html">Ver todas</a>
+            </div>
+          </div>
           <div class="avatar-wrap">
             <button class="avatar" id="avatar-btn" title="Menú">${avatarInner}</button>
             <div class="avatar-menu" id="avatar-menu">
@@ -151,6 +178,53 @@ export async function renderHeader(activo) {
     <div class="tira" aria-label="10% de descuento pagando por transferencia">
       <div class="tira-in">${tiraTexto()}${tiraTexto()}</div>
     </div>`;
+
+  // Campanita: últimas 3 notificaciones y cuántas sin leer
+  if (user) {
+    const btn = document.getElementById("campana-btn");
+    const panel = document.getElementById("notif-panel");
+    const bolita = document.getElementById("campana-n");
+
+    const pintarNotis = (ns) => {
+      const lista = document.getElementById("notif-lista");
+      if (!ns.length) {
+        lista.innerHTML = `<p class="notif-vacio">Todavía no tenés novedades.</p>`;
+        return;
+      }
+      lista.innerHTML = ns.map(n => `
+        <a class="notif ${n.leida ? "" : "sin-leer"}" href="${n.link || "/cuenta.html"}">
+          <span class="notif-t">${n.titulo}</span>
+          ${n.detalle ? `<span class="notif-d">${n.detalle}</span>` : ""}
+          <span class="notif-f">${hace(n.created_at)}</span>
+        </a>`).join("");
+    };
+
+    const cargar = async () => {
+      const { data } = await sb.from("notificaciones")
+        .select("*").eq("user_id", user.id)
+        .order("created_at", { ascending: false }).limit(3);
+      pintarNotis(data || []);
+      const { count } = await sb.from("notificaciones")
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", user.id).eq("leida", false);
+      if (count > 0) { bolita.textContent = count > 9 ? "9+" : count; bolita.style.display = "block"; }
+      else bolita.style.display = "none";
+    };
+    cargar();
+
+    btn.onclick = async (e) => {
+      e.stopPropagation();
+      const abierto = panel.style.display === "block";
+      panel.style.display = abierto ? "none" : "block";
+      if (abierto) return;
+      // al abrirlas se dan por vistas
+      await sb.from("notificaciones").update({ leida: true })
+        .eq("user_id", user.id).eq("leida", false);
+      bolita.style.display = "none";
+    };
+    document.addEventListener("click", () => { panel.style.display = "none"; });
+    panel.onclick = (e) => e.stopPropagation();
+  }
 
   // Menú del avatar
   if (user) {
