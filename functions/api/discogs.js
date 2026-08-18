@@ -7,6 +7,27 @@ export async function onRequestGet({ request, env }) {
   const url = new URL(request.url);
   const link = url.searchParams.get("url") || "";
 
+  // Los datos de un disco en Discogs no cambian. Guardamos la respuesta ya
+  // armada por 30 días: así consultar dos veces el mismo disco (o reintentar
+  // después de un 429) no gasta ni una consulta de la cuota.
+  const cache = caches.default;
+  const idCache = (link.match(/(?:release|master)\/(\d+)/) || [])[0];
+  const claveCache = idCache
+    ? new Request(`https://cache.surcogs.local/discogs/${idCache.replace("/", "-")}`)
+    : null;
+  if (claveCache) {
+    const guardada = await cache.match(claveCache);
+    if (guardada) return guardada;
+  }
+  const guardar = async (respuesta) => {
+    if (claveCache) {
+      const copia = new Response(respuesta.clone().body, respuesta);
+      copia.headers.set("Cache-Control", "public, max-age=2592000");
+      await cache.put(claveCache, copia);
+    }
+    return respuesta;
+  };
+
   const headers = {
     "User-Agent": "SURCOGS/1.0 +https://surcogs.com.ar",
     Accept: "application/json",
@@ -20,8 +41,10 @@ export async function onRequestGet({ request, env }) {
   let cuota = {};
   const fetchDg = async (u) => {
     let r = await fetch(u, { headers });
-    if (r.status === 429) {
-      await new Promise((res) => setTimeout(res, 1500));
+    // La cuota de Discogs es por minuto: si nos limita, esperamos cada vez más.
+    for (const espera of [2000, 4000, 8000]) {
+      if (r.status !== 429) break;
+      await new Promise((res) => setTimeout(res, espera));
       r = await fetch(u, { headers });
     }
     cuota = {
@@ -84,7 +107,7 @@ export async function onRequestGet({ request, env }) {
     else format = qty > 1 ? '2×12"' : '12"';
   }
 
-  return json({
+  return guardar(json({
     artist,
     title: d.title || "",
     label,
@@ -102,7 +125,7 @@ export async function onRequestGet({ request, env }) {
         title: t.title,
         duration: t.duration || "",
       })),
-  });
+  }));
 }
 
 const json = (b, s = 200) =>
