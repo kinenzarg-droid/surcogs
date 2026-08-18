@@ -11,7 +11,11 @@
 <link rel="icon" href="/favicon.ico" sizes="32x32">
 <link rel="apple-touch-icon" href="/icono-192.png">
 <link rel="stylesheet" href="/css/style.css">
-<style>.wrap{max-width:700px}.wrap form.panel,.wrap .panel{max-width:none}</style>
+<style>.wrap{max-width:700px}.wrap form.panel,.wrap .panel{max-width:none}
+.usar-perfil{display:flex;align-items:center;gap:8px;font-size:13.5px;color:#444;
+  margin:14px 0 6px;cursor:pointer;font-weight:400}
+.usar-perfil input{width:auto;margin:0;cursor:pointer}
+.bloqueado{background:#f2f2f2;color:#666;cursor:not-allowed}</style>
 <script src="/js/config.js"></script>
 </head>
 <body>
@@ -101,6 +105,8 @@ async function init() {
         </div>
       </div>
       <p class="hint">Goldmine: M sellado o nunca reproducido · NM casi perfecto · VG+ uso leve · VG uso evidente · G+ / G ruido considerable. Ante la duda, poné el grado más bajo.</p>
+      <label class="usar-perfil"><input type="checkbox" id="usar-perfil">
+        Usar los datos de mi perfil</label>
       <div class="row2">
         <div><label>Zona</label><select id="zona"></select></div>
         <div><label>Localidad / barrio</label><input id="loc"></div>
@@ -111,7 +117,7 @@ async function init() {
         <div><label>Código postal *</label>
           <input id="cp" placeholder="1688" inputmode="numeric" required></div>
       </div>
-      <p class="hint">Con tu código postal calculamos el envío a cada comprador. La dirección va en la etiqueta de Andreani y no se muestra en la publicación.</p>
+      <p class="hint" id="hint-despacho">Con tu código postal calculamos el envío a cada comprador. La dirección va en la etiqueta de Andreani y no se muestra en la publicación.</p>
       <div class="row2">
         <div><label>Entrega *</label>
           <select id="entrega">
@@ -153,6 +159,44 @@ async function init() {
   zonaSelector(document.getElementById("zona"), document.getElementById("loc"),
     editRec ? (editRec.zona || "") : (perfil.zona || ""),
     editRec ? (editRec.localidad || "") : (perfil.localidad || ""));
+
+  // "Usar los datos de mi perfil": copia zona, localidad, dirección y CP del
+  // perfil y los deja bloqueados. Destildando, se pueden editar para este disco.
+  (() => {
+    const chk = document.getElementById("usar-perfil");
+    const campos = ["zona", "loc", "dir", "cp"];
+    const hayPerfil = Boolean(perfil.zona || perfil.direccion || perfil.cp);
+    if (!hayPerfil) {                       // nada que copiar: se esconde
+      chk.closest(".usar-perfil").style.display = "none";
+      return;
+    }
+    const copiar = () => {
+      document.getElementById("zona").value = perfil.zona || "";
+      document.getElementById("zona").dispatchEvent(new Event("change"));
+      document.getElementById("loc").value = perfil.localidad || "";
+      document.getElementById("dir").value = perfil.direccion || "";
+      document.getElementById("cp").value = perfil.cp || "";
+    };
+    const pintar = () => {
+      campos.forEach((id) => {
+        const el = document.getElementById(id);
+        if (el.tagName === "SELECT") el.disabled = chk.checked;
+        else el.readOnly = chk.checked;
+        el.classList.toggle("bloqueado", chk.checked);
+      });
+      document.getElementById("hint-despacho").textContent = chk.checked
+        ? "Estos datos salen de tu perfil. Destildá el casillero si este disco despacha desde otra dirección."
+        : "Con tu código postal calculamos el envío a cada comprador. La dirección va en la etiqueta de Andreani y no se muestra en la publicación.";
+    };
+    // En edición arranca destildado si el disco tiene otra zona que el perfil
+    const distinto = editRec &&
+      ((editRec.zona || "") !== (perfil.zona || "") ||
+       (editRec.localidad || "") !== (perfil.localidad || ""));
+    chk.checked = !distinto;
+    if (chk.checked) copiar();
+    pintar();
+    chk.onchange = () => { if (chk.checked) copiar(); pintar(); };
+  })();
 
   // Precargar datos en modo edición
   if (editRec) {
