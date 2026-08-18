@@ -47,6 +47,25 @@
 .gname b{font-weight:700}
 .gmeta{color:#555;font-size:11.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .gmeta .disp{color:#2ea860;font-weight:700}
+/* Ficha del disco abierta sin recargar: el reproductor nunca se corta */
+.fic{display:grid;grid-template-columns:320px minmax(0,1fr);gap:24px;padding:4px 0 30px}
+.fic img{width:100%;border:1px solid #e6e6e6}
+.fic h2{font-size:24px;line-height:1.25;margin:0 0 6px;font-weight:700}
+.fic .met{color:#666;font-size:13px;margin-bottom:10px}
+.fic .bdg{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px}
+.fic .bdg span{border:1px solid #ddd;border-radius:4px;font-size:11.5px;padding:2px 8px;color:#555}
+.fic .bdg .disp{border-color:#2ea860;color:#1e7a44}
+.fic .prc{font-size:30px;font-weight:700;color:var(--acc);letter-spacing:-.5px}
+.fic .acc{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0 18px}
+.fic .tk{display:flex;align-items:baseline;gap:8px;padding:5px 0;border-bottom:1px solid #f0f0f0;
+  font-size:13px;background:none;border-left:0;border-right:0;border-top:0;width:100%;
+  text-align:left;font-family:inherit;color:#1d1d1d;cursor:pointer}
+.fic .tk.off{color:#aaa;cursor:default}
+.fic .tk:hover:not(.off){color:var(--acc)}
+.fic .tk b{color:#999;font-size:11.5px;min-width:22px;font-weight:400}
+.volver{background:none;border:0;color:var(--acc);cursor:pointer;font-size:13.5px;
+  font-family:inherit;padding:10px 0;display:inline-flex;gap:6px;align-items:center}
+@media(max-width:760px){.fic{grid-template-columns:1fr;gap:14px}}
 .lk-sello{color:inherit;text-decoration:none;border-bottom:1px dotted #aaa;cursor:pointer}
 .lk-sello:hover{color:#ff5500;border-bottom-color:#ff5500}
 .hw-player .lk-sello{color:#555}
@@ -234,6 +253,7 @@ a:hover .hw-chip{background:#fff;box-shadow:1px 1px 0 rgba(0,0,0,.15)}
   <aside class="hw-side" id="side"></aside>
 
   <main class="hw-rows">
+    <div id="ficha" style="display:none"></div>
     <div class="chips" id="m-chips"></div>
     <div class="hw-mobile-filters">
       <select id="m-genre"></select>
@@ -729,8 +749,97 @@ document.addEventListener("click", (ev) => {
 });
 
 // Botón "atrás" del navegador: vuelve al filtro anterior en vez de quedarse trabado
+// ===== Ficha del disco sin recargar la página =====
+// Al tocar un disco no navegamos: mostramos la ficha acá mismo. Así el
+// reproductor sigue sonando. La URL igual cambia, así que el link se puede
+// compartir y quien lo abra de cero cae en disco.html, que sigue existiendo.
+const cajaFicha = () => document.getElementById("ficha");
+const cajaGrilla = () => document.querySelector(".hw-rows .ggrid")?.parentElement || null;
+
+function mostrarFicha(d) {
+  const foto = fotoPrincipal(d);
+  const tracks = (d.tracks || []).filter(t => (t.title || "").trim() || t.position);
+  const idx = itemsPagina.indexOf(d);
+  cajaFicha().innerHTML = `
+    <button class="volver" id="fic-volver">← Volver al catálogo</button>
+    <div class="fic">
+      <div><img src="${foto}" alt="${esc(d.artist)} – ${esc(d.title)}"></div>
+      <div>
+        <h2>${esc(d.artist)} – ${esc(d.title)}</h2>
+        <div class="met">${d.label ? `<a class="lk-sello" data-q="${esc(d.label)}" href="/?q=${encodeURIComponent(d.label)}">${esc(d.label)}</a> · ` : ""}${esc(d.catalog_no || "")}${d.year ? " · " + d.year : ""} · ${esc(d.format)}${d.genre ? " · " + esc(d.genre) : ""}</div>
+        <div class="bdg">
+          <span>Vinilo ${esc(d.condition_media)}</span>
+          <span>Tapa ${esc(d.condition_sleeve)}</span>
+          <span class="disp">${esc(d.status)}</span>
+          ${d.zona ? `<span>📍 ${esc(d.zona)}${d.localidad ? " · " + esc(d.localidad) : ""}</span>` : ""}
+        </div>
+        <div class="prc">${fmtPrecio(precioComprador(d.price))}</div>
+        <div class="p-transf"><b>${fmtPrecio(Math.round(precioComprador(d.price) * 0.9))}</b> pagando por transferencia
+          <span class="p-off">10% OFF</span></div>
+        <div class="gmeta" style="color:#1e7a44">${envLabel(d)}</div>
+        <div class="acc">
+          <a class="gbuy" href="/disco.html?id=${d.id}">Comprar</a>
+          <button class="gcart ${carrito.has(d.id) ? "in" : ""}" data-cart="${d.id}">
+            ${CART_ICON} ${carrito.has(d.id) ? "En el carrito" : "Agregar al carrito"}</button>
+        </div>
+        <div>
+          ${tracks.map((t) => {
+            const ti = (d.tracks || []).indexOf(t);
+            const nom = `<b>${esc(t.position || "")}</b>${esc(t.title || "Tema")}`;
+            return t.audio_url
+              ? `<button class="tk" data-play="${idx}:${ti}">▶ ${nom}</button>`
+              : `<div class="tk off">· ${nom}</div>`;
+          }).join("") || "<p class='hint'>Este disco no tiene los temas cargados.</p>"}
+        </div>
+      </div>
+    </div>`;
+  cajaFicha().style.display = "block";
+  document.querySelectorAll(".hw-rows > *:not(#ficha)").forEach(e => e.style.display = "none");
+  window.scrollTo({ top: 0, behavior: "smooth" });
+  document.getElementById("fic-volver").onclick = () => history.back();
+  cajaFicha().querySelectorAll("[data-play]").forEach(b => b.onclick = () => {
+    const [di, ti] = b.dataset.play.split(":").map(Number);
+    reproducirDisco(itemsPagina[di], ti);
+  });
+  cajaFicha().querySelectorAll("[data-cart]").forEach(b => b.onclick = () => {
+    const rid = b.dataset.cart;
+    const agregando = !carrito.has(rid);
+    agregando ? carrito.add(rid) : carrito.delete(rid);
+    guardarCarrito();
+    pintarCartBar();
+    if (agregando) toast("Agregado al carrito");
+    mostrarFicha(d);   // redibuja el botón con el estado nuevo
+  });
+}
+
+function cerrarFicha() {
+  cajaFicha().style.display = "none";
+  cajaFicha().innerHTML = "";
+  document.querySelectorAll(".hw-rows > *:not(#ficha)").forEach(e => e.style.display = "");
+}
+
+// interceptar el click en un disco
+document.addEventListener("click", (ev) => {
+  const a = ev.target.closest('a[href^="/disco.html?id="]');
+  if (!a || ev.metaKey || ev.ctrlKey || ev.button !== 0) return;   // ctrl+click abre pestaña, como siempre
+  if (a.classList.contains("gbuy")) return;                        // "Comprar" sí navega
+  const id = new URL(a.href, location.origin).searchParams.get("id");
+  const d = discos.find(x => x.id === id);
+  if (!d) return;
+  ev.preventDefault();
+  history.pushState({ disco: id }, "", a.getAttribute("href"));
+  mostrarFicha(d);
+});
+
 window.addEventListener("popstate", () => {
-  filtro.q = (new URLSearchParams(location.search).get("q") || "").toLowerCase().trim();
+  const p = new URLSearchParams(location.search);
+  const id = location.pathname.includes("disco.html") ? p.get("id") : null;
+  if (id) {
+    const d = discos.find(x => x.id === id);
+    if (d) return mostrarFicha(d);
+  }
+  cerrarFicha();
+  filtro.q = (p.get("q") || "").toLowerCase().trim();
   document.querySelectorAll(".search input").forEach(i => i.value = filtro.q);
   pagina = 1;
   pintar();
@@ -813,10 +922,16 @@ function reproducir(d, t) {
   const next = document.getElementById("pl-next");
   if (prev) prev.onclick = () => moverCola(-1);
   if (next) next.onclick = () => moverCola(1);
+  if (canalPlayer) canalPlayer.postMessage("play");   // callate, resto de las pestañas
   document.getElementById("pl-frame").innerHTML = frame;
   document.getElementById("player").style.display = "block";
   ajustarBarras();
 }
+// Un solo reproductor sonando en todo SURCOGS, aunque tengas varias pestañas
+// abiertas: al dar play, las demás se enteran por este canal y se cierran.
+const canalPlayer = ("BroadcastChannel" in window) ? new BroadcastChannel("surcogs-player") : null;
+if (canalPlayer) canalPlayer.onmessage = (ev) => { if (ev.data === "play") cerrarPlayer(); };
+
 function cerrarPlayer() {
   const f = document.getElementById("pl-frame");
   const p = document.getElementById("player");
