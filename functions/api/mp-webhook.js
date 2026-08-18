@@ -1,5 +1,7 @@
 // Cloudflare Pages Function — webhook de Mercado Pago: al aprobarse el pago,
 // marca como pagadas TODAS las órdenes de la compra y los discos como vendidos.
+import { notificar } from "./_notificar.js";
+
 export async function onRequest({ request, env }) {
   const SUPA = env.SUPABASE_URL;
   const KEY = env.SUPABASE_SERVICE_ROLE_KEY;
@@ -13,24 +15,25 @@ export async function onRequest({ request, env }) {
     const paymentId = body?.data?.id || url.searchParams.get("data.id");
     if ((!purchaseId && !orderId) || !paymentId) return ok;
 
-    // Órdenes de la compra → vendedor → su token de MP
+    // Órdenes de la compra. Traemos también los datos del comprador porque más
+    // abajo se usan para armar el paquete del courier.
     const filtro = purchaseId ? `purchase_id=eq.${purchaseId}` : `id=eq.${orderId}`;
     const ords = await fetch(
-      `${SUPA}/rest/v1/orders?${filtro}&select=id,seller_id,record_id,status`,
+      `${SUPA}/rest/v1/orders?${filtro}&select=id,seller_id,record_id,status,amount,fee,` +
+      `buyer_name,buyer_phone,buyer_addr,buyer_zona,buyer_localidad,buyer_email`,
       { headers: hdrs(KEY) }
     ).then((r) => r.json());
     if (!Array.isArray(ords) || !ords.length) return ok;
     if (ords.every((o) => o.status === "pagada")) return ok;
 
-    const toks = await fetch(
-      `${SUPA}/rest/v1/mp_tokens?user_id=eq.${ords[0].seller_id}&select=access_token`,
-      { headers: hdrs(KEY) }
-    ).then((r) => r.json());
-    if (!toks.length) return ok;
+    // El cobro es centralizado: la plata entra a la cuenta de SURCOGS, así que
+    // el pago se consulta con NUESTRO token, no con uno del vendedor.
+    const MP = env.MP_ACCESS_TOKEN;
+    if (!MP) return ok;
 
     // Consultar el pago real en MP (nunca confiar solo en el webhook)
     const pay = await fetch(`https://api.mercadopago.com/v1/payments/${paymentId}`, {
-      headers: { Authorization: `Bearer ${toks[0].access_token}` },
+      headers: { Authorization: `Bearer ${MP}` },
     }).then((r) => r.json());
 
     const refEsperada = purchaseId || String(ords[0].id);
