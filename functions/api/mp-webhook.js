@@ -79,6 +79,15 @@ export async function onRequest({ request, env }) {
         }
       } catch (_) { /* si falla, el paquete se puede crear a mano */ }
 
+      // Notificación en la campanita del vendedor
+      await notificar(env, {
+        user_id: ords[0].seller_id,
+        tipo: "venta",
+        titulo: "¡Vendiste un disco!",
+        detalle: "Coordiná la entrega con el comprador. Cobrás cuando confirme que lo recibió.",
+        link: "/cuenta.html#ventas",
+      });
+
       // Avisar al vendedor por email (Resend) — si falla, no rompe nada
       if (env.RESEND_API_KEY) {
         try {

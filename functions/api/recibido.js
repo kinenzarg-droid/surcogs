@@ -1,6 +1,8 @@
 // Cloudflare Pages Function — el comprador confirma que recibió el disco.
 // Se entra por un link del mail (no hace falta tener cuenta): /r.html?o=<id>&t=<token>
 // Al confirmar, la orden queda liberable y le avisamos a SURCOGS para transferir.
+import { notificar } from "./_notificar.js";
+
 export async function onRequestPost({ request, env }) {
   const SUPA = env.SUPABASE_URL;
   const KEY = env.SUPABASE_SERVICE_ROLE_KEY;
@@ -20,6 +22,14 @@ export async function onRequestPost({ request, env }) {
     method: "PATCH",
     headers: hdrs(KEY),
     body: JSON.stringify({ entregado_at: ahora, status: "entregado" }),
+  });
+
+  await notificar(env, {
+    user_id: o.seller_id,
+    tipo: "entrega",
+    titulo: "El comprador confirmó que recibió el disco",
+    detalle: "Te transferimos dentro de las 48hs hábiles al alias que tenés cargado.",
+    link: "/cuenta.html#ventas",
   });
 
   // Aviso a SURCOGS: hay que transferirle al vendedor

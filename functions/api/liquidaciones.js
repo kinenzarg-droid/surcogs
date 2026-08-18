@@ -1,5 +1,7 @@
 // Panel de liquidaciones — qué le tengo que transferir a cada vendedor.
 // Protegido por ADMIN_KEY. Lee la vista liquidaciones_pendientes.
+import { notificar } from "./_notificar.js";
+
 export async function onRequestGet({ request, env }) {
   const url = new URL(request.url);
   if (url.searchParams.get("key") !== env.ADMIN_KEY) return json({ error: "no autorizado" }, 401);
@@ -20,10 +22,18 @@ export async function onRequestPost({ request, env }) {
   if (b.key !== env.ADMIN_KEY) return json({ error: "no autorizado" }, 401);
   if (!b.id) return json({ error: "falta la orden" }, 400);
 
+  const [orden] = await sel(env, "orders", `id=eq.${b.id}&select=seller_id,monto_vendedor`);
   await fetch(`${env.SUPABASE_URL}/rest/v1/orders?id=eq.${b.id}`, {
     method: "PATCH",
     headers: H(env),
     body: JSON.stringify({ liquidado_at: new Date().toISOString() }),
+  });
+  if (orden) await notificar(env, {
+    user_id: orden.seller_id,
+    tipo: "pago",
+    titulo: `Te transferimos ${Number(orden.monto_vendedor || 0).toLocaleString("es-AR")}`,
+    detalle: "Ya salió a tu alias. Puede tardar unos minutos en impactar.",
+    link: "/cuenta.html#ventas",
   });
   return json({ ok: true });
 }
