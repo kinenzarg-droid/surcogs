@@ -28,7 +28,7 @@
 </div>
 
 <script type="module">
-import { sb, renderHeader, getUser, fmtPrecio, fotoPrincipal, youtubeId, toast, precioComprador, reputacionHTML, ADMIN_ID } from "/js/app.js?v=3";
+import { sb, renderHeader, getUser, fmtPrecio, fotoPrincipal, youtubeId, toast, precioComprador, precioTransferencia, reputacionHTML, ADMIN_ID } from "/js/app.js?v=3";
 renderHeader("catalogo");
 
 const params = new URLSearchParams(location.search);
@@ -128,6 +128,8 @@ async function cargar() {
         <span class="badge ${disponible ? "ok" : d.status === "reservado" ? "res" : "sold"}">${d.status}</span>
       </div>
       <div class="price-big">${d.old_price && d.old_price > d.price ? `<span class="p-old" style="font-size:18px">${fmtPrecio(precioComprador(d.old_price))}</span>` : ""}${fmtPrecio(precioComprador(d.price))}</div>
+      <div class="p-transf"><b>${fmtPrecio(precioTransferencia(d.price))}</b> pagando por transferencia
+        <span class="p-off">10% OFF</span></div>
       <p class="meta" style="margin:2px 0 6px">${
         d.shipping_mode === "gratis" ? "📦 Envío gratis" :
         d.shipping_mode === "retiro" ? "🤝 Solo retiro en mano" + (d.zona ? " (" + d.zona + ")" : "") :
