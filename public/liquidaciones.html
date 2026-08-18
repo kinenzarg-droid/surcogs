@@ -54,6 +54,34 @@ const card = (o, go) => `
     </div>
   </div>`;
 
+// Compras por transferencia que todavía no cobré. Hasta que no confirme,
+// el disco sigue reservado y a las 24hs volvería al catálogo.
+const cardReserva = (g) => `
+  <div class="card" style="border-color:#e0a300;background:#fffdf5">
+    <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:flex-start">
+      <div style="flex:1;min-width:200px">
+        <b>${g.discos.join(" · ")}</b>
+        <div class="st">${g.buyer_name || g.buyer_email || "sin datos del comprador"} ·
+          reservado el ${fecha(g.created_at)} · código SC-${g.purchase_id.slice(0,4).toUpperCase()}</div>
+      </div>
+      <div style="text-align:right">
+        <div class="mt">${pesos(g.total)}</div>
+        <button class="btn small" onclick="cobrado('${g.purchase_id}',this)">Ya me transfirió</button>
+      </div>
+    </div>
+  </div>`;
+
+async function cobrado(purchase_id, btn) {
+  if (!confirm("¿Confirmás que la plata ya entró? El disco pasa a vendido y le avisamos al comprador y al vendedor.")) return;
+  btn.disabled = true; btn.textContent = "Confirmando…";
+  const r = await fetch("/api/liquidaciones", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ key, purchase_id }),
+  });
+  r.ok ? cargar() : (btn.disabled = false, btn.textContent = "Ya me transfirió");
+}
+
 async function cargar() {
   const r = await fetch("/api/liquidaciones?key=" + encodeURIComponent(key));
   const j = await r.json();
@@ -62,6 +90,8 @@ async function cargar() {
   document.getElementById("sub").innerHTML =
     `Tenés <b>${j.liberables.length}</b> transferencia${j.liberables.length === 1 ? "" : "s"} para hacer por <b>${pesos(total)}</b>.`;
   out.innerHTML =
+    `<h2>Transferencias por cobrar (${j.reservas.length})</h2>` +
+    (j.reservas.map(cardReserva).join("") || "<p class='sub'>Ninguna esperando.</p>") +
     `<h2>Para transferir ya (${j.liberables.length})</h2>` +
     (j.liberables.map(o => card(o, true)).join("") || "<p class='sub'>Nada pendiente. 👌</p>") +
     `<h2>Esperando confirmación (${j.esperando.length})</h2>` +
