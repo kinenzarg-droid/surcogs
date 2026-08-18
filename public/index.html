@@ -90,6 +90,10 @@
 .gtracks button::before{content:"▶ ";font-size:9px}
 .gtracks button:hover{color:#000;text-decoration:underline}
 .gfoot{margin-top:auto;display:flex;align-items:center;justify-content:space-between;gap:8px;padding-top:6px;flex-wrap:wrap}
+.gprecio{display:flex;flex-direction:column;gap:1px;min-width:0}
+.gtr{font-size:11px;color:#1e7a44;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.gtr b{background:#e8f5ec;border:1px solid #2ea860;border-radius:999px;padding:0 5px;font-size:9.5px;
+  font-weight:700;letter-spacing:.3px}
 .gprice{font-size:17px;font-weight:700;white-space:nowrap}
 .gprice s{color:#8a8a8a;font-weight:400;font-size:12px;margin-right:5px}
 .gbuy{display:inline-block;background:#2ea860;color:#fff;border:0;border-radius:4px;padding:7px 13px;
@@ -461,7 +465,10 @@ async function pintar(mantenerScroll) {
         <div class="gmeta" style="color:#1e7a44">${envLabel(d)}</div>
         ${trackBtns(d, i)}
         <div class="gfoot">
-          <span class="gprice">${d.old_price && d.old_price > d.price ? `<s>${fmtPrecio(precioComprador(d.old_price))}</s>` : ""}${fmtPrecio(precioComprador(d.price))}</span>
+          <span class="gprecio">
+            <span class="gprice">${d.old_price && d.old_price > d.price ? `<s>${fmtPrecio(precioComprador(d.old_price))}</s>` : ""}${fmtPrecio(precioComprador(d.price))}</span>
+            <span class="gtr">${fmtPrecio(Math.round(precioComprador(d.price) * 0.9))} <b>10% OFF</b> transferencia</span>
+          </span>
         </div>
         ${d.status === "disponible" ? `<div class="gbtns">
           <a class="gbuy" href="/disco.html?id=${d.id}">Comprar</a>
@@ -859,8 +866,9 @@ function trackBtns(d, i) {
   // los que no, se ven como texto plano: ni link, ni ▶, ni cursor de mano.
   const tracks = (d.tracks || []).filter(t => (t.title || "").trim() || t.position);
   if (!tracks.length) return "";
+  const flechas = tracks.length > 3;   // con 3 o menos entran todos: no hace falta deslizar
   return `<div class="gtks">
-    <button class="gtk-nav" data-tk="-1" title="Temas anteriores">▲</button>
+    ${flechas ? `<button class="gtk-nav" data-tk="-1" title="Temas anteriores">▲</button>` : ""}
     <div class="gtk-list">
       ${tracks.map((t) => {
         const ti = (d.tracks || []).indexOf(t);
@@ -870,7 +878,7 @@ function trackBtns(d, i) {
           : `<span class="gtk gtk-off" title="Este tema todavía no tiene audio">${nombre}</span>`;
       }).join("")}
     </div>
-    <button class="gtk-nav" data-tk="1" title="Más temas">▼</button>
+    ${flechas ? `<button class="gtk-nav" data-tk="1" title="Más temas">▼</button>` : ""}
   </div>`;
 }
 

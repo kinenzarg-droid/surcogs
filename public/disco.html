@@ -31,6 +31,15 @@
 import { sb, renderHeader, getUser, fmtPrecio, fotoPrincipal, youtubeId, toast, precioComprador, precioTransferencia, reputacionHTML, ADMIN_ID } from "/js/app.js?v=3";
 renderHeader("catalogo");
 
+// Un solo audio sonando en todo SURCOGS: el catálogo y las otras pestañas
+// escuchan este canal y cierran su reproductor cuando acá arranca uno.
+const canalPlayer = ("BroadcastChannel" in window) ? new BroadcastChannel("surcogs-player") : null;
+if (canalPlayer) canalPlayer.onmessage = (ev) => {
+  if (ev.data !== "play") return;
+  document.querySelectorAll("[id^='player-']").forEach(h => h.innerHTML = "");
+  document.querySelectorAll(".btn-play").forEach(x => x.textContent = "▶");
+};
+
 const params = new URLSearchParams(location.search);
 const id = params.get("id");
 const cont = document.getElementById("detalle");
@@ -179,9 +188,11 @@ async function cargar() {
     const url = d.tracks[i].audio_url;
     const holder = document.getElementById("player-" + i);
     if (holder.innerHTML) { holder.innerHTML = ""; b.textContent = "▶"; return; }
-    // cerrar otros players
+    // cerrar otros players de esta página...
     cont.querySelectorAll("[id^='player-']").forEach(h => h.innerHTML = "");
     cont.querySelectorAll(".btn-play").forEach(x => x.textContent = "▶");
+    // ...y avisarle al resto de SURCOGS (catálogo u otras pestañas) que se callen
+    if (canalPlayer) canalPlayer.postMessage("play");
     const yt = youtubeId(url);
     const sp = url.match(/open\.spotify\.com\/(?:intl-\w+\/)?track\/([A-Za-z0-9]+)/);
     if (yt) {
