@@ -179,6 +179,16 @@ export async function renderHeader(activo) {
       <div class="tira-in">${tiraTexto()}${tiraTexto()}</div>
     </div>`;
 
+  // Un solo desplegable abierto a la vez: campanita, menú del avatar y buscador
+  // se cierran entre sí. También cierran con Escape y con un clic afuera.
+  const paneles = [];
+  const cerrarPaneles = (menos) => paneles.forEach(p => { if (p && p !== menos) p.style.display = "none"; });
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape") cerrarPaneles(); });
+  document.addEventListener("click", (e) => {
+    if (e.target.closest(".campana-wrap, .avatar-wrap, .search")) return;
+    cerrarPaneles();
+  });
+
   // Campanita: últimas 3 notificaciones y cuántas sin leer
   if (user) {
     const btn = document.getElementById("campana-btn");
@@ -212,9 +222,11 @@ export async function renderHeader(activo) {
     };
     cargar();
 
+    paneles.push(panel);
     btn.onclick = async (e) => {
       e.stopPropagation();
       const abierto = panel.style.display === "block";
+      cerrarPaneles(panel);
       panel.style.display = abierto ? "none" : "block";
       if (abierto) return;
       // al abrirlas se dan por vistas
@@ -222,18 +234,18 @@ export async function renderHeader(activo) {
         .eq("user_id", user.id).eq("leida", false);
       bolita.style.display = "none";
     };
-    document.addEventListener("click", () => { panel.style.display = "none"; });
-    panel.onclick = (e) => e.stopPropagation();
   }
 
   // Menú del avatar
   if (user) {
     const menu = document.getElementById("avatar-menu");
+    paneles.push(menu);
     document.getElementById("avatar-btn").onclick = (e) => {
       e.stopPropagation();
-      menu.style.display = menu.style.display === "block" ? "none" : "block";
+      const abierto = menu.style.display === "block";
+      cerrarPaneles(menu);
+      menu.style.display = abierto ? "none" : "block";
     };
-    document.addEventListener("click", () => { menu.style.display = "none"; });
     document.getElementById("btn-salir").onclick = async (e) => {
       e.preventDefault();
       await sb.auth.signOut();
@@ -244,6 +256,9 @@ export async function renderHeader(activo) {
   // Búsqueda global: Enter → catálogo con el término
   const q = document.getElementById("hdr-q");
   const dd = document.getElementById("hdr-dd");
+  paneles.push(dd);
+  // Tocar o escribir en el buscador cierra la campanita y el menú del avatar
+  q.addEventListener("focus", () => cerrarPaneles(dd));
   q.addEventListener("keydown", (e) => {
     if (e.key === "Enter" && q.value.trim()) {
       location.href = "/?q=" + encodeURIComponent(q.value.trim());
@@ -255,6 +270,7 @@ export async function renderHeader(activo) {
   let ddTimer;
   q.addEventListener("input", () => {
     clearTimeout(ddTimer);
+    cerrarPaneles(dd);
     const term = q.value.trim().replace(/[,()]/g, " ");
     if (term.length < 2) { dd.style.display = "none"; return; }
     ddTimer = setTimeout(async () => {
@@ -280,10 +296,50 @@ export async function renderHeader(activo) {
     }, 250);
   });
 
-  // Cerrar el desplegable al hacer clic afuera
-  document.addEventListener("click", (e) => {
-    if (!e.target.closest(".search")) dd.style.display = "none";
-  });
+  botonArriba();
+}
+
+// Botón redondo fijo abajo a la derecha para volver al principio de la página.
+// Se sube solo cuando el reproductor está visible, así nunca queda tapado.
+export function botonArriba() {
+  if (document.getElementById("btn-arriba")) return;
+  const b = document.createElement("button");
+  b.id = "btn-arriba";
+  b.type = "button";
+  b.title = "Volver arriba";
+  b.setAttribute("aria-label", "Volver arriba");
+  b.innerHTML = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+    stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V6"/><path d="M5 12l7-7 7 7"/></svg>`;
+  b.onclick = () => window.scrollTo({ top: 0, behavior: "smooth" });
+  document.body.appendChild(b);
+
+  // Cuánto ocupan las cosas fijas abajo (reproductor, y en celular la bandeja
+  // del carrito), para apoyar el botón justo arriba de ellas.
+  const ocupado = () => {
+    let alto = 0;
+    document.querySelectorAll("#player, .cartp").forEach(el => {
+      if (!el.offsetHeight) return;
+      const r = el.getBoundingClientRect();
+      // solo cuenta si está pegado al borde de abajo de la pantalla
+      if (r.bottom >= window.innerHeight - 2) alto = Math.max(alto, r.height);
+    });
+    return alto;
+  };
+  let ultimo = -1;
+  const acomodar = () => {
+    b.classList.toggle("ver", window.scrollY > 400);
+    const abajo = ocupado() + 18;
+    if (abajo === ultimo) return;      // sin esto el observer se retroalimenta
+    ultimo = abajo;
+    b.style.bottom = abajo + "px";
+  };
+  acomodar();
+  window.addEventListener("scroll", acomodar, { passive: true });
+  window.addEventListener("resize", acomodar);
+  // el reproductor y la bandeja del carrito aparecen sin que uno scrollee
+  const obs = new MutationObserver(acomodar);
+  document.querySelectorAll("#player, .cartp").forEach(el =>
+    obs.observe(el, { attributes: true, attributeFilter: ["style", "class"] }));
 }
 
 export function youtubeId(url) {
