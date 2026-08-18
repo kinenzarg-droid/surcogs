@@ -124,6 +124,9 @@ async function cargar() {
   const fotos = d.photos && d.photos.length ? d.photos : [fotoPrincipal(d)];
   const disponible = d.status === "disponible";
 
+  // el nombre de la pestaña dice qué disco estás mirando
+  document.title = `${d.artist} – ${d.title} · SURCOGS`;
+
   cont.innerHTML = `
     <div>
       <img class="main" id="foto-main" src="${fotos[0]}" alt="${d.artist} – ${d.title}">
@@ -135,8 +138,8 @@ async function cargar() {
       <h1>${d.artist} – ${d.title}</h1>
       <p class="meta">${[d.label, d.year, d.format, d.genre].filter(Boolean).join(" · ")}</p>
       <div class="badges">
-        <span class="badge">Vinilo ${d.condition_media}</span>
-        <span class="badge">Tapa ${d.condition_sleeve}</span>
+        <span class="badge">Estado del disco: <b>${d.condition_media}</b></span>
+
         <span class="badge ${disponible ? "ok" : d.status === "reservado" ? "res" : "sold"}">${d.status}</span>
       </div>
       <div class="price-big">${d.old_price && d.old_price > d.price ? `<span class="p-old" style="font-size:18px">${fmtPrecio(precioComprador(d.old_price))}</span>` : ""}${fmtPrecio(precioComprador(d.price))}</div>

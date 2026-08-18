@@ -49,6 +49,9 @@
   -webkit-line-clamp:2;-webkit-box-orient:vertical}
 .gname b{font-weight:700}
 .gmeta{color:#555;font-size:11.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.gestado{font-size:11.5px;color:#444;background:#f4f4f4;border-radius:3px;padding:2px 7px;
+  display:inline-block;white-space:nowrap}
+.gestado b{color:#111;font-weight:700}
 .gmeta .disp{color:#2ea860;font-weight:700}
 /* Ficha del disco abierta sin recargar: el reproductor nunca se corta */
 .fic{display:grid;grid-template-columns:320px minmax(0,1fr);gap:24px;padding:4px 0 30px}
@@ -463,8 +466,9 @@ async function pintar(mantenerScroll) {
         <button class="del" data-del="${d.id}" title="Eliminar">🗑</button></span>` : ""}
       <div class="gbody">
         <a class="gname" href="/disco.html?id=${d.id}"><b>${esc(d.artist)}:</b> ${esc(d.title)}</a>
-        <div class="gmeta">${d.label ? `<a class="lk-sello" data-q="${esc(d.label)}" href="/?q=${encodeURIComponent(d.label)}">${esc(d.label)}</a> · ` : ""}${esc(d.format)} · ${esc(d.condition_sleeve)}/${esc(d.condition_media)}${d.zona ? " · 📍 " + esc(d.zona) + (d.localidad ? " · " + esc(d.localidad) : "") : ""}
+        <div class="gmeta">${d.label ? `<a class="lk-sello" data-q="${esc(d.label)}" href="/?q=${encodeURIComponent(d.label)}">${esc(d.label)}</a> · ` : ""}${esc(d.format)}${d.zona ? " · 📍 " + esc(d.zona) + (d.localidad ? " · " + esc(d.localidad) : "") : ""}
           · <span class="${d.status === "disponible" ? "disp" : ""}">● ${d.status}</span></div>
+        <div class="gestado" title="Estado del disco según la escala Goldmine">Estado del disco: <b>${esc(d.condition_media)}</b></div>
         <div class="gmeta" style="color:#1e7a44">${envLabel(d)}</div>
         ${trackBtns(d, i)}
         <div class="gfoot">
@@ -778,8 +782,7 @@ function mostrarFicha(d) {
         <h2>${esc(d.artist)} – ${esc(d.title)}</h2>
         <div class="met">${d.label ? `<a class="lk-sello" data-q="${esc(d.label)}" href="/?q=${encodeURIComponent(d.label)}">${esc(d.label)}</a> · ` : ""}${esc(d.catalog_no || "")}${d.year ? " · " + d.year : ""} · ${esc(d.format)}${d.genre ? " · " + esc(d.genre) : ""}</div>
         <div class="bdg">
-          <span>Vinilo ${esc(d.condition_media)}</span>
-          <span>Tapa ${esc(d.condition_sleeve)}</span>
+          <span>Estado del disco: <b>${esc(d.condition_media)}</b></span>
           <span class="disp">${esc(d.status)}</span>
           ${d.zona ? `<span>📍 ${esc(d.zona)}${d.localidad ? " · " + esc(d.localidad) : ""}</span>` : ""}
         </div>
@@ -803,6 +806,7 @@ function mostrarFicha(d) {
         </div>
       </div>
     </div>`;
+  document.title = `${d.artist} – ${d.title} · SURCOGS`;
   cajaFicha().style.display = "block";
   document.querySelectorAll(".hw-rows > *:not(#ficha)").forEach(e => e.style.display = "none");
   window.scrollTo({ top: 0, behavior: "smooth" });
@@ -823,6 +827,7 @@ function mostrarFicha(d) {
 }
 
 function cerrarFicha() {
+  document.title = "SURCOGS — Vinilos de mano en mano";
   cajaFicha().style.display = "none";
   cajaFicha().innerHTML = "";
   document.querySelectorAll(".hw-rows > *:not(#ficha)").forEach(e => e.style.display = "");
