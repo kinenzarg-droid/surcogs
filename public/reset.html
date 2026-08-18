@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SURCOGS — Nueva contraseña</title>
+<link rel="stylesheet" href="/css/style.css">
+<script src="/js/config.js"></script>
+</head>
+<body>
+<div id="header"></div>
+<div class="wrap" id="main" style="max-width:460px"></div>
+
+<script type="module">
+import { sb, renderHeader, toast } from "/js/app.js?v=3";
+renderHeader("");
+const main = document.getElementById("main");
+
+// Supabase deja la sesión de recuperación en el link del mail.
+const { data: { session } } = await sb.auth.getSession();
+const hash = location.hash || "";
+const esRecuperacion = !!session || hash.includes("type=recovery");
+const errorEnLink = hash.includes("error");
+
+if (errorEnLink || !esRecuperacion) {
+  main.innerHTML = `
+    <h1>El link ya no sirve</h1>
+    <p class="sub" style="margin:10px 0 20px">Los links para cambiar la contraseña duran una hora y se usan
+      una sola vez. Pedí uno nuevo y listo.</p>
+    <a class="btn" href="/cuenta.html">Volver a ingresar</a>`;
+} else {
+  main.innerHTML = `
+    <h1>Elegí tu nueva contraseña</h1>
+    <p class="sub" style="margin:8px 0 16px">Mínimo 6 caracteres.</p>
+    <form class="panel" id="f-new">
+      <label>Nueva contraseña</label>
+      <input id="n1" type="password" minlength="6" required autocomplete="new-password">
+      <label>Repetila</label>
+      <input id="n2" type="password" minlength="6" required autocomplete="new-password">
+      <br><br>
+      <button class="btn" type="submit" id="go">Guardar y entrar</button>
+    </form>`;
+
+  document.getElementById("f-new").onsubmit = async (e) => {
+    e.preventDefault();
+    const n1 = document.getElementById("n1").value;
+    const n2 = document.getElementById("n2").value;
+    if (n1 !== n2) return toast("Las dos contraseñas tienen que ser iguales", true);
+    const btn = document.getElementById("go");
+    btn.disabled = true; btn.textContent = "Guardando…";
+    const { error } = await sb.auth.updateUser({ password: n1 });
+    if (error) {
+      btn.disabled = false; btn.textContent = "Guardar y entrar";
+      return toast(error.message, true);
+    }
+    main.innerHTML = `
+      <h1>¡Listo!</h1>
+      <p class="sub" style="margin:10px 0 20px">Ya tenés tu contraseña nueva y quedaste dentro de tu cuenta.</p>
+      <a class="btn" href="/cuenta.html">Ir a Mi cuenta</a>
+      <a class="btn ghost" href="/" style="margin-left:8px">Ver el catálogo</a>`;
+  };
+}
+</script>
+</body>
+</html>

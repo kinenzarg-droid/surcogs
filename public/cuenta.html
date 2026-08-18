@@ -50,10 +50,26 @@ function renderAuth() {
       <div class="divider"><span>o con tu email</span></div>
       <label>Email</label><input id="a-email" type="email" required>
       <label>Contraseña</label><input id="a-pass" type="password" minlength="6" required>
-      <br><br>
+      <p style="margin:6px 0 0"><a href="#" id="btn-olvide" style="color:var(--acc);font-size:12.5px">¿Olvidaste tu contraseña?</a></p>
+      <br>
       <button class="btn" type="submit">Ingresar</button>
       <button class="btn ghost" type="button" id="btn-reg">Crear cuenta</button>
     </form>
+
+    <!-- Modal: recuperar contraseña -->
+    <div class="modal-bg" id="modal-pass" style="display:none">
+      <div class="modal">
+        <h2 style="margin-bottom:4px">Recuperar contraseña</h2>
+        <p class="hint" style="margin-bottom:12px">Poné tu email y te mandamos un link para elegir una nueva.</p>
+        <form id="f-pass">
+          <label>Email</label><input id="p-mail" type="email" placeholder="tu@email.com" required>
+          <br><br>
+          <button class="btn" type="submit" id="btn-pass-go">Enviarme el link</button>
+          <button class="btn ghost" type="button" id="btn-pass-close">Cancelar</button>
+        </form>
+        <p id="p-ok" class="hint" style="display:none;margin-top:12px;color:var(--ok)"></p>
+      </div>
+    </div>
 
     <!-- Modal de registro -->
     <div class="modal-bg" id="modal-reg" style="display:none">
@@ -87,6 +103,32 @@ function renderAuth() {
     error ? toast(error.message, true) : init();
   };
   document.getElementById("btn-google").onclick = loginGoogle;
+
+  // Recuperar contraseña
+  const mPass = document.getElementById("modal-pass");
+  document.getElementById("btn-olvide").onclick = (e) => {
+    e.preventDefault();
+    document.getElementById("p-mail").value = email();
+    mPass.style.display = "flex";
+  };
+  document.getElementById("btn-pass-close").onclick = () => { mPass.style.display = "none"; };
+  mPass.onclick = (e) => { if (e.target === mPass) mPass.style.display = "none"; };
+  document.getElementById("f-pass").onsubmit = async (e) => {
+    e.preventDefault();
+    const btn = document.getElementById("btn-pass-go");
+    const mail = document.getElementById("p-mail").value.trim();
+    btn.disabled = true; btn.textContent = "Enviando…";
+    const { error } = await sb.auth.resetPasswordForEmail(mail, {
+      redirectTo: location.origin + "/reset.html",
+    });
+    btn.disabled = false; btn.textContent = "Enviarme el link";
+    if (error) return toast(error.message, true);
+    // Mismo mensaje haya o no cuenta con ese mail: no delatamos quién está registrado
+    const ok = document.getElementById("p-ok");
+    ok.style.display = "block";
+    ok.textContent = "Listo. Si ese email tiene cuenta en SURCOGS, te va a llegar el link en un minuto. Revisá también el spam.";
+    document.getElementById("f-pass").style.display = "none";
+  };
   document.getElementById("btn-google-reg").onclick = loginGoogle;
   zonaSelector(document.getElementById("r-zona"), document.getElementById("r-loc"));
   document.getElementById("btn-reg").onclick = () => { modal.style.display = "flex"; };
