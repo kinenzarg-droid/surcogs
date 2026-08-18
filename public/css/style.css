@@ -414,3 +414,24 @@ img, iframe { max-width: 100%; }
 }
 .notif-todas:hover { background: #f0f0f0; color: var(--acc); }
 @media (max-width: 680px) { .notif-panel { right: -60px; } }
+
+/* ===== Botón "volver arriba" ===== */
+/* Redondo, fijo abajo a la derecha. Aparece recién cuando ya scrolleaste un
+   poco; el JS le sube el "bottom" si el reproductor o el carrito están abajo. */
+#btn-arriba {
+  position: fixed; right: 18px; bottom: 18px; z-index: 84;
+  width: 44px; height: 44px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--acc); color: #fff; border: 0; cursor: pointer;
+  box-shadow: 0 3px 14px rgba(0, 0, 0, .28);
+  opacity: 0; visibility: hidden; transform: translateY(10px);
+  transition: opacity .18s, transform .18s, visibility .18s, bottom .18s;
+}
+#btn-arriba.ver { opacity: .94; visibility: visible; transform: none; }
+#btn-arriba:hover { opacity: 1; background: #e04d00; }
+@media (max-width: 680px) {
+  #btn-arriba { right: 12px; width: 40px; height: 40px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  #btn-arriba { transition: none; }
+}
