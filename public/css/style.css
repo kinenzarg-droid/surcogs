@@ -363,9 +363,17 @@ img, iframe { max-width: 100%; }
   font-size: 12.5px; font-weight: 600; letter-spacing: .3px; padding: 6px 0;
   border-bottom: 1px solid #269351;
 }
-.tira-in { display: inline-flex; animation: tira-mov 28s linear infinite; }
-.tira-in span { padding-right: 4px; }
+.tira-in { display: inline-flex; flex: none; animation: tira-mov 90s linear infinite; }
+.tira-in span { white-space: nowrap; }
 .tira:hover .tira-in { animation-play-state: paused; }
 @keyframes tira-mov { from { transform: translateX(0); } to { transform: translateX(-50%); } }
 @media (prefers-reduced-motion: reduce) { .tira-in { animation: none; } }
 @media (max-width: 680px) { .tira { font-size: 11.5px; position: static; } }
+
+/* Precio con descuento por transferencia, debajo del precio principal */
+.p-transf { display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  font-size: 14px; color: #1e7a44; margin: -6px 0 12px; }
+.p-transf b { font-size: 17px; font-weight: 700; }
+.p-off { background: #e8f5ec; border: 1px solid #2ea860; color: #1e7a44;
+  font-size: 11px; font-weight: 700; letter-spacing: .5px;
+  padding: 2px 7px; border-radius: 999px; }
