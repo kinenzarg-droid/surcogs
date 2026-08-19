@@ -605,9 +605,9 @@ function pintarCartBar() {
   // Se redondea disco por disco, igual que lo calcula el servidor en /api/reserva.
   const totalTr = items.reduce((s, d) => s + Math.round(precioComprador(d.price) * 0.9), 0) + envTotal;
   document.getElementById("cartp-total-tr").textContent = fmtPrecio(totalTr);
-  document.getElementById("cartp-note").textContent = (vendedores > 1
-    ? `Discos de ${vendedores} vendedores: ${vendedores} pagos y ${vendedores} entregas. `
-    : "Un solo pago · una sola entrega. ") + "Varios discos del mismo vendedor pagan un solo envío.";
+  document.getElementById("cartp-note").textContent = vendedores > 1
+    ? `Un solo pago. Coordinás ${vendedores} entregas, una con cada vendedor.`
+    : "";
   panel.style.display = "block";
   document.querySelectorAll("[data-x]").forEach(b => b.onclick = () => {
     carrito.delete(b.dataset.x);
@@ -657,33 +657,39 @@ async function abrirCheckout() {
   const { data: perfiles } = await sb.from("profiles").select("id, name").in("id", sellerIds);
   const nombre = (sid) => (perfiles || []).find(p => p.id === sid)?.name || "Vendedor";
 
-  document.getElementById("co-sub").innerHTML = sellerIds.length > 1
-    ? `<span style="display:block;background:#332a1a;border:1px solid #6b5a35;border-radius:4px;padding:10px 12px;color:#e8d5a8">
-       ⚠ <b>Ojo: tu carrito tiene discos de ${sellerIds.length} vendedores.</b><br>
-       Eso significa <b>${sellerIds.length} pagos separados</b> (cada uno protegido por Mercado Pago) y
-       <b>${sellerIds.length} entregas distintas</b>: cada vendedor coordina con vos su propio envío o punto de
-       encuentro, y si van por correo, cada envío tiene su costo.<br>
-       Si preferís una sola entrega, comprale a un solo vendedor por vez.</span>`
-    : `Un solo pago por ${items.length} disco${items.length > 1 ? "s" : ""}, una sola entrega.`;
-  document.getElementById("co-groups").innerHTML = sellerIds.map(sid => {
+  // Un solo pago aunque haya discos de varios vendedores: la plata entra a
+  // SURCOGS. Lo que sigue habiendo es una entrega por vendedor.
+  let totalGeneral = 0, envioGeneral = 0;
+  const bloques = sellerIds.map(sid => {
     const g = grupos[sid];
     const e = Math.max(...g.map(envCosto));
-    const eComprador = e;
-    const t = g.reduce((s, d) => s + precioComprador(d.price), 0) + eComprador;
-    const envTxt = eComprador > 0 ? " · envío " + fmtPrecio(eComprador)
+    const t = g.reduce((s, d) => s + precioComprador(d.price), 0) + e;
+    totalGeneral += t; envioGeneral += e;
+    const envTxt = e > 0 ? " · envío " + fmtPrecio(e)
       : g.some(d => d.shipping_mode === "gratis") ? " · envío gratis"
       : g.some(d => d.shipping_mode === "retiro") ? " · retiro en mano" : " · envío a coordinar";
     return `<div class="co-g">
       <div><b>${esc(nombre(sid))}</b> · ${g.length} disco${g.length > 1 ? "s" : ""} · <b>${fmtPrecio(t)}</b><br>
         <span class="co-list">${g.map(d => esc(d.artist + " – " + d.title)).join(" · ")}${envTxt}</span></div>
+    </div>`;
+  });
+  const totalTransfer = Math.round((totalGeneral - envioGeneral) * 0.9) + envioGeneral;
+
+  document.getElementById("co-sub").innerHTML = sellerIds.length > 1
+    ? `Pagás <b>una sola vez</b> por ${items.length} discos de ${sellerIds.length} vendedores.
+       Coordinás <b>${sellerIds.length} entregas</b>, una con cada uno, y cada envío tiene su costo.`
+    : `Un solo pago por ${items.length} disco${items.length > 1 ? "s" : ""}, una sola entrega.`;
+
+  document.getElementById("co-groups").innerHTML = bloques.join("") + `
+    <div class="co-g" style="background:#fff;border:1px solid #ddd">
+      <div style="font-size:16px"><b>Total ${fmtPrecio(totalGeneral)}</b></div>
       <div style="display:flex;flex-direction:column;gap:6px;flex:none">
-        <button class="co-pay" data-sid="${sid}">Pagar ${fmtPrecio(t)}</button>
-        <button class="co-tr" data-sid="${sid}" style="background:transparent;border:1px solid #2ea860;color:#1e7a44;
+        <button class="co-pay">Pagar ${fmtPrecio(totalGeneral)}</button>
+        <button class="co-tr" style="background:transparent;border:1px solid #2ea860;color:#1e7a44;
           border-radius:4px;padding:6px 12px;font-size:12px;cursor:pointer;font-family:inherit;white-space:nowrap">
-          Transferencia −10%: ${fmtPrecio(Math.round((t - eComprador) * 0.9) + eComprador)}</button>
+          Transferencia −10%: ${fmtPrecio(totalTransfer)}</button>
       </div>
     </div>`;
-  }).join("");
   const box = document.getElementById("co-login");
   if (usuario) {
     const p = await getPerfil(usuario.id);
@@ -703,11 +709,12 @@ async function abrirCheckout() {
       sb.auth.signInWithOAuth({ provider: "google", options: { redirectTo: location.origin + "/" } });
   }
   document.getElementById("co-bg").style.display = "flex";
-  document.querySelectorAll(".co-pay").forEach(b => b.onclick = () => pagarGrupo(b, grupos[b.dataset.sid], sellerIds.length));
-  document.querySelectorAll(".co-tr").forEach(b => b.onclick = () => pagarTransferencia(b, grupos[b.dataset.sid]));
+  // Un solo botón: se paga todo el carrito junto
+  document.querySelector(".co-pay").onclick = (e) => pagarGrupo(e.target, items);
+  document.querySelector(".co-tr").onclick = (e) => pagarTransferencia(e.target, items);
 }
 
-async function pagarGrupo(btn, grupo, cantGrupos) {
+async function pagarGrupo(btn, grupo) {
   const email = document.getElementById("co-email").value.trim();
   const nombre = document.getElementById("co-nombre").value.trim();
   const tel = document.getElementById("co-tel").value.trim();
@@ -731,9 +738,7 @@ async function pagarGrupo(btn, grupo, cantGrupos) {
     if (!r.ok) throw new Error(j.error || "Error");
     grupo.forEach(d => carrito.delete(d.id));
     guardarCarrito(); pintarCartBar();
-    if (cantGrupos === 1) { location.href = j.init_point; return; }
-    window.open(j.init_point, "_blank");
-    btn.textContent = "Pago abierto ✓";
+    location.href = j.init_point;
   } catch (e) {
     toast("No pudimos generar el pago: " + e.message, true);
     btn.disabled = false; btn.textContent = "Pagar";
