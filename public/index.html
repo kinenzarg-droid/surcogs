@@ -342,7 +342,7 @@ a:hover .hw-chip{background:#fff;box-shadow:1px 1px 0 rgba(0,0,0,.15)}
 </div>
 
 <script type="module">
-import { sb, renderHeader, fmtPrecio, fotoPrincipal, precioComprador, youtubeId, toast, getUser, getPerfil, ADMIN_ID } from "/js/app.js?v=3";
+import { sb, renderHeader, fmtPrecio, fotoPrincipal, precioComprador, youtubeId, toast, getUser, getPerfil, authHeaders, ADMIN_ID } from "/js/app.js?v=3";
 renderHeader("catalogo");
 
 const esc = (s) => String(s ?? "").replace(/</g, "&lt;").replace(/"/g, "&quot;");
@@ -705,7 +705,7 @@ async function pagarGrupo(btn, grupo, cantGrupos) {
   try {
     const r = await fetch("/api/create-preference", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: await authHeaders(),
       body: JSON.stringify({
         record_ids: grupo.map(d => d.id), buyer_email: email,
         buyer_name: nombre, buyer_phone: tel, buyer_addr: dir, buyer_localidad: loc, buyer_cp: cp,
@@ -739,7 +739,7 @@ async function pagarTransferencia(btn, grupo) {
   try {
     const r = await fetch("/api/reserva", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: await authHeaders(),
       body: JSON.stringify({
         record_ids: grupo.map(d => d.id), buyer_email: email,
         buyer_name: nombre, buyer_phone: tel, buyer_addr: dir, buyer_localidad: loc, buyer_cp: cp,

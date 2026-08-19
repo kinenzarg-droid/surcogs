@@ -8,6 +8,17 @@
 <link rel="icon" href="/favicon.ico" sizes="32x32">
 <link rel="apple-touch-icon" href="/icono-192.png">
 <link rel="stylesheet" href="/css/style.css">
+<style>
+.estrellas { display: flex; gap: 4px; justify-content: center; margin: 14px 0 4px; }
+.estrellas button {
+  background: transparent; border: 0; cursor: pointer; padding: 2px;
+  font-size: 34px; line-height: 1; color: #d8d8d8; transition: color .12s, transform .12s;
+}
+.estrellas button:hover { transform: scale(1.12); }
+.estrellas button.on { color: #f5a623; }
+.leyenda { min-height: 20px; font-size: 13px; color: var(--dim); margin-bottom: 12px; }
+#rate-comment { width: 100%; min-height: 74px; }
+</style>
 </head>
 <body>
 <div class="wrap" style="max-width:520px;text-align:center;padding-top:60px">
@@ -23,6 +34,10 @@ const o = p.get("o"), t = p.get("t");
 if (!o || !t) {
   box.innerHTML = `<h1>Link inválido</h1><p class="sub">Revisá el link del mail o escribinos.</p>`;
 } else {
+  pedirConfirmacion();
+}
+
+function pedirConfirmacion() {
   box.innerHTML = `
     <h1>¿Recibiste tu disco?</h1>
     <p class="sub" style="margin:10px 0 22px">Al confirmar, le pagamos al vendedor. Confirmá solo
@@ -31,6 +46,7 @@ if (!o || !t) {
     <p class="hint" style="margin-top:18px">¿Hubo un problema? Escribinos a
       <a href="mailto:info@surcogs.com.ar" style="color:var(--acc)">info@surcogs.com.ar</a>
       antes de confirmar.</p>`;
+
   document.getElementById("si").onclick = async (e) => {
     e.target.disabled = true; e.target.textContent = "Confirmando…";
     try {
@@ -41,12 +57,75 @@ if (!o || !t) {
       });
       const j = await r.json();
       if (!r.ok) throw new Error(j.error || "Error");
-      box.innerHTML = `<h1>¡Listo!</h1>
-        <p class="sub" style="margin:10px 0 22px">${j.ya ? "Ya habías confirmado esta compra." : "Gracias. Le avisamos al vendedor y le acreditamos su plata."}</p>
-        <a class="btn" href="/">Volver al catálogo</a>`;
+      pedirCalificacion(j.ya);
     } catch (err) {
       e.target.disabled = false; e.target.textContent = "Sí, lo recibí";
       alert("No pudimos confirmar: " + err.message);
+    }
+  };
+}
+
+// Recién acá tiene sentido calificar: el comprador ya tiene el disco y lo revisó.
+function pedirCalificacion(yaEstaba) {
+  const textos = ["", "Muy malo", "Malo", "Regular", "Bueno", "Excelente"];
+  let sel = 0;
+
+  box.innerHTML = `
+    <h1>${yaEstaba ? "Ya lo habías confirmado" : "¡Listo, gracias!"}</h1>
+    <p class="sub" style="margin:10px 0 4px">${yaEstaba
+      ? "Podés calificar tu compra igual."
+      : "Le avisamos al vendedor y le acreditamos su plata."}</p>
+    <div class="panel" style="margin-top:22px;text-align:center">
+      <strong>¿Cómo te fue con este vendedor?</strong>
+      <div class="estrellas" id="estrellas">
+        ${[1,2,3,4,5].map(n => `<button type="button" data-n="${n}" aria-label="${n} estrellas">★</button>`).join("")}
+      </div>
+      <div class="leyenda" id="leyenda">Tocá las estrellas para calificar</div>
+      <textarea id="rate-comment" maxlength="300"
+        placeholder="Contale al resto cómo fue: el estado del disco, el embalaje, el trato… (opcional)"></textarea>
+      <br><br>
+      <button class="btn" id="btn-rate" disabled>Enviar calificación</button>
+      <p class="hint" style="margin-top:12px">
+        <a href="/" style="color:var(--dim)">Ahora no, volver al catálogo</a></p>
+    </div>`;
+
+  const btns = [...box.querySelectorAll("#estrellas button")];
+  const leyenda = document.getElementById("leyenda");
+  const enviar = document.getElementById("btn-rate");
+
+  const pintar = (n) => btns.forEach(b => b.classList.toggle("on", Number(b.dataset.n) <= n));
+  btns.forEach(b => {
+    b.onmouseenter = () => { pintar(Number(b.dataset.n)); leyenda.textContent = textos[b.dataset.n]; };
+    b.onclick = () => {
+      sel = Number(b.dataset.n);
+      pintar(sel); leyenda.textContent = textos[sel];
+      enviar.disabled = false;
+    };
+  });
+  document.getElementById("estrellas").onmouseleave = () => {
+    pintar(sel); leyenda.textContent = sel ? textos[sel] : "Tocá las estrellas para calificar";
+  };
+
+  enviar.onclick = async () => {
+    enviar.disabled = true; enviar.textContent = "Enviando…";
+    try {
+      const r = await fetch("/api/rate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          order_id: o, token: t, tipo: "a_vendedor", stars: sel,
+          comment: document.getElementById("rate-comment").value.trim(),
+        }),
+      });
+      const j = await r.json();
+      if (!r.ok) throw new Error(j.error || "Error");
+      box.innerHTML = `<h1>¡Gracias por calificar! ⭐</h1>
+        <p class="sub" style="margin:10px 0 22px">Tu valoración ya aparece en el perfil del vendedor
+          y ayuda al que compre después.</p>
+        <a class="btn" href="/">Volver al catálogo</a>`;
+    } catch (err) {
+      enviar.disabled = false; enviar.textContent = "Enviar calificación";
+      alert("No pudimos guardar la calificación: " + err.message);
     }
   };
 }

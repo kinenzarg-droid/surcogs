@@ -30,7 +30,7 @@
 </div>
 
 <script type="module">
-import { sb, renderHeader, getUser, fmtPrecio, fotoPrincipal, youtubeId, toast, precioComprador, precioTransferencia, reputacionHTML, ADMIN_ID } from "/js/app.js?v=3";
+import { sb, renderHeader, getUser, fmtPrecio, fotoPrincipal, youtubeId, toast, precioComprador, precioTransferencia, reputacionHTML, authHeaders, ADMIN_ID } from "/js/app.js?v=3";
 renderHeader("catalogo");
 
 // Un solo audio sonando en todo SURCOGS: el catálogo y las otras pestañas
@@ -51,7 +51,8 @@ const pago = params.get("pago");
 if (pago === "ok") toast("¡Pago aprobado! El vendedor va a coordinar la entrega con vos.");
 if (pago === "error") toast("El pago no se completó. Podés intentar de nuevo.", true);
 if (pago === "ok") mostrarQueSigue();
-if (pago === "ok" && params.get("order") && params.get("rt")) mostrarCalificacion();
+// La calificación NO va acá: recién comprás, todavía no viste el disco.
+// Se pide al confirmar la entrega, en /r.html, como hace Mercado Libre.
 
 function mostrarQueSigue() {
   const box = document.createElement("div");
@@ -68,46 +69,6 @@ function mostrarQueSigue() {
     o llega algo muy distinto a lo publicado, abrí un reclamo desde tu cuenta de Mercado Pago
     (Compra Protegida) y te reintegran la plata.`;
   document.querySelector(".wrap").prepend(box);
-}
-
-function mostrarCalificacion() {
-  let sel = 0;
-  const box = document.createElement("div");
-  box.className = "panel";
-  box.style.cssText = "max-width:none;margin-bottom:24px";
-  box.innerHTML = `
-    <strong>¿Cómo fue tu compra? Calificá al vendedor</strong>
-    <div id="star-row" style="margin:10px 0">
-      ${[1,2,3,4,5].map(n => `<button type="button" class="star-btn" data-n="${n}">★</button>`).join("")}
-    </div>
-    <textarea id="rate-comment" maxlength="300" placeholder="Comentario opcional: puntualidad, estado del disco, trato…"></textarea>
-    <br><br><button class="btn small" id="btn-rate" disabled>Enviar calificación</button>`;
-  document.querySelector(".wrap").prepend(box);
-
-  box.querySelectorAll(".star-btn").forEach(b => b.onclick = () => {
-    sel = Number(b.dataset.n);
-    box.querySelectorAll(".star-btn").forEach(s =>
-      s.classList.toggle("on", Number(s.dataset.n) <= sel));
-    document.getElementById("btn-rate").disabled = false;
-  });
-
-  document.getElementById("btn-rate").onclick = async () => {
-    const btn = document.getElementById("btn-rate");
-    btn.disabled = true; btn.textContent = "Enviando…";
-    const r = await fetch("/api/rate", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        order_id: params.get("order"),
-        token: params.get("rt"),
-        stars: sel,
-        comment: document.getElementById("rate-comment").value.trim(),
-      }),
-    });
-    const j = await r.json();
-    if (r.ok) { box.innerHTML = "<strong>¡Gracias por calificar! ⭐</strong> Tu valoración ya aparece en el perfil del vendedor."; }
-    else { toast(j.error || "Error", true); btn.disabled = false; btn.textContent = "Enviar calificación"; }
-  };
 }
 
 async function cargar() {
@@ -248,7 +209,7 @@ async function cargar() {
     try {
       const r = await fetch("/api/create-preference", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: await authHeaders(),
         body: JSON.stringify({ record_id: d.id, buyer_email: email }),
       });
       const j = await r.json();
