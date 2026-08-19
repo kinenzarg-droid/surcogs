@@ -94,8 +94,14 @@ const hdrs = (KEY) => ({
   Authorization: `Bearer ${KEY}`,
   "Content-Type": "application/json",
 });
-const sel = (env, tabla, q) =>
-  fetch(`${env.SUPABASE_URL}/rest/v1/${tabla}?${q}`, { headers: hdrs(env.SUPABASE_SERVICE_ROLE_KEY) })
-    .then((r) => r.json());
+// Siempre una lista. Si la consulta falla (por ejemplo un token con formato
+// inválido) la base devuelve un objeto de error, y sin esto reventaba con un 500.
+const sel = async (env, tabla, q) => {
+  try {
+    const j = await fetch(`${env.SUPABASE_URL}/rest/v1/${tabla}?${q}`,
+      { headers: hdrs(env.SUPABASE_SERVICE_ROLE_KEY) }).then((r) => r.json());
+    return Array.isArray(j) ? j : [];
+  } catch (_) { return []; }
+};
 const json = (b, s = 200) =>
   new Response(JSON.stringify(b), { status: s, headers: { "Content-Type": "application/json" } });
