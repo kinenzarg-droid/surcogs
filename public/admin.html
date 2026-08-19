@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SURCOGS — Panel</title>
+<meta name="robots" content="noindex">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="/favicon.ico" sizes="32x32">
+<link rel="apple-touch-icon" href="/icono-192.png">
+<link rel="stylesheet" href="/css/style.css">
+<script src="/js/config.js"></script>
+<style>
+.a-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 14px; margin: 18px 0 26px; }
+.a-card { background: #fff; border: 1px solid var(--line); border-radius: 10px; padding: 18px; }
+.a-card.urgente { border-color: var(--acc); border-left-width: 4px; }
+.a-card.aviso { border-color: #e0a300; border-left-width: 4px; background: #fffdf5; }
+.a-num { font-size: 32px; font-weight: 800; letter-spacing: -.5px; line-height: 1.1; }
+.a-lbl { font-size: 13px; font-weight: 700; margin-bottom: 8px; }
+.a-sub { color: var(--dim); font-size: 12.5px; margin-top: 7px; line-height: 1.5; }
+.a-links { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 12px; }
+.a-link { display: block; background: #fff; border: 1px solid var(--line); border-radius: 10px;
+  padding: 16px; color: var(--txt); }
+.a-link:hover { border-color: var(--acc); color: var(--txt); }
+.a-link b { display: block; font-size: 15px; margin-bottom: 3px; }
+.a-link span { color: var(--dim); font-size: 12.5px; line-height: 1.45; }
+</style>
+</head>
+<body>
+<div id="header"></div>
+<div class="wrap" id="main"><p class="sub">Cargando…</p></div>
+
+<script type="module">
+import { sb, renderHeader, getUser, fmtPrecio, authHeaders, ADMIN_ID } from "/js/app.js?v=3";
+renderHeader("");
+const main = document.getElementById("main");
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) =>
+  ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+
+(async () => {
+  const user = await getUser();
+  if (!user) {
+    main.innerHTML = `<h1>Panel</h1><p class="sub" style="margin:10px 0 20px">Entrá con tu cuenta de administrador.</p>
+      <a class="btn" href="/cuenta.html">Ingresar</a>`;
+    return;
+  }
+  if (ADMIN_ID && user.id !== ADMIN_ID) {
+    main.innerHTML = `<h1>Panel</h1><p class="sub">Esta sección es solo para el administrador.</p>`;
+    return;
+  }
+
+  let d;
+  try {
+    const r = await fetch("/api/admin", { headers: await authHeaders() });
+    d = await r.json();
+    if (!r.ok) throw new Error(d.error || "No se pudo cargar");
+  } catch (e) {
+    main.innerHTML = `<h1>Panel</h1><p class="sub">${esc(e.message)}</p>`;
+    return;
+  }
+
+  const tarjeta = (clase, num, lbl, sub) => `
+    <div class="a-card ${clase}">
+      <div class="a-lbl">${lbl}</div>
+      <div class="a-num">${num}</div>
+      <div class="a-sub">${sub}</div>
+    </div>`;
+
+  main.innerHTML = `
+    <h1 style="margin-bottom:2px">Panel</h1>
+    <p class="sub" style="margin:0 0 6px">Lo que necesita tu atención hoy.</p>
+
+    <div class="a-grid">
+      ${tarjeta(d.paraTransferir.compras ? "urgente" : "", fmtPrecio(d.paraTransferir.monto),
+        "Para transferir ya",
+        d.paraTransferir.compras
+          ? `${d.paraTransferir.compras} compra${d.paraTransferir.compras > 1 ? "s" : ""} con la entrega
+             confirmada o pasados los 10 días. <a href="/liquidaciones.html" style="color:var(--acc)">Ir a liquidar →</a>`
+          : "Nada pendiente. 👌")}
+
+      ${tarjeta(d.porCobrar.compras ? "aviso" : "", fmtPrecio(d.porCobrar.monto),
+        "Transferencias por cobrar",
+        d.porCobrar.compras
+          ? `${d.porCobrar.compras} compra${d.porCobrar.compras > 1 ? "s" : ""} reservada${d.porCobrar.compras > 1 ? "s" : ""}
+             esperando que confirmes que entró la plata. <b>Si no confirmás, a las 24hs el disco vuelve al catálogo.</b>
+             <a href="/liquidaciones.html" style="color:var(--acc)">Confirmar →</a>`
+          : "Ninguna esperando.")}
+
+      ${tarjeta("", fmtPrecio(d.esperando.monto), "Esperando al comprador",
+        d.esperando.compras
+          ? `${d.esperando.compras} compra${d.esperando.compras > 1 ? "s" : ""} pagada${d.esperando.compras > 1 ? "s" : ""},
+             todavía sin confirmar la entrega. No hay que hacer nada.`
+          : "Nada en curso.")}
+
+      ${d.sinAlias.length ? `
+        <div class="a-card aviso">
+          <div class="a-lbl">Vendedores sin alias</div>
+          <div class="a-num">${d.sinAlias.length}</div>
+          <div class="a-sub">Tienen discos publicados pero no cargaron dónde cobrar.
+            <b>Si venden hoy, no les podés transferir.</b><br>
+            ${d.sinAlias.map(v => `<a href="/perfil.html?id=${v.id}" style="color:var(--acc)">${esc(v.name)}</a>`).join(" · ")}</div>
+        </div>` : ""}
+    </div>
+
+    <h2 style="font-size:16px;margin-bottom:10px">Catálogo</h2>
+    <div class="a-grid">
+      ${tarjeta("", d.catalogo.disponibles, "Discos publicados",
+        `De ${d.catalogo.vendedores} vendedor${d.catalogo.vendedores === 1 ? "" : "es"} con stock.`)}
+      ${tarjeta("", d.catalogo.vendidos, "Vendidos", "Histórico.")}
+      ${tarjeta(d.catalogo.sinAudio ? "aviso" : "", d.catalogo.sinAudio, "Sin audio",
+        d.catalogo.sinAudio
+          ? "Discos publicados sin ningún tema para escuchar. Se venden bastante peor."
+          : "Todos los discos tienen audio. 👌")}
+      ${tarjeta("", fmtPrecio(d.mes.comision), "Comisión del mes",
+        `${d.mes.ventas} venta${d.mes.ventas === 1 ? "" : "s"} este mes.`)}
+    </div>
+
+    <h2 style="font-size:16px;margin-bottom:10px">Herramientas</h2>
+    <div class="a-links">
+      <a class="a-link" href="/liquidaciones.html">
+        <b>💸 Liquidaciones</b>
+        <span>Cobrar transferencias y pagarle a los vendedores. Pide clave.</span></a>
+      <a class="a-link" href="/metricas.html">
+        <b>📊 Métricas</b>
+        <span>Cómo viene el negocio: ventas, compradores, reputación.</span></a>
+      <a class="a-link" href="/courier.html">
+        <b>🚚 SURCOGS Express</b>
+        <span>La jornada del repartidor: qué retirar y qué entregar. Pide clave.</span></a>
+      <a class="a-link" href="/etiquetas.html">
+        <b>🏷 Etiquetas</b>
+        <span>Imprimir las etiquetas con QR de los paquetes del día. Pide clave.</span></a>
+      <a class="a-link" href="/publicar.html">
+        <b>➕ Publicar un disco</b>
+        <span>Cargar un disco nuevo al catálogo.</span></a>
+      <a class="a-link" href="/cuenta.html">
+        <b>👤 Mi cuenta</b>
+        <span>Mis discos, mis compras y mis ventas.</span></a>
+    </div>`;
+})();
+</script>
+</body>
+</html>
