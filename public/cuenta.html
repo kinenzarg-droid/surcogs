@@ -19,7 +19,7 @@
 <div class="wrap" id="main"></div>
 
 <script type="module">
-import { sb, renderHeader, getUser, getPerfil, fmtPrecio, fotoPrincipal, toast, zonaSelector } from "/js/app.js?v=3";
+import { sb, renderHeader, getUser, getPerfil, fmtPrecio, fotoPrincipal, toast, zonaSelector, authHeaders } from "/js/app.js?v=3";
 renderHeader("cuenta");
 const main = document.getElementById("main");
 
@@ -196,11 +196,35 @@ function renderCrearPerfil(user) {
 /* ---------- PANEL ---------- */
 async function renderPanel(user, perfil) {
 
+  const ESTADOS = ["pagada", "enviado", "entregado"];
   const [{ data: discos }, { data: ventas }, { data: compras }] = await Promise.all([
     sb.from("records").select("*").eq("seller_id", user.id).order("created_at", { ascending: false }),
-    sb.from("orders").select("*, records(artist, title)").eq("seller_id", user.id).eq("status", "pagada").order("created_at", { ascending: false }),
-    sb.from("orders").select("*, records(artist, title)").eq("buyer_email", user.email).in("status", ["pagada", "enviado", "entregado", "reservado"]).order("created_at", { ascending: false }),
+    // Antes filtraba solo por "pagada": al confirmarse la entrega la venta
+    // desaparecía de acá justo cuando se completaba.
+    sb.from("orders").select("*, records(artist, title)").eq("seller_id", user.id)
+      .in("status", ESTADOS).order("created_at", { ascending: false }),
+    // Por id de usuario o por mail, para que ande aunque haya cambiado el mail
+    sb.from("orders").select("*, records(artist, title)")
+      .or(`buyer_id.eq.${user.id},buyer_email.eq.${user.email}`)
+      .in("status", [...ESTADOS, "reservado"]).order("created_at", { ascending: false }),
   ]);
+
+  // Qué órdenes ya se calificaron, para no ofrecerlo dos veces
+  const ids = [...(ventas || []), ...(compras || [])].map(o => o.id);
+  const { data: califs } = ids.length
+    ? await sb.from("ratings").select("order_id, tipo").in("order_id", ids)
+    : { data: [] };
+  const yaCalifico = new Set((califs || []).map(r => r.order_id + "|" + r.tipo));
+
+  // Se puede calificar cuando se confirmó la entrega, o cuando pasaron los
+  // 10 días en que la plata se libera igual. Después hay 21 días de plazo.
+  const sePuedeCalificar = (o) => {
+    const desde = o.entregado_at ? new Date(o.entregado_at)
+      : (o.pagado_at ? new Date(new Date(o.pagado_at).getTime() + 10 * 86400000) : null);
+    if (!desde) return false;
+    const ahora = Date.now();
+    return desde.getTime() <= ahora && ahora <= desde.getTime() + 21 * 86400000;
+  };
 
   const iniciales = (perfil.name || "").trim().split(/\s+/).map(w => w[0]).slice(0, 2).join("").toUpperCase() || "YO";
   main.innerHTML = `
@@ -243,7 +267,13 @@ async function renderPanel(user, perfil) {
             <strong>${c.records ? c.records.artist + " – " + c.records.title : "Disco"}</strong><br>
             <span class="hint">${fmtPrecio(c.amount)} · ${new Date(c.created_at).toLocaleDateString("es-AR")} · ${estado}</span>
           </div>
-          ${!c.entregado_at && c.rating_token ? `<a class="btn small" href="/r.html?o=${c.id}&t=${c.rating_token}">Ya lo recibí</a>` : ""}
+          ${!c.entregado_at && c.rating_token
+            ? `<a class="btn small" href="/r.html?o=${c.id}&t=${c.rating_token}">Ya lo recibí</a>`
+            : yaCalifico.has(c.id + "|a_vendedor")
+              ? `<span class="hint">Ya calificaste ⭐</span>`
+              : sePuedeCalificar(c) && c.rating_token
+                ? `<a class="btn small ghost" href="/r.html?o=${c.id}&t=${c.rating_token}">Calificar al vendedor</a>`
+                : ""}
         </div>`;
       }).join("") || "<p class='sub'>Todavía no compraste nada. <a href='/' style='color:var(--acc)'>Ver el catálogo</a></p>"}
     </div>
@@ -254,11 +284,78 @@ async function renderPanel(user, perfil) {
           <div class="grow">
             <strong>${v.records ? v.records.artist + " – " + v.records.title : "Disco"}</strong><br>
             <span class="hint">${fmtPrecio(v.amount)} · comisión ${fmtPrecio(v.fee)} · ${new Date(v.created_at).toLocaleDateString("es-AR")}
+            · ${v.entregado_at ? "✅ Entregado" : "📦 Esperando la entrega"}
             ${v.buyer_email ? " · comprador: " + v.buyer_email : ""}</span>
           </div>
+          ${yaCalifico.has(v.id + "|a_comprador")
+            ? `<span class="hint">Ya calificaste ⭐</span>`
+            : sePuedeCalificar(v) && v.buyer_id
+              ? `<button class="btn small ghost btn-calif" data-orden="${v.id}">Calificar al comprador</button>`
+              : ""}
           ${v.buyer_email ? `<a class="btn small" href="mailto:${v.buyer_email}?subject=${encodeURIComponent("Tu compra en SURCOGS")}&body=${encodeURIComponent("¡Hola! Soy " + perfil.name + ", me compraste " + (v.records ? v.records.artist + " – " + v.records.title : "un disco") + " en SURCOGS. ¿Coordinamos la entrega? Puedo ofrecerte punto de encuentro o envío por Correo Argentino a tu sucursal más cercana (va embalado en cartón rígido y con seguimiento).")}">✉ Contactar</a>` : ""}
         </div>`).join("") || "<p class='sub'>Todavía no tenés ventas.</p>"}
     </div>`;
+
+  // Calificar al comprador: mismo criterio que el comprador con el vendedor,
+  // pero acá el que califica se identifica con su sesión.
+  document.querySelectorAll(".btn-calif").forEach(b => b.onclick = () => {
+    const orden = b.dataset.orden;
+    const textos = ["", "Muy malo", "Malo", "Regular", "Bueno", "Excelente"];
+    let sel = 0;
+    const bg = document.createElement("div");
+    bg.className = "co-bg";
+    bg.style.cssText = "position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:120;display:flex;align-items:center;justify-content:center;padding:16px";
+    bg.innerHTML = `
+      <div class="panel" style="max-width:420px;width:100%;text-align:center;background:#fff">
+        <strong>¿Cómo te fue con este comprador?</strong>
+        <p class="hint" style="margin:6px 0 0">Pagó en tiempo, respondió, coordinó bien…</p>
+        <div id="cal-estrellas" style="display:flex;gap:4px;justify-content:center;margin:14px 0 4px">
+          ${[1,2,3,4,5].map(n => `<button type="button" data-n="${n}"
+            style="background:none;border:0;cursor:pointer;font-size:34px;line-height:1;color:#d8d8d8;padding:2px">★</button>`).join("")}
+        </div>
+        <div id="cal-leyenda" style="min-height:20px;font-size:13px;color:var(--dim);margin-bottom:12px">Tocá las estrellas</div>
+        <textarea id="cal-com" maxlength="300" placeholder="Comentario opcional" style="width:100%;min-height:64px"></textarea>
+        <br><br>
+        <button class="btn" id="cal-enviar" disabled>Enviar</button>
+        <button class="btn ghost" id="cal-cerrar" style="margin-left:8px">Cancelar</button>
+      </div>`;
+    document.body.appendChild(bg);
+
+    const btns = [...bg.querySelectorAll("#cal-estrellas button")];
+    const ley = bg.querySelector("#cal-leyenda");
+    const env = bg.querySelector("#cal-enviar");
+    const pintar = (n) => btns.forEach(x => x.style.color = Number(x.dataset.n) <= n ? "#f5a623" : "#d8d8d8");
+    btns.forEach(x => {
+      x.onmouseenter = () => { pintar(Number(x.dataset.n)); ley.textContent = textos[x.dataset.n]; };
+      x.onclick = () => { sel = Number(x.dataset.n); pintar(sel); ley.textContent = textos[sel]; env.disabled = false; };
+    });
+    bg.querySelector("#cal-estrellas").onmouseleave = () => {
+      pintar(sel); ley.textContent = sel ? textos[sel] : "Tocá las estrellas";
+    };
+    bg.querySelector("#cal-cerrar").onclick = () => bg.remove();
+
+    env.onclick = async () => {
+      env.disabled = true; env.textContent = "Enviando…";
+      try {
+        const r = await fetch("/api/rate", {
+          method: "POST",
+          headers: await authHeaders(),
+          body: JSON.stringify({
+            order_id: orden, tipo: "a_comprador", stars: sel,
+            comment: bg.querySelector("#cal-com").value.trim(),
+          }),
+        });
+        const j = await r.json();
+        if (!r.ok) throw new Error(j.error || "Error");
+        bg.remove();
+        toast("¡Gracias por calificar! ⭐");
+        b.outerHTML = `<span class="hint">Ya calificaste ⭐</span>`;
+      } catch (e) {
+        env.disabled = false; env.textContent = "Enviar";
+        toast(e.message, true);
+      }
+    };
+  });
 
   // Dónde cobrás tus ventas
   const cobroBox = document.getElementById("cobro-box");
