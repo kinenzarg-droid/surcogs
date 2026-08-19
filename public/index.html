@@ -620,9 +620,25 @@ function pintarCartBar() {
 // en mobile la bandeja del carrito se apila arriba del player (nunca se pisan)
 function ajustarBarras() {
   const pl = document.getElementById("player");
+  const cart = document.getElementById("cartp");
   const alto = pl.style.display === "block" ? pl.offsetHeight : 0;
-  document.getElementById("cartp").style.bottom = window.innerWidth <= 680 ? alto + "px" : "";
+  const esMobile = window.innerWidth <= 680;
+  cart.style.bottom = esMobile ? alto + "px" : "";
+
+  // En desktop el carrito es fijo: si no lo frenamos, al estar arriba de todo
+  // se sube por encima del header y tapa la tira verde. Lo apoyamos justo
+  // debajo del header, y cuando el header ya scrolleó lo dejamos a 12px.
+  if (esMobile) { cart.style.top = ""; cart.style.maxHeight = ""; return; }
+  const header = document.getElementById("header");
+  const finHeader = header ? header.getBoundingClientRect().bottom : 0;
+  const top = Math.max(12, Math.round(finHeader) + 10);
+  cart.style.top = top + "px";
+  cart.style.maxHeight = `calc(100vh - ${top + 24}px)`;
 }
+
+// El header scrollea con la página, así que hay que recalcular al scrollear
+window.addEventListener("scroll", ajustarBarras, { passive: true });
+window.addEventListener("resize", ajustarBarras);
 
 document.getElementById("cart-buy").onclick = abrirCheckout;
 document.getElementById("cart-clear").onclick = () => {
