@@ -372,7 +372,10 @@ export function fotoPrincipal(rec) {
 
 // Reputación: promedio de estrellas de un vendedor, estilo "★★★★★ 100.0%, 79 valoraciones"
 export async function reputacionHTML(sellerId) {
-  const { data } = await sb.from("ratings").select("stars").eq("seller_id", sellerId);
+  // Solo las que le hicieron COMO VENDEDOR. Sin este filtro, las calificaciones
+  // que él le pone a sus compradores se le sumarían a su propia reputación.
+  const { data } = await sb.from("ratings").select("stars")
+    .eq("seller_id", sellerId).eq("tipo", "a_vendedor");
   if (!data || !data.length) return `<span class="hint">Vendedor nuevo, sin valoraciones todavía</span>`;
   const avg = data.reduce((a, r) => a + r.stars, 0) / data.length;
   const full = Math.round(avg);
