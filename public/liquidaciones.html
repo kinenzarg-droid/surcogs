@@ -8,6 +8,7 @@
 <link rel="icon" href="/favicon.ico" sizes="32x32">
 <link rel="apple-touch-icon" href="/icono-192.png">
 <link rel="stylesheet" href="/css/style.css">
+<script src="/js/config.js"></script>
 <style>
 .lq{max-width:760px;margin:0 auto;padding:24px 16px 80px}
 .card{border:1px solid var(--line);border-radius:8px;padding:14px;margin-bottom:10px;background:#fff}
@@ -26,8 +27,8 @@ h2{margin:26px 0 10px;font-size:16px}
   <div id="out"></div>
 </div>
 
-<script>
-const key = new URLSearchParams(location.search).get("key") || prompt("Clave de admin");
+<script type="module">
+import { getUser, authHeaders, ADMIN_ID } from "/js/app.js?v=3";
 const out = document.getElementById("out");
 const pesos = (n) => "$" + Number(n || 0).toLocaleString("es-AR");
 const fecha = (d) => d ? new Date(d).toLocaleDateString("es-AR") : "—";
@@ -76,14 +77,14 @@ async function cobrado(purchase_id, btn) {
   btn.disabled = true; btn.textContent = "Confirmando…";
   const r = await fetch("/api/liquidaciones", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ key, purchase_id }),
+    headers: await authHeaders(),
+    body: JSON.stringify({ purchase_id }),
   });
   r.ok ? cargar() : (btn.disabled = false, btn.textContent = "Ya me transfirió");
 }
 
 async function cargar() {
-  const r = await fetch("/api/liquidaciones?key=" + encodeURIComponent(key));
+  const r = await fetch("/api/liquidaciones", { headers: await authHeaders() });
   const j = await r.json();
   if (!r.ok) return out.innerHTML = `<p class="sub">${j.error}</p>`;
   const total = j.liberables.reduce((s, o) => s + Number(o.monto_vendedor || 0), 0);
@@ -106,13 +107,22 @@ async function pagar(id, btn) {
   btn.disabled = true; btn.textContent = "Guardando…";
   const r = await fetch("/api/liquidaciones", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ key, id }),
+    headers: await authHeaders(),
+    body: JSON.stringify({ id }),
   });
   r.ok ? cargar() : (btn.disabled = false, btn.textContent = "Ya le transferí");
 }
 
-cargar();
+// Sin sesión de admin no tiene sentido ni pedir los datos.
+const user = await getUser();
+if (!user) {
+  out.innerHTML = `<p class="sub">Entrá con tu cuenta para ver las liquidaciones.</p>
+    <a class="btn" href="/cuenta.html" style="margin-top:10px">Ingresar</a>`;
+} else if (ADMIN_ID && user.id !== ADMIN_ID) {
+  out.innerHTML = `<p class="sub">Esta sección es solo para el administrador.</p>`;
+} else {
+  cargar();
+}
 </script>
 </body>
 </html>
