@@ -113,6 +113,11 @@ async function pagar(id, btn) {
   r.ok ? cargar() : (btn.disabled = false, btn.textContent = "Ya le transferí");
 }
 
+// Los onclick del HTML buscan las funciones en window, pero este script es un
+// módulo y tiene su propio scope. Sin esto, los botones no hacen nada.
+window.pagar = pagar;
+window.cobrado = cobrado;
+
 // Sin sesión de admin no tiene sentido ni pedir los datos.
 const user = await getUser();
 if (!user) {
