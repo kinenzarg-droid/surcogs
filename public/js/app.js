@@ -104,6 +104,19 @@ function tiraTexto() {
   return `<span>${(frases.join(" · ") + " · ").repeat(3)}</span>`;
 }
 
+// Cabeceras para pegarle a nuestras funciones del servidor identificándonos.
+// Si no hay sesión devuelve solo el Content-Type: hay endpoints que se pueden
+// usar sin cuenta (el carrito, por ejemplo).
+export async function authHeaders() {
+  const h = { "Content-Type": "application/json" };
+  try {
+    const { data } = await sb.auth.getSession();
+    const t = data?.session?.access_token;
+    if (t) h.Authorization = `Bearer ${t}`;
+  } catch (_) { /* sin sesión */ }
+  return h;
+}
+
 // "hace 5 min", "hace 2 h", "ayer"… más humano que una fecha suelta
 export function hace(fecha) {
   const seg = Math.floor((Date.now() - new Date(fecha).getTime()) / 1000);
