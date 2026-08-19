@@ -59,15 +59,13 @@ function mostrarQueSigue() {
   box.className = "notice";
   box.innerHTML = `
     <strong>✅ ¡Compra confirmada! ¿Y ahora?</strong><br>
-    El vendedor recibe aviso de tu compra y va a escribirte <b>al email que dejaste</b> para
-    coordinar la entrega: punto de encuentro o envío. Si en 48 horas no te contactó,
-    escribile por los comentarios de esta página.<br><br>
-    📦 <b>¿Envío?</b> Sugerimos <b>Correo Argentino a sucursal</b>: el vendedor despacha el vinilo
-    embalado en cartón rígido y vos lo retirás en tu sucursal más cercana con tu DNI.
-    Es la opción más económica y el paquete viaja con seguimiento. El costo del envío lo acuerdan entre ustedes.<br><br>
-    🛡 <b>Política de devolución:</b> tu pago está protegido por Mercado Pago. Si el pedido no te llega,
-    o llega algo muy distinto a lo publicado, abrí un reclamo desde tu cuenta de Mercado Pago
-    (Compra Protegida) y te reintegran la plata.`;
+    Te mandamos un mail con <b>los datos del vendedor</b> para que coordinen la entrega.
+    También los tenés en <a href="/cuenta.html#compras" style="color:var(--acc)">Mis compras</a>.<br><br>
+    🛡 <b>Tu plata está protegida.</b> El vendedor cobra recién cuando nos confirmes que
+    recibiste el disco. Si en 10 días no nos decís nada y no hubo reclamo, se le acredita
+    automáticamente. ¿Algún problema? Escribinos a
+    <a href="mailto:info@surcogs.com.ar" style="color:var(--acc)">info@surcogs.com.ar</a>
+    <b>antes</b> de confirmar y lo resolvemos.`;
   document.querySelector(".wrap").prepend(box);
 }
 
@@ -111,9 +109,11 @@ async function cargar() {
         d.shipping_mode === "fijo" && d.shipping_cost ? "📦 Envío " + fmtPrecio(d.shipping_cost) + " a todo el país — se suma al pagar" :
         "📦 Envío a coordinar con el vendedor"}</p>
       <p class="meta">Vende <a href="/perfil.html?id=${d.seller_id}"><strong>${p?.name || "—"}</strong></a>${d.zona || p?.zona ? " · " + (d.zona || p.zona) : ""} · <a href="/perfil.html?id=${d.seller_id}">ver su discografía →</a></p>
-      ${esMio ? `<p style="margin:10px 0">
+      ${esMio && d.status !== "vendido" ? `<p style="margin:10px 0">
         <a class="btn small ghost" href="/publicar.html?edit=${d.id}">✎ Editar</a>
         <button class="btn small ghost" id="btn-del-disco" style="margin-left:8px;color:#ff6b6b">🗑 Eliminar</button></p>` : ""}
+      ${esMio && d.status === "vendido" ? `<p class="hint" style="margin:10px 0">
+        🔒 Este disco ya se vendió, por eso no se puede editar ni volver a poner en venta.</p>` : ""}
       <p class="meta" id="rep-vendedor"></p>
       ${d.description ? `<p style="margin:12px 0">${d.description}</p>` : ""}
       ${d.tracks && d.tracks.length ? `

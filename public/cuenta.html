@@ -287,7 +287,7 @@ async function renderPanel(user, perfil) {
             · ${v.entregado_at ? "✅ Entregado" : "📦 Esperando la entrega"}
             ${v.buyer_email ? " · comprador: " + v.buyer_email : ""}</span>
           </div>
-          ${v.buyer_email ? `<a class="btn small" href="mailto:${v.buyer_email}?subject=${encodeURIComponent("Tu compra en SURCOGS")}&body=${encodeURIComponent("¡Hola! Soy " + perfil.name + ", me compraste " + (v.records ? v.records.artist + " – " + v.records.title : "un disco") + " en SURCOGS. ¿Coordinamos la entrega? Puedo ofrecerte punto de encuentro o envío por Correo Argentino a tu sucursal más cercana (va embalado en cartón rígido y con seguimiento).")}">✉ Contactar</a>` : ""}
+          ${v.buyer_email ? `<a class="btn small" href="mailto:${v.buyer_email}?subject=${encodeURIComponent("Tu compra en SURCOGS")}&body=${encodeURIComponent("¡Hola! Soy " + perfil.name + ", me compraste " + (v.records ? v.records.artist + " – " + v.records.title : "un disco") + " en SURCOGS. ¿Coordinamos la entrega? Puedo ofrecerte punto de encuentro o envío. El disco va embalado en cartón rígido.")}">✉ Contactar</a>` : ""}
         </div>`).join("") || "<p class='sub'>Todavía no tenés ventas.</p>"}
     </div>`;
 
@@ -339,11 +339,14 @@ async function renderPanel(user, perfil) {
         <strong>${d.artist} – ${d.title}</strong><br>
         <span class="hint">recibís ${fmtPrecio(d.price)} · ${d.status}</span>
       </div>
-      <select data-id="${d.id}" class="sel-estado" style="width:auto">
-        ${["disponible", "reservado", "vendido"].map(s => `<option ${s === d.status ? "selected" : ""}>${s}</option>`).join("")}
-      </select>
-      <a class="btn small ghost" href="/publicar.html?edit=${d.id}">✎ Editar</a>
-      <button class="btn small ghost btn-del" data-id="${d.id}">Borrar</button>
+      ${d.status === "vendido" ? `
+        <span class="hint" title="Un disco vendido no se puede editar ni volver a poner en venta">
+          🔒 Vendido</span>` : `
+        <select data-id="${d.id}" class="sel-estado" style="width:auto">
+          ${["disponible", "reservado"].map(s => `<option ${s === d.status ? "selected" : ""}>${s}</option>`).join("")}
+        </select>
+        <a class="btn small ghost" href="/publicar.html?edit=${d.id}">✎ Editar</a>
+        <button class="btn small ghost btn-del" data-id="${d.id}">Borrar</button>`}
     </div>`).join("") || "<p class='sub'>Todavía no publicaste discos.</p>";
 
   lista.querySelectorAll(".sel-estado").forEach(sel => sel.onchange = async () => {
