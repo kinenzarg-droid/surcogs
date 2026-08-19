@@ -1,12 +1,25 @@
 // Panel de liquidaciones — qué le tengo que transferir a cada vendedor y
 // qué compras por transferencia están esperando que yo confirme el pago.
-// Protegido por ADMIN_KEY.
+// Solo entra el administrador, con su sesión de Supabase.
 import { notificar } from "./_notificar.js";
 import { avisoAdmin } from "./_avisoAdmin.js";
 
+// Antes esto era una clave en la URL: quedaba en el historial del navegador,
+// en los logs y en cualquier link que se compartiera. Ahora se valida la sesión
+// contra Supabase y se compara con ADMIN_USER_ID, igual que /api/admin.
+async function esAdmin(request, env) {
+  const auth = request.headers.get("authorization") || "";
+  if (!auth.startsWith("Bearer ")) return false;
+  const r = await fetch(`${env.SUPABASE_URL}/auth/v1/user`, {
+    headers: { apikey: env.SUPABASE_SERVICE_ROLE_KEY, Authorization: auth },
+  });
+  if (!r.ok) return false;
+  const u = await r.json().catch(() => ({}));
+  return !!env.ADMIN_USER_ID && u.id === env.ADMIN_USER_ID;
+}
+
 export async function onRequestGet({ request, env }) {
-  const url = new URL(request.url);
-  if (url.searchParams.get("key") !== env.ADMIN_KEY) return json({ error: "no autorizado" }, 401);
+  if (!(await esAdmin(request, env))) return json({ error: "Entrá con tu cuenta de administrador" }, 401);
 
   const pend = await sel(env, "liquidaciones_pendientes", "select=*&order=entregado_at.asc");
   const listas = await sel(env, "orders",
@@ -36,8 +49,8 @@ export async function onRequestGet({ request, env }) {
 }
 
 export async function onRequestPost({ request, env }) {
+  if (!(await esAdmin(request, env))) return json({ error: "Entrá con tu cuenta de administrador" }, 401);
   const b = await request.json().catch(() => ({}));
-  if (b.key !== env.ADMIN_KEY) return json({ error: "no autorizado" }, 401);
 
   // --- Confirmar que entró una transferencia ---
   if (b.purchase_id) return confirmarTransferencia(env, b.purchase_id);
