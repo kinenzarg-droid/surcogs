@@ -106,6 +106,9 @@ async function confirmarTransferencia(env, purchaseId) {
           <h2>¡Listo, recibimos tu transferencia!</h2>
           <p>${lista}</p>
           <p>El vendedor ya está avisado y te va a escribir para coordinar la entrega.</p>
+          <p style="color:#555;font-size:13px">🚚 <b>¿Están los dos en AMBA?</b> Respondé este
+            mail y coordinamos la entrega con <b>SURCOGS Express</b>: retiramos el disco por la
+            casa del vendedor y te lo llevamos.</p>
           <p style="background:#f0f7f3;border-radius:6px;padding:12px 14px;color:#3c5a4a">
             🛡 <b>Tu plata está protegida.</b> El vendedor cobra recién cuando nos confirmes
             que recibiste el disco. Si en 10 días no nos decís nada y no hubo reclamo,

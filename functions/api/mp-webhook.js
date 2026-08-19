@@ -115,6 +115,9 @@ export async function onRequest({ request, env }) {
           <p>El pago ya está confirmado y guardado por SURCOGS.</p>
           <p><b>Comprador:</b> ${g.ords[0].buyer_email || "no dejó email"}<br>
           Escribile hoy para coordinar la entrega: punto de encuentro o envío.</p>
+          <p style="color:#555;font-size:13px">🚚 <b>SURCOGS Express.</b> Si vos y el comprador
+          están en AMBA, respondé este mail y lo coordinamos: pasamos a retirar el disco por tu
+          casa y lo entregamos. No tenés que ir hasta el correo.</p>
           <p style="color:#555;font-size:13px">💰 <b>Cuándo cobrás.</b> Te transferimos a tu alias
           dentro de las 48hs hábiles de que el comprador confirme que recibió el disco, o a los
           10 días del envío si no hay reclamo. Recibís tu precio completo: las comisiones las paga
@@ -146,6 +149,9 @@ export async function onRequest({ request, env }) {
             ? `Tus discos son de <b>${sellerIds.length} vendedores</b>, así que vas a coordinar
                una entrega con cada uno. Los datos de todos están en Mis compras.`
             : "El vendedor ya está avisado y te va a escribir para coordinar la entrega."}</p>
+          <p style="color:#555;font-size:13px">🚚 <b>¿Están los dos en AMBA?</b> Respondé este
+            mail y coordinamos la entrega con <b>SURCOGS Express</b>: retiramos el disco por la
+            casa del vendedor y te lo llevamos.</p>
           <p style="background:#f0f7f3;border-radius:6px;padding:12px 14px;color:#3c5a4a">
             🛡 <b>Tu plata está protegida.</b> El vendedor cobra recién cuando nos confirmes
             que recibiste el disco. Si en 10 días no nos decís nada y no hubo reclamo,
