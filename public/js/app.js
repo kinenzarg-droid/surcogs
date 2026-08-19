@@ -118,6 +118,20 @@ export async function authHeaders() {
 }
 
 // "hace 5 min", "hace 2 h", "ayer"… más humano que una fecha suelta
+// Icono y color de fondo por tipo de notificacion. Una sola fuente de verdad:
+// la usan la campanita del header y la pagina /notificaciones.html.
+export const ICONOS_NOTIF = {
+  venta:        { ico: "\u{1F4BF}", bg: "#e3f5ea" },
+  pago:         { ico: "\u{1F4B8}", bg: "#ffeee4" },
+  calificacion: { ico: "\u2B50",    bg: "#fff6dc" },
+  entrega:      { ico: "\u2705",    bg: "#e3f5ea" },
+  envio:        { ico: "\u{1F69A}", bg: "#e6f0f6" },
+  reserva:      { ico: "\u23F3",    bg: "#f0f0f0" },
+  bienvenida:   { ico: "\u{1F44B}", bg: "#ffeee4" },
+};
+export const iconoNotif = (tipo) =>
+  ICONOS_NOTIF[tipo] || { ico: "\u{1F514}", bg: "#f0f0f0" };
+
 export function hace(fecha) {
   const seg = Math.floor((Date.now() - new Date(fecha).getTime()) / 1000);
   if (seg < 60) return "recién";
@@ -216,12 +230,17 @@ export async function renderHeader(activo) {
         lista.innerHTML = `<p class="notif-vacio">Todavía no tenés novedades.</p>`;
         return;
       }
-      lista.innerHTML = ns.map(n => `
+      lista.innerHTML = ns.map(n => {
+        const { ico, bg } = iconoNotif(n.tipo);
+        return `
         <a class="notif ${n.leida ? "" : "sin-leer"}" href="${n.link || "/cuenta.html"}">
-          <span class="notif-t">${n.titulo}</span>
-          ${n.detalle ? `<span class="notif-d">${n.detalle}</span>` : ""}
-          <span class="notif-f">${hace(n.created_at)}</span>
-        </a>`).join("");
+          <span class="notif-ico" style="--nico-bg:${bg}">${ico}</span>
+          <span class="notif-txt">
+            <span class="notif-t">${n.titulo}</span>
+            ${n.detalle ? `<span class="notif-d">${n.detalle}</span>` : ""}
+            <span class="notif-f">${hace(n.created_at)}</span>
+          </span>
+        </a>`; }).join("");
     };
 
     const cargar = async () => {
