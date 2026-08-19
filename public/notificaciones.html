@@ -17,7 +17,8 @@
 }
 .nfila:hover { border-color: #bbb; color: var(--txt); }
 .nfila.sin-leer { border-left: 3px solid var(--acc); background: #fff8f4; }
-.nico { font-size: 18px; line-height: 1.2; flex: none; }
+.nico { flex: none; width: 34px; height: 34px; border-radius: 50%; font-size: 17px;
+  display: flex; align-items: center; justify-content: center; background: var(--nico-bg, #f0f0f0); }
 .ntxt { flex: 1; min-width: 0; }
 .ntit { font-weight: 600; font-size: 14.5px; line-height: 1.35; }
 .ndet { color: var(--dim); font-size: 13px; margin-top: 3px; }
@@ -30,13 +31,9 @@
 <div class="wrap" id="main"></div>
 
 <script type="module">
-import { sb, renderHeader, getUser, toast, hace } from "/js/app.js?v=3";
+import { sb, renderHeader, getUser, toast, hace, iconoNotif } from "/js/app.js?v=3";
 renderHeader("");
 const main = document.getElementById("main");
-
-const ICONOS = {
-  venta: "💿", entrega: "✅", pago: "💸", reserva: "⏳", bienvenida: "👋",
-};
 
 (async () => {
   const user = await getUser();
@@ -58,7 +55,7 @@ const ICONOS = {
     <div class="nlist">
       ${(data || []).map(n => `
         <a class="nfila ${n.leida ? "" : "sin-leer"}" href="${n.link || "/cuenta.html"}">
-          <span class="nico">${ICONOS[n.tipo] || "•"}</span>
+          <span class="nico" style="--nico-bg:${iconoNotif(n.tipo).bg}">${iconoNotif(n.tipo).ico}</span>
           <span class="ntxt">
             <span class="ntit">${n.titulo}</span>
             ${n.detalle ? `<span class="ndet">${n.detalle}</span>` : ""}
