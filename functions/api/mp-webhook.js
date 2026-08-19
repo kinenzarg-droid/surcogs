@@ -153,8 +153,7 @@ export async function onRequest({ request, env }) {
                   dentro de las 48hs hábiles de que el comprador confirme que recibió el disco, o a los
                   10 días del envío si no hay reclamo. Recibís tu precio completo: las comisiones las paga
                   el comprador. Revisá que tengas tu alias cargado en Mi cuenta.</p>
-                  <p style="color:#555;font-size:13px">📦 <b>Sugerencia de envío:</b> Correo Argentino a sucursal,
-                  con seguimiento. Embalado de coleccionista:</p>
+                  <p style="color:#555;font-size:13px">📦 <b>Cómo embalar el vinilo:</b></p>
                   <ul style="color:#555;font-size:13px;margin:0 0 12px;padding-left:18px">
                     <li><b>Sacá el vinilo de la tapa</b> y ponelo en su funda interna por fuera de la tapa:
                     si el paquete recibe un golpe, el disco no rasga la funda ni la tapa (el clásico "seam split").</li>
@@ -162,8 +161,7 @@ export async function onRequest({ request, env }) {
                     <li>Metelo <b>entre dos planchas de cartón rígido</b> más grandes que el disco,
                     bien ajustado con cinta: adentro no tiene que moverse nada si lo sacudís.</li>
                     <li>Reforzá las <b>cuatro esquinas</b> con cartón extra o cinta de papel.</li>
-                    <li>Escribí <b>"FRÁGIL — NO DOBLAR"</b> en las dos caras y pasale el
-                    número de seguimiento al comprador apenas lo despaches.</li>
+                    <li>Escribí <b>"FRÁGIL — NO DOBLAR"</b> en las dos caras.</li>
                   </ul>
                   <p><a href="https://surcogs.com.ar/cuenta.html" style="background:#ff5500;color:#fff;padding:10px 18px;border-radius:5px;text-decoration:none">Ver mi panel</a></p>
                   <p style="color:#999;font-size:12px">SURCOGS · Vinilos de mano en mano</p>
