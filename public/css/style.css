@@ -23,7 +23,7 @@ h2 { font-size: 17px; font-weight: 700; }
 .hdr {
   display: flex; align-items: center; gap: 4px; height: 48px;
   background: var(--header); border-bottom: 1px solid #000;
-  position: sticky; top: 0; z-index: 50; padding: 0 12px;
+  position: sticky; top: 0; z-index: 75; padding: 0 12px;
 }
 .logo {
   display: flex; align-items: center; gap: 8px; font-weight: 800; font-size: 16px;
@@ -231,7 +231,7 @@ textarea { min-height: 72px; resize: vertical; }
 
 /* ============ MODAL ============ */
 .modal-bg {
-  position: fixed; inset: 0; background: rgba(0,0,0,.75); z-index: 60;
+  position: fixed; inset: 0; background: rgba(0,0,0,.75); z-index: 100;
   display: flex; align-items: center; justify-content: center; padding: 20px;
 }
 .modal {
@@ -258,7 +258,7 @@ textarea { min-height: 72px; resize: vertical; }
 .toast { border: 1px solid #ddd;
   position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
   background: #fff; color: #111; font-weight: 600; font-size: 13.5px;
-  padding: 11px 20px; border-radius: 6px; z-index: 99; box-shadow: 0 4px 18px rgba(0,0,0,.5);
+  padding: 11px 20px; border-radius: 6px; z-index: 110; box-shadow: 0 4px 18px rgba(0,0,0,.5);
 }
 .toast.err { background: var(--err); color: #fff; }
 .footer {
@@ -400,7 +400,16 @@ img, iframe { max-width: 100%; }
   letter-spacing: .6px; padding: 10px 14px; border-bottom: 1px solid var(--line);
 }
 .notif {
-  display: block; padding: 11px 14px; border-bottom: 1px solid #f2f2f2; color: var(--txt);
+  display: flex; gap: 10px; align-items: flex-start;
+  padding: 11px 14px; border-bottom: 1px solid #f2f2f2; color: var(--txt);
+}
+.notif-txt { flex: 1; min-width: 0; }
+/* Circulito de color segun el tipo. El color lo pasa el JS en --nico-bg,
+   asi el mismo bloque sirve para la campanita y para /notificaciones.html */
+.notif-ico {
+  flex: none; width: 30px; height: 30px; border-radius: 50%; margin-top: 1px;
+  display: flex; align-items: center; justify-content: center; font-size: 15px;
+  background: var(--nico-bg, #f0f0f0);
 }
 .notif:hover { background: #fafafa; color: var(--txt); }
 .notif.sin-leer { background: #fff8f4; border-left: 3px solid var(--acc); padding-left: 11px; }
@@ -419,7 +428,7 @@ img, iframe { max-width: 100%; }
 /* Redondo, fijo abajo a la derecha. Aparece recién cuando ya scrolleaste un
    poco; el JS le sube el "bottom" si el reproductor o el carrito están abajo. */
 #btn-arriba {
-  position: fixed; right: 18px; bottom: 18px; z-index: 84;
+  position: fixed; right: 18px; bottom: 18px; z-index: 68;
   width: 44px; height: 44px; border-radius: 50%;
   display: flex; align-items: center; justify-content: center;
   background: var(--acc); color: #fff; border: 0; cursor: pointer;
