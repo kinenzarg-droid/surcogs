@@ -441,6 +441,9 @@ img, iframe { max-width: 100%; }
    por el ancho de la campanita y el avatar. */
 @media (max-width: 680px) {
   .hwh-bar { position: relative; }
-  .hwh-brand-m { position: absolute; left: 50%; transform: translateX(-50%); margin: 0; top: 14px; }
+  /* align-items porque el vinilo es un flex item: ahí el vertical-align que
+     lo alineaba no hace nada y quedaba pegado arriba de las letras. */
+  .hwh-brand-m { position: absolute; left: 50%; transform: translateX(-50%);
+    margin: 0; top: 14px; align-items: center; }
   .hdr-links { margin-left: auto; }
 }
