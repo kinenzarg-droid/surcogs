@@ -22,7 +22,10 @@ export async function onRequestPost({ request, env }) {
   const ids = body.record_ids?.length ? body.record_ids : (body.record_id ? [body.record_id] : []);
   if (!ids.length || ids.length > 20) return json({ error: "Falta el disco" }, 400);
 
+  // Quién compró, sacado de la sesión (no de lo que manda el navegador)
+  const buyer_id = await quienEs(request, env);
   const datosEnvio = {
+    buyer_id,
     buyer_email: body.buyer_email || null,
     buyer_name: body.buyer_name || null,
     buyer_phone: body.buyer_phone || null,
@@ -110,6 +113,18 @@ export async function onRequestPost({ request, env }) {
     reservado_hasta: hasta,
     wa: `https://wa.me/${WA}?text=${encodeURIComponent(msg)}`,
   });
+}
+
+// Devuelve el id del usuario logueado, o null si compra sin cuenta.
+async function quienEs(request, env) {
+  const jwt = (request.headers.get("Authorization") || "").replace(/^Bearer\s+/i, "");
+  if (!jwt) return null;
+  try {
+    const u = await fetch(`${env.SUPABASE_URL}/auth/v1/user`, {
+      headers: { apikey: env.SUPABASE_SERVICE_ROLE_KEY, Authorization: `Bearer ${jwt}` },
+    }).then((r) => (r.ok ? r.json() : null));
+    return u?.id || null;
+  } catch (_) { return null; }
 }
 
 const miles = (n) => Number(n).toLocaleString("es-AR");

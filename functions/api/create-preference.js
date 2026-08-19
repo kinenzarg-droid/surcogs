@@ -18,6 +18,9 @@ export async function onRequestPost({ request, env }) {
   const body = await request.json().catch(() => ({}));
   const ids = body.record_ids?.length ? body.record_ids : (body.record_id ? [body.record_id] : []);
   const buyer_email = body.buyer_email || null;
+  // Quién compró. Se saca de la sesión, nunca de lo que manda el navegador,
+  // porque si no cualquiera podría hacerse pasar por otro.
+  const buyer_id = await quienEs(request, env);
   const datosEnvio = {
     buyer_name: body.buyer_name || null,
     buyer_phone: body.buyer_phone || null,
@@ -61,6 +64,7 @@ export async function onRequestPost({ request, env }) {
       record_id: rec.id,
       seller_id: sellerId,
       buyer_email,
+      buyer_id,
       amount: precioFinal,
       fee: precioFinal - rec.price,
       monto_vendedor: rec.price,
@@ -113,6 +117,18 @@ export async function onRequestPost({ request, env }) {
     return json({ error: pref.message || "Mercado Pago rechazó la operación" }, 502);
   }
   return json({ init_point: pref.init_point, fee: feeTotal });
+}
+
+// Devuelve el id del usuario logueado, o null si compra sin cuenta.
+async function quienEs(request, env) {
+  const jwt = (request.headers.get("Authorization") || "").replace(/^Bearer\s+/i, "");
+  if (!jwt) return null;
+  try {
+    const u = await fetch(`${env.SUPABASE_URL}/auth/v1/user`, {
+      headers: { apikey: env.SUPABASE_SERVICE_ROLE_KEY, Authorization: `Bearer ${jwt}` },
+    }).then((r) => (r.ok ? r.json() : null));
+    return u?.id || null;
+  } catch (_) { return null; }
 }
 
 const hdrs = (KEY) => ({
