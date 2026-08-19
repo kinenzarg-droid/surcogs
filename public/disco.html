@@ -59,14 +59,55 @@ function mostrarQueSigue() {
   box.className = "notice";
   box.innerHTML = `
     <strong>✅ ¡Compra confirmada! ¿Y ahora?</strong><br>
-    Te mandamos un mail con <b>los datos del vendedor</b> para que coordinen la entrega.
-    También los tenés en <a href="/cuenta.html#compras" style="color:var(--acc)">Mis compras</a>.<br><br>
+    Escribile al vendedor para coordinar la entrega. También tenés sus datos en
+    <a href="/cuenta.html#compras" style="color:var(--acc)">Mis compras</a>.
+    <div id="contacto-vend"></div>
     🛡 <b>Tu plata está protegida.</b> El vendedor cobra recién cuando nos confirmes que
     recibiste el disco. Si en 10 días no nos decís nada y no hubo reclamo, se le acredita
     automáticamente. ¿Algún problema? Escribinos a
     <a href="mailto:info@surcogs.com.ar" style="color:var(--acc)">info@surcogs.com.ar</a>
     <b>antes</b> de confirmar y lo resolvemos.`;
   document.querySelector(".wrap").prepend(box);
+  traerContacto();
+}
+
+// Los datos del vendedor los da el servidor: el mail no está en el perfil
+// público, y solo se entregan si la compra está efectivamente pagada.
+async function traerContacto() {
+  const caja = document.getElementById("contacto-vend");
+  const order = params.get("order"), rt = params.get("rt");
+  if (!caja || !order || !rt) return;
+  caja.innerHTML = `<p class="hint" style="margin:12px 0">Buscando los datos del vendedor…</p>`;
+  try {
+    const r = await fetch("/api/contacto", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ order_id: order, token: rt }),
+    });
+    const j = await r.json();
+    if (!r.ok || !j.grupos?.length) throw new Error(j.error || "");
+    caja.innerHTML = j.grupos.map(fichaVendedor).join("");
+  } catch (e) {
+    caja.innerHTML = `<p class="hint" style="margin:12px 0">Los datos del vendedor van a aparecer
+      en <a href="/cuenta.html#compras" style="color:var(--acc)">Mis compras</a> en unos minutos,
+      cuando Mercado Pago termine de confirmar el pago.</p>`;
+  }
+}
+
+function fichaVendedor(g) {
+  const wa = (g.whatsapp || "").replace(/\D/g, "");
+  return `
+    <div style="background:#fff;border:1px solid var(--line);border-radius:8px;
+      padding:12px 14px;margin:12px 0">
+      <div style="font-weight:700;font-size:14.5px">${esc(g.nombre)}${g.zona ? `
+        <span class="hint" style="font-weight:400"> · ${esc(g.zona)}</span>` : ""}</div>
+      <div class="hint" style="margin:3px 0 9px">${g.discos.map(esc).join(" · ")}</div>
+      ${g.whatsapp ? `<a class="btn small" href="https://wa.me/${wa.startsWith("54") ? wa : "54" + wa}"
+        target="_blank" rel="noopener">💬 WhatsApp</a>` : ""}
+      ${g.email ? `<a class="btn small ghost" style="margin-left:6px"
+        href="mailto:${esc(g.email)}?subject=${encodeURIComponent("Mi compra en SURCOGS")}">✉ ${esc(g.email)}</a>` : ""}
+      ${!g.whatsapp && !g.email ? `<span class="hint">Sin datos de contacto cargados. Escribinos y lo resolvemos.</span>` : ""}
+    </div>`;
 }
 
 async function cargar() {

@@ -266,6 +266,7 @@ async function renderPanel(user, perfil) {
           <div class="grow">
             <strong>${c.records ? c.records.artist + " – " + c.records.title : "Disco"}</strong><br>
             <span class="hint">${fmtPrecio(c.amount)} · ${new Date(c.created_at).toLocaleDateString("es-AR")} · ${estado}</span>
+            <div class="contacto-vend" data-orden="${c.id}"></div>
           </div>
           ${!c.entregado_at && c.rating_token
             ? `<a class="btn small" href="/r.html?o=${c.id}&t=${c.rating_token}">Ya lo recibí</a>`
@@ -290,6 +291,37 @@ async function renderPanel(user, perfil) {
           ${v.buyer_email ? `<a class="btn small" href="mailto:${v.buyer_email}?subject=${encodeURIComponent("Tu compra en SURCOGS")}&body=${encodeURIComponent("¡Hola! Soy " + perfil.name + ", me compraste " + (v.records ? v.records.artist + " – " + v.records.title : "un disco") + " en SURCOGS. ¿Coordinamos la entrega? Puedo ofrecerte punto de encuentro o envío. El disco va embalado en cartón rígido.")}">✉ Contactar</a>` : ""}
         </div>`).join("") || "<p class='sub'>Todavía no tenés ventas.</p>"}
     </div>`;
+
+  // Datos del vendedor en cada compra. Los pide el servidor porque el mail no
+  // está en el perfil público, y solo los da si la compra está pagada.
+  (async () => {
+    const cajas = [...document.querySelectorAll(".contacto-vend")];
+    if (!cajas.length) return;
+    const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) =>
+      ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+    try {
+      const r = await fetch("/api/contacto", {
+        method: "POST",
+        headers: await authHeaders(),
+        body: JSON.stringify({ order_ids: cajas.map(c => c.dataset.orden) }),
+      });
+      const j = await r.json();
+      if (!r.ok || !j.grupos?.length) return;
+      // El servidor agrupa por vendedor; acá lo pintamos en cada compra
+      const html = j.grupos.map(g => {
+        const wa = (g.whatsapp || "").replace(/\D/g, "");
+        return `<div style="margin-top:6px;font-size:12.5px">
+          <b>${esc(g.nombre)}</b>${g.zona ? ` · <span class="hint">${esc(g.zona)}</span>` : ""}<br>
+          ${g.whatsapp ? `<a href="https://wa.me/${wa.startsWith("54") ? wa : "54" + wa}"
+            target="_blank" rel="noopener" style="color:var(--acc)">💬 ${esc(g.whatsapp)}</a>` : ""}
+          ${g.whatsapp && g.email ? " · " : ""}
+          ${g.email ? `<a href="mailto:${esc(g.email)}" style="color:var(--acc)">✉ ${esc(g.email)}</a>` : ""}
+          ${!g.whatsapp && !g.email ? `<span class="hint">Sin datos de contacto</span>` : ""}
+        </div>`;
+      }).join("");
+      cajas.forEach(c => { c.innerHTML = html; });
+    } catch (_) { /* sin datos de contacto no se rompe nada */ }
+  })();
 
   // Dónde cobrás tus ventas
   const cobroBox = document.getElementById("cobro-box");
