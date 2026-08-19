@@ -42,10 +42,8 @@ export async function onRequestPost({ request, env }) {
   if (recs.some((r) => r.status !== "disponible")) {
     return json({ error: "Algún disco del carrito ya no está disponible" }, 409);
   }
-  const sellerId = recs[0].seller_id;
-  if (recs.some((r) => r.seller_id !== sellerId)) {
-    return json({ error: "El carrito solo puede tener discos de un mismo vendedor" }, 400);
-  }
+  // El carrito puede tener discos de varios vendedores: como la plata entra a
+  // SURCOGS y no a cada uno, el comprador paga una sola vez.
 
   // Precios: el vendedor cobra su neto; el comprador paga +15%
   const purchaseId = crypto.randomUUID();
@@ -62,7 +60,7 @@ export async function onRequestPost({ request, env }) {
     });
     ordenes.push({
       record_id: rec.id,
-      seller_id: sellerId,
+      seller_id: rec.seller_id,
       buyer_email,
       buyer_id,
       amount: precioFinal,
@@ -74,15 +72,21 @@ export async function onRequestPost({ request, env }) {
     });
   }
 
-  // Envío: un solo cargo por compra (el más caro del grupo), va completo al
-  // vendedor y sin recargo: SURCOGS no comisiona el envío.
-  const costosEnvio = recs
-    .filter((r) => r.shipping_mode === "fijo" && r.shipping_cost > 0)
-    .map((r) => r.shipping_cost);
-  const costoEnvio = costosEnvio.length ? Math.max(...costosEnvio) : 0;
-  if (costoEnvio > 0) {
+  // Envío: UNO POR VENDEDOR (el más caro de sus discos), porque cada uno
+  // despacha por su cuenta. Va completo al vendedor y sin recargo: SURCOGS
+  // no comisiona el envío.
+  const porVendedor = {};
+  recs.forEach((r) => { (porVendedor[r.seller_id] = porVendedor[r.seller_id] || []).push(r); });
+  for (const [sellerId, susDiscos] of Object.entries(porVendedor)) {
+    const costos = susDiscos
+      .filter((r) => r.shipping_mode === "fijo" && r.shipping_cost > 0)
+      .map((r) => r.shipping_cost);
+    if (!costos.length) continue;
+    const costoEnvio = Math.max(...costos);
     items.push({ title: "Envío", quantity: 1, unit_price: costoEnvio, currency_id: "ARS" });
-    ordenes[0].shipping_cost = costoEnvio;
+    // se carga en una sola orden de ese vendedor, para no contarlo dos veces
+    const suOrden = ordenes.find((o) => o.seller_id === sellerId);
+    if (suOrden) suOrden.shipping_cost = costoEnvio;
   }
 
   // Crear las órdenes (una por disco, agrupadas por purchase_id)

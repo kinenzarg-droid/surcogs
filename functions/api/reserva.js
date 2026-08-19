@@ -45,10 +45,8 @@ export async function onRequestPost({ request, env }) {
   if (recs.some((r) => r.status !== "disponible")) {
     return json({ error: "Algún disco del carrito ya no está disponible" }, 409);
   }
-  const sellerId = recs[0].seller_id;
-  if (recs.some((r) => r.seller_id !== sellerId)) {
-    return json({ error: "El carrito solo puede tener discos de un mismo vendedor" }, 400);
-  }
+  // El carrito puede tener discos de varios vendedores: la plata entra a
+  // SURCOGS, así que es una sola transferencia.
 
   // 2) Precios con descuento
   const purchaseId = crypto.randomUUID();
@@ -61,7 +59,7 @@ export async function onRequestPost({ request, env }) {
     total += conDto;
     ordenes.push({
       record_id: rec.id,
-      seller_id: sellerId,
+      seller_id: rec.seller_id,
       amount: conDto,
       fee: conDto - rec.price,
       monto_vendedor: rec.price,
@@ -71,11 +69,21 @@ export async function onRequestPost({ request, env }) {
       ...datosEnvio,
     });
   }
-  const costosEnvio = recs
-    .filter((r) => r.shipping_mode === "fijo" && r.shipping_cost > 0)
-    .map((r) => r.shipping_cost);
-  const costoEnvio = costosEnvio.length ? Math.max(...costosEnvio) : 0;
-  if (costoEnvio > 0) { total += costoEnvio; ordenes[0].shipping_cost = costoEnvio; }
+  // Un envío por vendedor (el más caro de sus discos): cada uno despacha aparte
+  const porVendedor = {};
+  recs.forEach((r) => { (porVendedor[r.seller_id] = porVendedor[r.seller_id] || []).push(r); });
+  let costoEnvio = 0;
+  for (const [sid, susDiscos] of Object.entries(porVendedor)) {
+    const costos = susDiscos
+      .filter((r) => r.shipping_mode === "fijo" && r.shipping_cost > 0)
+      .map((r) => r.shipping_cost);
+    if (!costos.length) continue;
+    const e = Math.max(...costos);
+    costoEnvio += e;
+    total += e;
+    const suOrden = ordenes.find((o) => o.seller_id === sid);
+    if (suOrden) suOrden.shipping_cost = e;
+  }
 
   // 3) Reservar los discos y crear las órdenes
   await fetch(`${SUPA}/rest/v1/records?id=in.(${ids.join(",")})`, {

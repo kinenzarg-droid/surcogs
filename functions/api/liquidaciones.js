@@ -2,6 +2,7 @@
 // qué compras por transferencia están esperando que yo confirme el pago.
 // Protegido por ADMIN_KEY.
 import { notificar } from "./_notificar.js";
+import { avisoAdmin } from "./_avisoAdmin.js";
 
 export async function onRequestGet({ request, env }) {
   const url = new URL(request.url);
@@ -78,13 +79,16 @@ async function confirmarTransferencia(env, purchaseId) {
     body: JSON.stringify({ status: "vendido", reservado_hasta: null }),
   });
 
-  await notificar(env, {
-    user_id: ords[0].seller_id,
-    tipo: "venta",
-    titulo: "¡Vendiste un disco!",
-    detalle: "Coordiná la entrega con el comprador. Cobrás cuando confirme que lo recibió.",
-    link: "/cuenta.html#ventas",
-  });
+  // Una compra puede tener discos de varios vendedores: le avisamos a cada uno
+  for (const sellerId of [...new Set(ords.map((o) => o.seller_id))]) {
+    await notificar(env, {
+      user_id: sellerId,
+      tipo: "venta",
+      titulo: "¡Vendiste un disco!",
+      detalle: "Coordiná la entrega con el comprador. Cobrás cuando confirme que lo recibió.",
+      link: "/cuenta.html#ventas",
+    });
+  }
 
   // Mismo mail que en Mercado Pago: el comprador necesita el botón "Ya lo recibí"
   if (env.RESEND_API_KEY && ords[0].buyer_email) {
@@ -115,6 +119,9 @@ async function confirmarTransferencia(env, purchaseId) {
       }),
     }).catch(() => {});
   }
+  // Mismo aviso que en Mercado Pago: qué hay que transferirle a cada vendedor
+  await avisoAdmin(env, purchaseId);
+
   return json({ ok: true, discos: ords.length });
 }
 
