@@ -446,4 +446,7 @@ img, iframe { max-width: 100%; }
   .hwh-brand-m { position: absolute; left: 50%; transform: translateX(-50%);
     margin: 0; top: 14px; align-items: center; }
   .hdr-links { margin-left: auto; }
+  /* Con los dos botones el logo centrado se superpone. En celular dejamos
+     solo "Ingresar": esa pantalla ya ofrece crear cuenta bien visible. */
+  .hwh-bar .btn-reg { display: none; }
 }
