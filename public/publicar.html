@@ -124,18 +124,18 @@ async function init() {
           <input id="cp" placeholder="1688" inputmode="numeric" required></div>
       </div>
       <p class="hint" id="hint-despacho">Con tu código postal calculamos el envío a cada comprador. La dirección va en la etiqueta del envío y no se muestra en la publicación.</p>
-      <div class="row2">
-        <div><label>Entrega *</label>
-          <select id="entrega">
-            <option value="coordinar">A coordinar con el comprador</option>
-            <option value="express">Envío por SURCOGS Express</option>
-          </select>
-        </div>
-        <div id="env-box" style="display:none"><label>Costo del envío</label>
-          <input id="env-costo" type="number" min="0" placeholder="5500">
-        </div>
+      <label>¿Cómo se lo hacés llegar? *</label>
+      <div style="display:flex;flex-direction:column;gap:9px;margin-bottom:6px">
+        <label style="display:flex;gap:9px;align-items:flex-start;font-weight:400;cursor:pointer">
+          <input type="checkbox" id="e-coordinar" checked style="width:auto;margin:2px 0 0">
+          <span>🤝 <b>A coordinar con el comprador</b><br>
+            <span class="hint">Se lo entregás en mano o lo despachás como prefieran los dos.</span></span></label>
+        <label style="display:flex;gap:9px;align-items:flex-start;font-weight:400;cursor:pointer">
+          <input type="checkbox" id="e-express" checked style="width:auto;margin:2px 0 0">
+          <span>🚚 <b>Envío por SURCOGS Express</b><br>
+            <span class="hint">Pasamos a retirarlo por tu casa y lo entregamos. Por ahora solo en AMBA.</span></span></label>
       </div>
-      <p class="hint">Si elegís costo fijo, el comprador lo ve antes de pagar y vos lo recibís completo junto con tu precio. Referencia: mandar un vinilo embalado dentro de AMBA ronda los $5.000-8.000. Comprando varios discos tuyos se cobra un solo envío (el más caro).</p>
+      <p class="hint">Dejá las dos tildadas si te da igual: así el comprador elige la que le queda cómoda y tu disco no pierde ventas.</p>
       <label>Temas (se completan solos desde Discogs, o cargalos a mano)</label>
       <p class="hint" style="margin:-4px 0 10px">🎧 <b>Para que se pueda escuchar:</b> al lado de cada tema tenés el botón de
       YouTube. Tocalo y se abre YouTube <b>ya buscando el nombre del artista más el del tema</b>, sin que escribas nada.
@@ -155,9 +155,6 @@ async function init() {
   if (perfil.cp) document.getElementById("cp").value = perfil.cp;
 
   // Entrega: mostrar el costo solo si es envío fijo
-  const selEntrega = document.getElementById("entrega");
-  const envBox = document.getElementById("env-box");
-  selEntrega.onchange = () => { envBox.style.display = selEntrega.value === "fijo" ? "block" : "none"; };
 
   // Zona → localidad: hereda la del perfil (o la del disco en modo edición)
   zonaSelector(document.getElementById("zona"), document.getElementById("loc"),
@@ -210,9 +207,8 @@ async function init() {
     set("genre", editRec.genre || "Techno");
     set("cm", editRec.condition_media);
     set("audio", editRec.audio_url); set("desc", editRec.description);
-    set("entrega", editRec.shipping_mode || "coordinar");
-    set("env-costo", editRec.shipping_cost);
-    envBox.style.display = (editRec.shipping_mode === "fijo") ? "block" : "none";
+    document.getElementById("e-coordinar").checked = editRec.envio_coordinar !== false;
+    document.getElementById("e-express").checked = editRec.envio_express !== false;
   }
 
   // ---- Tracklist con audio por tema ----
@@ -310,8 +306,8 @@ async function init() {
         genre: v("genre"),
         condition_media: v("cm"), condition_sleeve: v("cm"),   // se guarda igual: la tapa ya no se pide
         zona: v("zona") || null, localidad: v("loc") || null,
-        shipping_mode: v("entrega") || "coordinar",
-        shipping_cost: v("entrega") === "fijo" ? Number(v("env-costo")) || null : null,
+        envio_coordinar: document.getElementById("e-coordinar").checked,
+        envio_express: document.getElementById("e-express").checked,
         description: v("desc") || null,
         tracks: tracks.filter(t => (t.title || "").trim()).map(t => ({
           position: (t.position || "").trim(),

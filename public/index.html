@@ -28,7 +28,12 @@
   padding:10px 16px 6px;font-weight:700}
 .hw-side h4::before{content:"▾";font-size:11px;color:#888}
 .hw-side a{display:block;padding:7px 16px 7px 30px;font-size:13px;color:#444;
-  border-bottom:1px solid #eee;cursor:pointer}
+  border-bottom:1px solid #eee;cursor:pointer;position:relative}
+/* Pua de tocadiscos en el filtro elegido. Va dentro de la sangria que los
+   links ya tenian, asi el texto no se corre al seleccionar. */
+.hw-side a.on::before{content:"";position:absolute;left:9px;top:50%;
+  transform:translateY(-50%);width:14px;height:14px;
+  background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none'%3E%3Cpath d='M4 5 L15 8.6 L13.4 14.6 L2.4 11 Z' fill='%23ff5500'/%3E%3Cpath d='M14.5 12 L21 15.5' stroke='%23ff5500' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E") no-repeat center/contain;}
 .hw-side a:hover,.hw-side a.on{color:#111;background:#ececec;font-weight:600}
 .hw-side .cnt{color:#2ea860;font-size:11px;margin-left:6px}
 .hw-mobile-filters{display:none;gap:8px;padding:0 16px 12px}
@@ -354,12 +359,6 @@ const POR_PAGINA = 48;
 const tracksCache = new Map(); // tracklists solo de la página visible
 const filtro = { q: "", genre: "", zona: "", nuevo: "", orden: "" };
 const esMio = (d) => usuario && (usuario.id === d.seller_id || usuario.id === ADMIN_ID);
-const envLabel = (d) =>
-  d.shipping_mode === "express" ? "🚚 Envío por SURCOGS Express — lo coordinamos" :
-  d.shipping_mode === "gratis" ? "📦 Envío gratis" :
-  d.shipping_mode === "retiro" ? "🤝 Solo retiro en mano" + (d.zona ? " (" + esc(d.zona) + ")" : "") :
-  d.shipping_mode === "fijo" && d.shipping_cost ? "📦 Envío " + fmtPrecio(d.shipping_cost) + " a todo el país" :
-  "📦 Envío a coordinar con el vendedor";
 const envCosto = (d) => (d.shipping_mode === "fijo" && d.shipping_cost > 0) ? d.shipping_cost : 0;
 
 // ?q= y ?genre= desde el header u otras páginas
@@ -477,7 +476,6 @@ async function pintar(mantenerScroll) {
         <div class="gmeta">${d.label ? `<a class="lk-sello" data-q="${esc(d.label)}" href="/?q=${encodeURIComponent(d.label)}">${esc(d.label)}</a> · ` : ""}${esc(d.format)}${d.zona ? " · 📍 " + esc(d.zona) + (d.localidad ? " · " + esc(d.localidad) : "") : ""}
           · <span class="${d.status === "disponible" ? "disp" : ""}">● ${d.status}</span></div>
         <div class="gestado" title="Estado del disco según la escala Goldmine">Estado del disco: <b>${esc(d.condition_media)}</b></div>
-        <div class="gmeta" style="color:#1e7a44">${envLabel(d)}</div>
         ${trackBtns(d, i)}
         <div class="gfoot">
           <span class="gprecio">
@@ -837,7 +835,6 @@ function mostrarFicha(d) {
         <div class="prc">${fmtPrecio(precioComprador(d.price))}</div>
         <div class="p-transf"><b>${fmtPrecio(Math.round(precioComprador(d.price) * 0.9))}</b> pagando por transferencia
           <span class="p-off">10% OFF</span></div>
-        <div class="gmeta" style="color:#1e7a44">${envLabel(d)}</div>
         <div class="acc">
           <a class="gbuy" href="/disco.html?id=${d.id}">Comprar</a>
           <button class="gcart ${carrito.has(d.id) ? "in" : ""}" data-cart="${d.id}">

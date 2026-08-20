@@ -39,6 +39,14 @@
 .k-datos label { display: block; font-size: 12.5px; color: var(--dim); margin: 0 0 4px }
 .k-datos input { width: 100%; margin-bottom: 11px }
 .k-vacio { text-align: center; padding: 50px 20px }
+.k-link { display: flex; gap: 12px; flex: 1; min-width: 0; color: var(--txt) }
+.k-link:hover { color: var(--acc) }
+.k-link .n { flex: 1; min-width: 0 }
+.k-entrega { padding: 12px 15px; border-bottom: 1px solid var(--line); background: #fafafa }
+.k-elab { font-size: 12.5px; color: var(--dim); margin-bottom: 8px }
+.k-op { display: flex; gap: 9px; align-items: flex-start; font-size: 13.5px; cursor: pointer;
+  padding: 6px 0; line-height: 1.45 }
+.k-op input { width: auto; margin: 2px 0 0; flex: none }
 @media (max-width: 820px) { .k-cols { grid-template-columns: minmax(0, 1fr) } .k-res { position: static } }
 </style>
 </head>
@@ -66,17 +74,26 @@ let discos = [], perfiles = [], usuario = null;
 // cobra envío en el checkout, pero la cuenta queda lista para cuando Express
 // tenga tarifa.
 const envCosto = (d) => (d.shipping_mode === "fijo" && d.shipping_cost > 0) ? d.shipping_cost : 0;
-const entregaTxt = (g) =>
-  g.some((d) => d.shipping_mode === "express")
-    ? "🚚 Envío por SURCOGS Express — lo coordinamos con vos"
-    : "🤝 Entrega a coordinar con el vendedor";
+// Una opción sirve para el grupo solo si TODOS los discos de ese vendedor la
+// ofrecen: van juntos en un paquete, no se pueden entregar de dos formas.
+const opciones = (g) => [
+  { k: "coordinar", ico: "🤝", tit: "A coordinar con el vendedor",
+    det: "Arreglan entre ustedes: punto de encuentro o envío.",
+    hay: g.every((d) => d.envio_coordinar !== false) },
+  { k: "express", ico: "🚚", tit: "Envío por SURCOGS Express",
+    det: "Lo retiramos por la casa del vendedor y te lo llevamos. Coordinamos el envío con vos.",
+    hay: g.every((d) => d.envio_express !== false) },
+].filter((o) => o.hay);
+
+// Qué eligió el comprador para cada vendedor.
+const elegido = {};
 
 async function cargar() {
   usuario = await getUser();
   if (!carrito.size) return vacio();
 
   const { data } = await sb.from("records")
-    .select("id, seller_id, artist, title, format, price, photos, status, shipping_mode, shipping_cost")
+    .select("id, seller_id, artist, title, format, price, photos, status, shipping_mode, shipping_cost, envio_coordinar, envio_express")
     .in("id", [...carrito]);
 
   // Sacar del carrito lo que ya no está disponible: si alguien lo compró
@@ -118,22 +135,34 @@ function pintar() {
   let subtotal = 0, envio = 0;
   const bloques = sids.map((sid) => {
     const g = grupos[sid];
+    const ops = opciones(g);
+    if (ops.length && !elegido[sid]) elegido[sid] = ops[0].k;
     const e = Math.max(...g.map(envCosto));
     envio += e;
     subtotal += g.reduce((s, d) => s + precioComprador(d.price), 0);
     return `
       <div class="k-vend">
-        <div class="k-vh">Vende <b><a href="/perfil.html?id=${sid}">${esc(nombreVend(sid))}</a></b>
-          <div class="hint" style="margin-top:3px">${entregaTxt(g)}</div></div>
+        <div class="k-vh">Vende <b><a href="/perfil.html?id=${sid}">${esc(nombreVend(sid))}</a></b></div>
+        <div class="k-entrega">
+          <div class="k-elab">¿Cómo querés recibirlo?</div>
+          ${ops.length ? ops.map((o) => `
+            <label class="k-op">
+              <input type="radio" name="ent-${sid}" value="${o.k}" ${elegido[sid] === o.k ? "checked" : ""}
+                data-sid="${sid}">
+              <span>${o.ico} <b>${o.tit}</b><br><span class="hint">${o.det}</span></span>
+            </label>`).join("")
+          : `<p class="hint" style="color:var(--err);margin:0">Estos discos tienen formas de entrega
+             distintas entre sí. Compralos por separado y elegí la que quieras en cada uno.</p>`}
+        </div>
         ${g.map((d) => `
           <div class="k-it">
-            <a href="/disco.html?id=${d.id}"><img src="${fotoPrincipal(d)}" alt=""></a>
-            <div class="n">
-              <b>${esc(d.artist)}</b><br>${esc(d.title)}
-              <div class="hint">${esc(d.format || "Vinilo")}</div>
-              <button class="k-quitar" data-quitar="${d.id}">Quitar</button>
-            </div>
-            <div class="k-pr"><b>${fmtPrecio(precioComprador(d.price))}</b></div>
+            <a class="k-link" href="/disco.html?id=${d.id}">
+              <img src="${fotoPrincipal(d)}" alt="">
+              <span class="n"><b>${esc(d.artist)}</b><br>${esc(d.title)}
+                <span class="hint" style="display:block">${esc(d.format || "Vinilo")}</span></span>
+            </a>
+            <div class="k-pr"><b>${fmtPrecio(precioComprador(d.price))}</b>
+              <button class="k-quitar" data-quitar="${d.id}">Quitar</button></div>
           </div>`).join("")}
       </div>`;
   });
@@ -195,6 +224,10 @@ function pintar() {
     };
   });
 
+  main.querySelectorAll("input[type=radio][data-sid]").forEach((r) => {
+    r.onchange = () => { elegido[r.dataset.sid] = r.value; };
+  });
+
   autocompletar();
   document.getElementById("k-pagar").onclick = (e) => pagar(e.target, "/api/create-preference");
   document.getElementById("k-tr").onclick = (e) => pagar(e.target, "/api/reserva");
@@ -224,6 +257,8 @@ function datos() {
 async function pagar(btn, endpoint) {
   const d = datos();
   if (d.error) return toast(d.error, true);
+  const sinElegir = [...new Set(discos.map((x) => x.seller_id))].filter((s) => !elegido[s]);
+  if (sinElegir.length) return toast("Elegí cómo querés recibir los discos", true);
   const txt = btn.innerHTML;
   btn.disabled = true; btn.textContent = "Generando…";
   try {
@@ -233,6 +268,7 @@ async function pagar(btn, endpoint) {
       body: JSON.stringify({
         record_ids: discos.map((x) => x.id), buyer_email: d.email, buyer_name: d.nombre,
         buyer_phone: d.tel, buyer_addr: d.dir, buyer_localidad: d.loc, buyer_cp: d.cp,
+        entregas: elegido,
       }),
     });
     const j = await r.json();
