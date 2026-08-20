@@ -145,6 +145,7 @@ async function cargar() {
       <div class="p-transf"><b>${fmtPrecio(precioTransferencia(d.price))}</b> pagando por transferencia
         <span class="p-off">10% OFF</span></div>
       <p class="meta" style="margin:2px 0 6px">${
+        d.shipping_mode === "express" ? "🚚 Envío por SURCOGS Express — lo coordinamos" :
         d.shipping_mode === "gratis" ? "📦 Envío gratis" :
         d.shipping_mode === "retiro" ? "🤝 Solo retiro en mano" + (d.zona ? " (" + d.zona + ")" : "") :
         d.shipping_mode === "fijo" && d.shipping_cost ? "📦 Envío " + fmtPrecio(d.shipping_cost) + " a todo el país — se suma al pagar" :

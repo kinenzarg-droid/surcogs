@@ -355,6 +355,7 @@ const tracksCache = new Map(); // tracklists solo de la página visible
 const filtro = { q: "", genre: "", zona: "", nuevo: "", orden: "" };
 const esMio = (d) => usuario && (usuario.id === d.seller_id || usuario.id === ADMIN_ID);
 const envLabel = (d) =>
+  d.shipping_mode === "express" ? "🚚 Envío por SURCOGS Express — lo coordinamos" :
   d.shipping_mode === "gratis" ? "📦 Envío gratis" :
   d.shipping_mode === "retiro" ? "🤝 Solo retiro en mano" + (d.zona ? " (" + esc(d.zona) + ")" : "") :
   d.shipping_mode === "fijo" && d.shipping_cost ? "📦 Envío " + fmtPrecio(d.shipping_cost) + " a todo el país" :
@@ -666,6 +667,7 @@ async function abrirCheckout() {
     const t = g.reduce((s, d) => s + precioComprador(d.price), 0) + e;
     totalGeneral += t; envioGeneral += e;
     const envTxt = e > 0 ? " · envío " + fmtPrecio(e)
+      : g.some(d => d.shipping_mode === "express") ? " · envío por SURCOGS Express"
       : g.some(d => d.shipping_mode === "gratis") ? " · envío gratis"
       : g.some(d => d.shipping_mode === "retiro") ? " · retiro en mano" : " · envío a coordinar";
     return `<div class="co-g">
