@@ -342,7 +342,7 @@ a:hover .hw-chip{background:#fff;box-shadow:1px 1px 0 rgba(0,0,0,.15)}
 </div>
 
 <script type="module">
-import { sb, renderHeader, fmtPrecio, fotoPrincipal, precioComprador, youtubeId, toast, getUser, getPerfil, authHeaders, ADMIN_ID } from "/js/app.js?v=3";
+import { sb, renderHeader, fmtPrecio, fotoPrincipal, precioComprador, youtubeId, toast, getUser, getPerfil, authHeaders, refrescarCarrito, ADMIN_ID } from "/js/app.js?v=3";
 renderHeader("catalogo");
 
 const esc = (s) => String(s ?? "").replace(/</g, "&lt;").replace(/"/g, "&quot;");
@@ -565,7 +565,10 @@ async function pintar(mantenerScroll) {
 
 /* ===== Carrito global (persiste entre visitas) ===== */
 let carrito = new Set(JSON.parse(localStorage.getItem("sc_cart") || "[]"));
-const guardarCarrito = () => localStorage.setItem("sc_cart", JSON.stringify([...carrito]));
+const guardarCarrito = () => {
+  localStorage.setItem("sc_cart", JSON.stringify([...carrito]));
+  refrescarCarrito();
+};
 
 function pintarCartBar() {
   // depurar: sacar discos vendidos o inexistentes
@@ -641,7 +644,7 @@ function ajustarBarras() {
 window.addEventListener("scroll", ajustarBarras, { passive: true });
 window.addEventListener("resize", ajustarBarras);
 
-document.getElementById("cart-buy").onclick = abrirCheckout;
+document.getElementById("cart-buy").onclick = () => { location.href = "/carrito.html"; };
 document.getElementById("cart-clear").onclick = () => {
   carrito.clear();
   guardarCarrito(); pintar(true); pintarCartBar();

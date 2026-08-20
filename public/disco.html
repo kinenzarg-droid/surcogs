@@ -144,12 +144,6 @@ async function cargar() {
       <div class="price-big">${d.old_price && d.old_price > d.price ? `<span class="p-old" style="font-size:18px">${fmtPrecio(precioComprador(d.old_price))}</span>` : ""}${fmtPrecio(precioComprador(d.price))}</div>
       <div class="p-transf"><b>${fmtPrecio(precioTransferencia(d.price))}</b> pagando por transferencia
         <span class="p-off">10% OFF</span></div>
-      <p class="meta" style="margin:2px 0 6px">${
-        d.shipping_mode === "express" ? "🚚 Envío por SURCOGS Express — lo coordinamos" :
-        d.shipping_mode === "gratis" ? "📦 Envío gratis" :
-        d.shipping_mode === "retiro" ? "🤝 Solo retiro en mano" + (d.zona ? " (" + d.zona + ")" : "") :
-        d.shipping_mode === "fijo" && d.shipping_cost ? "📦 Envío " + fmtPrecio(d.shipping_cost) + " a todo el país — se suma al pagar" :
-        "📦 Envío a coordinar con el vendedor"}</p>
       <p class="meta">Vende <a href="/perfil.html?id=${d.seller_id}"><strong>${p?.name || "—"}</strong></a>${d.zona || p?.zona ? " · " + (d.zona || p.zona) : ""} · <a href="/perfil.html?id=${d.seller_id}">ver su discografía →</a></p>
       ${esMio && d.status !== "vendido" ? `<p style="margin:10px 0">
         <a class="btn small ghost" href="/publicar.html?edit=${d.id}">✎ Editar</a>
@@ -182,11 +176,9 @@ async function cargar() {
   } else {
     // Todos los vendedores tienen Mercado Pago conectado (requisito para publicar)
     box.innerHTML = `
-      <label>Tu email (para el comprobante)</label>
-      <input id="buyer-email" type="email" placeholder="tu@email.com" style="max-width:320px">
-      <br><br><button class="btn" id="btn-comprar">Comprar ahora</button>
-      <p class="hint" style="margin-top:10px">🛡 <b>Comprá tranquilo:</b> pago protegido por Mercado Pago.
-      Si el disco no te llega, MP te devuelve la plata.</p>`;
+      <button class="btn" id="btn-comprar">Comprar</button>
+      <p class="hint" style="margin-top:10px">🛡 <b>Comprá tranquilo:</b> el vendedor cobra recién
+      cuando confirmás que recibiste el disco.</p>`;
     document.getElementById("btn-comprar").onclick = comprar;
   }
 
@@ -244,23 +236,13 @@ async function cargar() {
     if (el) el.innerHTML = html;
   });
 
-  async function comprar() {
-    const email = document.getElementById("buyer-email").value.trim();
-    const btn = document.getElementById("btn-comprar");
-    btn.disabled = true; btn.textContent = "Generando pago…";
-    try {
-      const r = await fetch("/api/create-preference", {
-        method: "POST",
-        headers: await authHeaders(),
-        body: JSON.stringify({ record_id: d.id, buyer_email: email }),
-      });
-      const j = await r.json();
-      if (!r.ok) throw new Error(j.error || "Error");
-      location.href = j.init_point;
-    } catch (e) {
-      toast("No pudimos generar el pago: " + e.message, true);
-      btn.disabled = false; btn.textContent = "Comprar ahora";
-    }
+  // Un solo camino hacia el pago: todo pasa por el carrito, que es donde el
+  // comprador ve la entrega y sus datos antes de poner la plata.
+  function comprar() {
+    const c = new Set(JSON.parse(localStorage.getItem("sc_cart") || "[]"));
+    c.add(d.id);
+    localStorage.setItem("sc_cart", JSON.stringify([...c]));
+    location.href = "/carrito.html";
   }
 }
 

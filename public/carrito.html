@@ -1,0 +1,255 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SURCOGS — Tu carrito</title>
+<meta name="robots" content="noindex">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="/favicon.ico" sizes="32x32">
+<link rel="apple-touch-icon" href="/icono-192.png">
+<link rel="stylesheet" href="/css/style.css">
+<script src="/js/config.js"></script>
+<style>
+.k-cols { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 330px); gap: 20px; align-items: start }
+.k-vend { background: #fff; border: 1px solid var(--line); border-radius: 10px; margin-bottom: 14px; overflow: hidden }
+.k-vh { padding: 12px 15px; border-bottom: 1px solid var(--line); font-size: 13.5px }
+.k-vh b { font-size: 14.5px }
+.k-it { display: flex; gap: 12px; padding: 13px 15px; border-bottom: 1px solid #f2f2f2; align-items: flex-start }
+.k-it:last-child { border-bottom: 0 }
+.k-it img { width: 62px; height: 62px; object-fit: cover; border-radius: 4px; flex: none }
+.k-it .n { flex: 1; min-width: 0; line-height: 1.4 }
+.k-it .n b { font-size: 14.5px }
+.k-pr { text-align: right; flex: none; white-space: nowrap }
+.k-pr b { font-size: 15px }
+.k-quitar { background: transparent; border: 0; color: #a33; font-size: 12px; cursor: pointer;
+  font-family: inherit; padding: 3px 0 0; text-decoration: underline }
+.k-res { background: #fff; border: 1px solid var(--line); border-radius: 10px; padding: 16px;
+  position: sticky; top: 130px }
+.k-fila { display: flex; justify-content: space-between; gap: 12px; font-size: 13.5px; margin-bottom: 7px }
+.k-tot { display: flex; justify-content: space-between; align-items: baseline; gap: 12px;
+  border-top: 1px solid var(--line); padding-top: 11px; margin-top: 11px; font-size: 14px }
+.k-tot b { font-size: 21px }
+.k-pagar { width: 100%; background: #2ea860; color: #fff; border: 0; border-radius: 6px;
+  padding: 13px; font-size: 15px; font-weight: 700; cursor: pointer; font-family: inherit; margin-top: 13px }
+.k-pagar:hover { background: #1e7a44 }
+.k-pagar:disabled { opacity: .6; cursor: default }
+.k-tr { width: 100%; background: transparent; border: 1px solid #2ea860; color: #1e7a44;
+  border-radius: 6px; padding: 11px; font-size: 13.5px; cursor: pointer; font-family: inherit; margin-top: 8px }
+.k-datos label { display: block; font-size: 12.5px; color: var(--dim); margin: 0 0 4px }
+.k-datos input { width: 100%; margin-bottom: 11px }
+.k-vacio { text-align: center; padding: 50px 20px }
+@media (max-width: 820px) { .k-cols { grid-template-columns: minmax(0, 1fr) } .k-res { position: static } }
+</style>
+</head>
+<body>
+<div id="header"></div>
+<div class="wrap" id="main"><p class="sub">Cargando…</p></div>
+
+<script type="module">
+import { sb, renderHeader, getUser, getPerfil, fmtPrecio, fotoPrincipal, precioComprador,
+         toast, authHeaders, refrescarCarrito } from "/js/app.js?v=3";
+renderHeader("");
+const main = document.getElementById("main");
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) =>
+  ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+
+let carrito = new Set(JSON.parse(localStorage.getItem("sc_cart") || "[]"));
+const guardar = () => {
+  localStorage.setItem("sc_cart", JSON.stringify([...carrito]));
+  refrescarCarrito();
+};
+
+let discos = [], perfiles = [], usuario = null;
+
+// Un solo envío por vendedor: el más caro del grupo. Hoy ninguna modalidad
+// cobra envío en el checkout, pero la cuenta queda lista para cuando Express
+// tenga tarifa.
+const envCosto = (d) => (d.shipping_mode === "fijo" && d.shipping_cost > 0) ? d.shipping_cost : 0;
+const entregaTxt = (g) =>
+  g.some((d) => d.shipping_mode === "express")
+    ? "🚚 Envío por SURCOGS Express — lo coordinamos con vos"
+    : "🤝 Entrega a coordinar con el vendedor";
+
+async function cargar() {
+  usuario = await getUser();
+  if (!carrito.size) return vacio();
+
+  const { data } = await sb.from("records")
+    .select("id, seller_id, artist, title, format, price, photos, status, shipping_mode, shipping_cost")
+    .in("id", [...carrito]);
+
+  // Sacar del carrito lo que ya no está disponible: si alguien lo compró
+  // primero, no tiene sentido que llegue hasta el pago para enterarse.
+  const vivos = (data || []).filter((d) => d.status === "disponible");
+  const perdidos = carrito.size - vivos.length;
+  carrito = new Set(vivos.map((d) => d.id));
+  guardar();
+  if (perdidos > 0) {
+    toast(perdidos === 1 ? "Un disco ya no está disponible y lo sacamos del carrito"
+                         : `${perdidos} discos ya no están disponibles y los sacamos`, true);
+  }
+  if (!carrito.size) return vacio();
+
+  discos = vivos;
+  const ids = [...new Set(discos.map((d) => d.seller_id))];
+  const { data: ps } = await sb.from("profiles").select("id, name").in("id", ids);
+  perfiles = ps || [];
+  pintar();
+}
+
+const vacio = () => {
+  main.innerHTML = `
+    <div class="k-vacio">
+      <div style="font-size:44px;line-height:1">🛒</div>
+      <h1 style="margin:12px 0 6px">Tu carrito está vacío</h1>
+      <p class="sub" style="margin-bottom:20px">Buscá algo que te guste y agregalo desde el catálogo.</p>
+      <a class="btn" href="/">Ver el catálogo</a>
+    </div>`;
+};
+
+const nombreVend = (sid) => perfiles.find((p) => p.id === sid)?.name || "Vendedor";
+
+function pintar() {
+  const grupos = {};
+  discos.forEach((d) => { (grupos[d.seller_id] = grupos[d.seller_id] || []).push(d); });
+  const sids = Object.keys(grupos);
+
+  let subtotal = 0, envio = 0;
+  const bloques = sids.map((sid) => {
+    const g = grupos[sid];
+    const e = Math.max(...g.map(envCosto));
+    envio += e;
+    subtotal += g.reduce((s, d) => s + precioComprador(d.price), 0);
+    return `
+      <div class="k-vend">
+        <div class="k-vh">Vende <b><a href="/perfil.html?id=${sid}">${esc(nombreVend(sid))}</a></b>
+          <div class="hint" style="margin-top:3px">${entregaTxt(g)}</div></div>
+        ${g.map((d) => `
+          <div class="k-it">
+            <a href="/disco.html?id=${d.id}"><img src="${fotoPrincipal(d)}" alt=""></a>
+            <div class="n">
+              <b>${esc(d.artist)}</b><br>${esc(d.title)}
+              <div class="hint">${esc(d.format || "Vinilo")}</div>
+              <button class="k-quitar" data-quitar="${d.id}">Quitar</button>
+            </div>
+            <div class="k-pr"><b>${fmtPrecio(precioComprador(d.price))}</b></div>
+          </div>`).join("")}
+      </div>`;
+  });
+
+  const total = subtotal + envio;
+  const totalTransfer = Math.round(subtotal * 0.9) + envio;
+
+  main.innerHTML = `
+    <h1 style="margin-bottom:3px">Tu carrito</h1>
+    <p class="sub" style="margin-bottom:18px">
+      ${discos.length} disco${discos.length > 1 ? "s" : ""}${sids.length > 1
+        ? ` de ${sids.length} vendedores. Pagás una sola vez y coordinás una entrega con cada uno.`
+        : "."}</p>
+
+    <div class="k-cols">
+      <div>${bloques.join("")}
+        <div class="k-vend" style="padding:15px">
+          <b style="font-size:14px">Datos para la entrega</b>
+          <div class="k-datos" style="margin-top:12px">
+            <label>Tu email (comprobante y seguimiento)</label>
+            <input id="k-email" type="email" placeholder="tu@email.com" autocomplete="email">
+            <label>Nombre y apellido</label>
+            <input id="k-nombre" placeholder="Juan Pérez" autocomplete="name">
+            <label>Teléfono (para el día de la entrega)</label>
+            <input id="k-tel" type="tel" placeholder="11 2345 6789" autocomplete="tel">
+            <label>Dirección (calle y número)</label>
+            <input id="k-dir" placeholder="Thames 880, 3º B" autocomplete="street-address">
+            <div style="display:flex;gap:10px">
+              <div style="flex:1"><label>Localidad o barrio</label>
+                <input id="k-loc" placeholder="Palermo" autocomplete="address-level2"></div>
+              <div style="width:120px"><label>Código postal</label>
+                <input id="k-cp" placeholder="1414" inputmode="numeric" autocomplete="postal-code"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="k-res">
+        <div class="k-fila"><span>Discos (${discos.length})</span><span>${fmtPrecio(subtotal)}</span></div>
+        ${envio > 0 ? `<div class="k-fila"><span>Envío</span><span>${fmtPrecio(envio)}</span></div>` : ""}
+        <div class="k-tot"><span>Total</span><b>${fmtPrecio(total)}</b></div>
+        <button class="k-pagar" id="k-pagar">Pagar con Mercado Pago</button>
+        <button class="k-tr" id="k-tr">Pagar por transferencia · ${fmtPrecio(totalTransfer)}
+          <br><span style="font-size:11.5px">10% de descuento</span></button>
+        <p class="hint" style="margin:13px 0 0;line-height:1.55;background:#f0f7f3;color:#3c5a4a;
+          border-radius:5px;padding:10px 12px">
+          🛡 <b>Tu plata queda protegida.</b> El vendedor cobra recién cuando confirmás que
+          recibiste el disco, o a los 10 días si no hay reclamo.</p>
+      </div>
+    </div>`;
+
+  main.querySelectorAll("[data-quitar]").forEach((b) => {
+    b.onclick = () => {
+      carrito.delete(b.dataset.quitar);
+      discos = discos.filter((d) => d.id !== b.dataset.quitar);
+      guardar();
+      discos.length ? pintar() : vacio();
+      toast("Disco quitado del carrito");
+    };
+  });
+
+  autocompletar();
+  document.getElementById("k-pagar").onclick = (e) => pagar(e.target, "/api/create-preference");
+  document.getElementById("k-tr").onclick = (e) => pagar(e.target, "/api/reserva");
+}
+
+async function autocompletar() {
+  if (!usuario) return;
+  const p = await getPerfil(usuario.id);
+  const set = (id, v) => { const el = document.getElementById(id); if (el && !el.value && v) el.value = v; };
+  set("k-email", usuario.email);
+  if (!p) return;
+  set("k-nombre", p.name); set("k-tel", p.whatsapp); set("k-dir", p.direccion);
+  set("k-loc", p.localidad); set("k-cp", p.cp);
+}
+
+function datos() {
+  const v = (id) => document.getElementById(id).value.trim();
+  const d = { email: v("k-email"), nombre: v("k-nombre"), tel: v("k-tel"),
+              dir: v("k-dir"), loc: v("k-loc"), cp: v("k-cp") };
+  if (!d.email.includes("@")) return { error: "Poné tu email para el comprobante" };
+  if (!d.nombre || !d.tel || !d.dir || !d.loc)
+    return { error: "Completá nombre, teléfono, dirección y localidad para la entrega" };
+  if (!/^\d{4}$/.test(d.cp)) return { error: "El código postal son 4 números (ej. 1414)" };
+  return d;
+}
+
+async function pagar(btn, endpoint) {
+  const d = datos();
+  if (d.error) return toast(d.error, true);
+  const txt = btn.innerHTML;
+  btn.disabled = true; btn.textContent = "Generando…";
+  try {
+    const r = await fetch(endpoint, {
+      method: "POST",
+      headers: await authHeaders(),
+      body: JSON.stringify({
+        record_ids: discos.map((x) => x.id), buyer_email: d.email, buyer_name: d.nombre,
+        buyer_phone: d.tel, buyer_addr: d.dir, buyer_localidad: d.loc, buyer_cp: d.cp,
+      }),
+    });
+    const j = await r.json();
+    if (!r.ok) throw new Error(j.error || "Error");
+    carrito.clear(); guardar();
+    if (j.init_point) return void (location.href = j.init_point);
+    btn.textContent = "Abriendo WhatsApp ✓";
+    window.open(j.wa, "_blank");
+    toast("Te guardamos los discos por 24hs. Escribinos por WhatsApp para cerrar la compra.");
+    setTimeout(() => { location.href = "/cuenta.html#compras"; }, 2500);
+  } catch (e) {
+    toast("No pudimos seguir: " + e.message, true);
+    btn.disabled = false; btn.innerHTML = txt;
+  }
+}
+
+cargar();
+</script>
+</body>
+</html>
