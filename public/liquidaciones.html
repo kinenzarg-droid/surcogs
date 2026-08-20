@@ -43,7 +43,7 @@ const card = (o, go) => `
           : "esperando confirmación del comprador"}</div>
         <div style="margin-top:7px">
           ${o.vendedor_alias
-            ? `<span class="al" onclick="navigator.clipboard.writeText('${o.vendedor_alias}');this.textContent='copiado ✓'">${o.vendedor_alias}</span>`
+            ? `<span class="al" data-alias="${o.vendedor_alias}" onclick="copiar(this)">${o.vendedor_alias}</span>`
             : `<span style="color:var(--err);font-size:13px">⚠ el vendedor no cargó su alias</span>`}
           ${o.vendedor_titular ? `<span class="st"> · ${o.vendedor_titular}</span>` : ""}
         </div>
@@ -98,7 +98,13 @@ async function cargar() {
     `<h2>Esperando confirmación (${j.esperando.length})</h2>` +
     (j.esperando.map(o => card(o, false)).join("") || "<p class='sub'>Nada en curso.</p>") +
     `<h2>Últimas liquidadas</h2>` +
-    (j.liquidadas.map(o => `<div class="card"><span class="st">${fecha(o.liquidado_at)}</span> · ${pesos(o.monto_vendedor)}</div>`).join("")
+    (j.liquidadas.map(o => `<div class="card">
+        <b>${o.vendedor || "vendedor"}</b> · ${pesos(o.monto_vendedor)}
+        <div style="margin-top:6px">${o.vendedor_alias
+          ? `<span class="al" data-alias="${o.vendedor_alias}" onclick="copiar(this)">${o.vendedor_alias}</span>`
+          : `<span class="st">sin alias</span>`}</div>
+        <div class="st">Transferido el ${fecha(o.liquidado_at)}</div>
+      </div>`).join("")
       || "<p class='sub'>Todavía ninguna.</p>");
 }
 
@@ -112,6 +118,15 @@ async function pagar(id, btn) {
   });
   r.ok ? cargar() : (btn.disabled = false, btn.textContent = "Ya le transferí");
 }
+
+// Copia el alias sin hacerlo desaparecer: hace falta tenerlo a la vista para
+// pegarlo en el homebanking, así que el "copiado" se muestra al lado y se va solo.
+window.copiar = (el) => {
+  const alias = el.dataset.alias;
+  navigator.clipboard.writeText(alias);
+  el.textContent = alias + "  copiado ✓";
+  setTimeout(() => { el.textContent = alias; }, 1600);
+};
 
 // Los onclick del HTML buscan las funciones en window, pero este script es un
 // módulo y tiene su propio scope. Sin esto, los botones no hacen nada.
