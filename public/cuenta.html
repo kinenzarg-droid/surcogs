@@ -233,21 +233,10 @@ async function renderPanel(user, perfil) {
         ${perfil.avatar_url ? `<img src="${perfil.avatar_url}" alt="">` : iniciales}</span>
       <span>Hola, ${perfil.name}</span>
     </h1>
-    <p class="sub">📍 ${[perfil.zona, perfil.localidad].filter(Boolean).join(" · ") || "Sin ubicación"}
-      · 📱 ${perfil.whatsapp || "sin celular"}
-      <a href="#" id="btn-ubic" style="color:var(--acc);font-size:12.5px;margin-left:8px">editar</a>
-      · <a href="#" id="btn-ava" style="color:var(--acc);font-size:12.5px">📷 ${perfil.avatar_url ? "cambiar foto" : "subir foto"}</a>
+    <p class="sub" style="margin-bottom:16px">${[perfil.zona, perfil.localidad].filter(Boolean).join(" · ") || "Completá tus datos abajo"}
       <input id="ava-file" type="file" accept="image/*" style="display:none"></p>
-    <form id="f-ubic" style="display:none;gap:8px;margin:0 0 14px;max-width:560px">
-      <div style="display:flex;gap:8px;flex-wrap:wrap">
-        <select id="u-zona" style="flex:1;min-width:140px"></select>
-        <input id="u-loc" style="flex:1;min-width:140px">
-        <input id="u-cel" type="tel" placeholder="Celular (WhatsApp)" style="flex:1;min-width:140px">
-        <button class="btn small" type="submit">Guardar</button>
-      </div>
-    </form>
+    <div id="perfil-box"></div>
     <div class="notice">Publicás tu precio y esa plata es tuya. El comprador ve tu precio más la comisión de SURCOGS y Mercado Pago, que se descuentan solas del pago. Nunca ponés plata de tu bolsillo.</div>
-    <div id="cobro-box"></div>
     <p style="margin:18px 0"><a class="btn" href="/publicar.html">+ Publicar un disco</a>
       <a class="btn ghost" href="/perfil.html?id=${user.id}" style="margin-left:8px">Ver mi perfil público</a>
       <button class="btn ghost" id="btn-out" style="margin-left:8px">Salir</button></p>
@@ -323,44 +312,142 @@ async function renderPanel(user, perfil) {
     } catch (_) { /* sin datos de contacto no se rompe nada */ }
   })();
 
-  // Dónde cobrás tus ventas
-  const cobroBox = document.getElementById("cobro-box");
-  const pintarCobro = (p) => {
-    const tiene = !!(p.alias && p.alias.trim());
-    cobroBox.innerHTML = `
-      <div class="panel" style="max-width:none;${tiene ? "" : "border-color:var(--acc)"}">
-        <strong>${tiene ? "✅ Dónde cobrás tus ventas" : "Cargá tu alias para poder cobrar"}</strong>
-        <p class="hint" style="margin:6px 0 10px">
-          ${tiene
-            ? `Te transferimos a <b>${p.alias}</b>${p.titular ? " (" + p.titular + ")" : ""} dentro de las 48hs hábiles de que el comprador confirme que recibió el disco.`
-            : "El comprador te paga a través de SURCOGS. Cuando confirma que recibió el disco, te transferimos a tu alias dentro de las 48hs hábiles. Sin alias no podemos pagarte."}
-        </p>
-        <form id="f-cobro" style="display:${tiene ? "none" : "flex"};gap:8px;flex-wrap:wrap;align-items:center">
-          <input id="c-alias" placeholder="Tu alias o CBU" value="${p.alias || ""}" style="flex:1;min-width:180px">
-          <input id="c-titular" placeholder="Titular de la cuenta" value="${p.titular || ""}" style="flex:1;min-width:180px">
-          <button class="btn small" type="submit">Guardar</button>
-        </form>
-        ${tiene ? `<a href="#" id="btn-cobro" style="color:var(--acc);font-size:12.5px">cambiar</a>` : ""}
+  // ---- Mis datos: qué falta, por qué importa y cómo cargarlo ----
+  // Antes esto estaba en tres controles sueltos (un "editar" para la zona, otra
+  // caja para el alias, un link para la foto) y la dirección no se podía cargar
+  // desde acá. Ahora es una sola lista que muestra qué falta y para qué sirve.
+  const perfilBox = document.getElementById("perfil-box");
+  const esc = (v) => String(v ?? "").replace(/"/g, "&quot;");
+
+  const CAMPOS = [
+    { k: "nombre", tit: "Tu nombre", ico: "🏷",
+      por: "Es el nombre con el que te ve el comprador en cada disco.",
+      lleno: (p) => !!(p.name || "").trim(),
+      resumen: (p) => p.name,
+      form: (p) => `<input id="q-name" placeholder="Vinyl Store" value="${esc(p.name)}" style="flex:1;min-width:180px">`,
+      leer: () => {
+        const name = document.getElementById("q-name").value.trim();
+        if (name.length < 2) return { error: "Poné un nombre" };
+        return { name };
+      } },
+
+    { k: "cel", tit: "Tu celular", ico: "📱",
+      por: "Por acá te escribimos cuando vendés, y es como te ubica el comprador.",
+      lleno: (p) => !!(p.whatsapp || "").trim(),
+      resumen: (p) => p.whatsapp,
+      form: (p) => `<input id="q-cel" type="tel" placeholder="11 2345 6789" value="${esc(p.whatsapp)}" style="flex:1;min-width:180px">`,
+      leer: () => ({ whatsapp: document.getElementById("q-cel").value.trim() || null }) },
+
+    { k: "zona", tit: "Tu zona", ico: "📍",
+      por: "El comprador filtra por zona para encontrar discos cerca suyo.",
+      lleno: (p) => !!(p.zona || "").trim(),
+      resumen: (p) => [p.zona, p.localidad].filter(Boolean).join(" · "),
+      form: () => `<select id="q-zona" style="flex:1;min-width:150px"></select>
+                   <input id="q-loc" style="flex:1;min-width:150px">`,
+      luego: (p) => zonaSelector(document.getElementById("q-zona"), document.getElementById("q-loc"),
+                                 p.zona || "", p.localidad || ""),
+      leer: () => ({ zona: document.getElementById("q-zona").value || null,
+                     localidad: document.getElementById("q-loc").value || null }) },
+
+    { k: "dir", tit: "Tu dirección", ico: "🏠", privado: true,
+      por: "Solo la usamos para pasar a retirar el disco cuando vendas. No la ve nadie más.",
+      lleno: (p) => !!(p.direccion || "").trim(),
+      resumen: (p) => [p.direccion, p.cp && "CP " + p.cp].filter(Boolean).join(" · "),
+      form: (p) => `<input id="q-dir" placeholder="Calle, número, piso" value="${esc(p.direccion)}" style="flex:2;min-width:200px">
+                    <input id="q-cp" placeholder="CP" value="${esc(p.cp)}" style="flex:1;min-width:90px">`,
+      leer: () => ({ direccion: document.getElementById("q-dir").value.trim() || null,
+                     cp: document.getElementById("q-cp").value.trim() || null }) },
+
+    { k: "alias", tit: "Dónde cobrás", ico: "💰", privado: true,
+      por: "Sin alias no te podemos transferir lo que vendas. Solo lo vemos nosotros.",
+      lleno: (p) => !!(p.alias || "").trim(),
+      resumen: (p) => p.alias + (p.titular ? " · " + p.titular : ""),
+      form: (p) => `<input id="q-alias" placeholder="Tu alias o CBU" value="${esc(p.alias)}" style="flex:1;min-width:170px">
+                    <input id="q-tit" placeholder="Titular de la cuenta" value="${esc(p.titular)}" style="flex:1;min-width:170px">`,
+      leer: () => {
+        const alias = document.getElementById("q-alias").value.trim();
+        if (alias.length < 6) return { error: "Revisá el alias, parece incompleto" };
+        return { alias, titular: document.getElementById("q-tit").value.trim() || null };
+      } },
+
+    { k: "foto", tit: "Tu foto", ico: "📷",
+      por: "Un perfil con foto da más confianza que uno con iniciales.",
+      lleno: (p) => !!p.avatar_url,
+      resumen: () => "Cargada",
+      accion: () => document.getElementById("ava-file").click() },
+  ];
+
+  let abierto = null;
+
+  const pintarPerfil = (p) => {
+    const hechos = CAMPOS.filter((c) => c.lleno(p)).length;
+    const pct = Math.round((hechos / CAMPOS.length) * 100);
+    const faltan = CAMPOS.length - hechos;
+
+    perfilBox.innerHTML = `
+      <div class="panel" style="max-width:none;padding:0;overflow:hidden">
+        <div style="padding:15px 16px 14px">
+          <div style="display:flex;justify-content:space-between;align-items:baseline;gap:12px;margin-bottom:9px">
+            <strong style="font-size:15px">${faltan ? `Tu perfil está al ${pct}%` : "✅ Tus datos están completos"}</strong>
+            <span class="hint">${faltan ? faltan + (faltan === 1 ? " dato sin cargar" : " datos sin cargar") : "no falta nada"}</span>
+          </div>
+          <div style="height:7px;background:#eee;border-radius:99px;overflow:hidden">
+            <div style="width:${pct}%;height:100%;background:${faltan ? "var(--acc)" : "#2ea860"};transition:width .3s"></div>
+          </div>
+        </div>
+        ${CAMPOS.map((c) => {
+          const ok = c.lleno(p);
+          const editando = abierto === c.k;
+          return `
+          <div style="border-top:1px solid var(--line);padding:13px 16px">
+            <div style="display:flex;align-items:flex-start;gap:11px">
+              <span style="font-size:17px;line-height:1.3;flex:none">${ok ? "✅" : c.ico}</span>
+              <div style="flex:1;min-width:0">
+                <div style="font-weight:600;font-size:14px">${c.tit}
+                  ${c.privado ? `<span class="hint" style="font-weight:400"> · privado</span>` : ""}</div>
+                <div class="hint" style="margin-top:2px;line-height:1.5;${ok ? "" : "color:#a05a00"}">
+                  ${ok ? (c.resumen(p) || "cargado") : c.por}</div>
+              </div>
+              <button class="btn small ${ok ? "ghost" : ""}" data-campo="${c.k}" style="flex:none">
+                ${editando ? "Cancelar" : ok ? "Cambiar" : "Cargar"}</button>
+            </div>
+            ${editando && c.form ? `
+              <form data-form="${c.k}" style="display:flex;gap:8px;flex-wrap:wrap;margin:11px 0 2px 28px">
+                ${c.form(p)}
+                <button class="btn small" type="submit" style="flex:none">Guardar</button>
+              </form>` : ""}
+          </div>`;
+        }).join("")}
       </div>`;
-    const btn = document.getElementById("btn-cobro");
-    if (btn) btn.onclick = (e) => {
-      e.preventDefault();
-      document.getElementById("f-cobro").style.display = "flex";
-      btn.style.display = "none";
-    };
-    document.getElementById("f-cobro").onsubmit = async (e) => {
-      e.preventDefault();
-      const alias = document.getElementById("c-alias").value.trim();
-      const titular = document.getElementById("c-titular").value.trim() || null;
-      if (alias.length < 6) return toast("Revisá el alias, parece incompleto", true);
-      const { error } = await sb.from("profiles").update({ alias, titular }).eq("id", user.id);
-      if (error) return toast(error.message, true);
-      Object.assign(perfil, { alias, titular });
-      toast("Listo, ya podemos transferirte");
-      pintarCobro(perfil);
-    };
+
+    perfilBox.querySelectorAll("[data-campo]").forEach((b) => {
+      b.onclick = () => {
+        const c = CAMPOS.find((x) => x.k === b.dataset.campo);
+        if (c.accion) return c.accion();
+        abierto = abierto === c.k ? null : c.k;
+        pintarPerfil(p);
+      };
+    });
+
+    const c = CAMPOS.find((x) => x.k === abierto);
+    if (c && c.luego) c.luego(p);
+
+    perfilBox.querySelectorAll("[data-form]").forEach((f) => {
+      f.onsubmit = async (e) => {
+        e.preventDefault();
+        const campo = CAMPOS.find((x) => x.k === f.dataset.form);
+        const datos = campo.leer();
+        if (datos.error) return toast(datos.error, true);
+        const { error } = await sb.from("profiles").update(datos).eq("id", user.id);
+        if (error) return toast(error.message, true);
+        Object.assign(perfil, datos);
+        abierto = null;
+        toast("Datos guardados");
+        pintarPerfil(perfil);
+      };
+    });
   };
-  pintarCobro(perfil);
+  pintarPerfil(perfil);
 
   // Lista de discos con acciones
   const lista = document.getElementById("lista");
@@ -394,10 +481,6 @@ async function renderPanel(user, perfil) {
   document.getElementById("btn-out").onclick = async () => { await sb.auth.signOut(); init(); };
 
   // Foto de perfil
-  document.getElementById("btn-ava").onclick = (e) => {
-    e.preventDefault();
-    document.getElementById("ava-file").click();
-  };
   document.getElementById("ava-file").onchange = async (e) => {
     const f = e.target.files[0];
     if (!f) return;
@@ -410,28 +493,11 @@ async function renderPanel(user, perfil) {
     const { error: e2 } = await sb.from("profiles").update({ avatar_url: pu.publicUrl }).eq("id", user.id);
     if (e2) return toast(e2.message, true);
     toast("Foto de perfil actualizada");
-    renderPanel(user, { ...perfil, avatar_url: pu.publicUrl });
+    Object.assign(perfil, { avatar_url: pu.publicUrl });
+    document.getElementById("ava-view").innerHTML = `<img src="${pu.publicUrl}" alt="">`;
+    pintarPerfil(perfil);
   };
 
-  // Cambiar ubicación (zona → localidad)
-  const fUbic = document.getElementById("f-ubic");
-  document.getElementById("btn-ubic").onclick = (e) => {
-    e.preventDefault();
-    fUbic.style.display = fUbic.style.display === "none" ? "block" : "none";
-    zonaSelector(document.getElementById("u-zona"), document.getElementById("u-loc"),
-      perfil.zona || "", perfil.localidad || "");
-    document.getElementById("u-cel").value = perfil.whatsapp || "";
-  };
-  fUbic.onsubmit = async (e) => {
-    e.preventDefault();
-    const zona = document.getElementById("u-zona").value || null;
-    const localidad = document.getElementById("u-loc").value || null;
-    const whatsapp = document.getElementById("u-cel").value.trim() || null;
-    const { error } = await sb.from("profiles").update({ zona, localidad, whatsapp }).eq("id", user.id);
-    if (error) return toast(error.message, true);
-    toast("Datos actualizados");
-    renderPanel(user, { ...perfil, zona, localidad, whatsapp });
-  };
 }
 
 init();
