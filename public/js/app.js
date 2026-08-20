@@ -132,6 +132,17 @@ export const ICONOS_NOTIF = {
 export const iconoNotif = (tipo) =>
   ICONOS_NOTIF[tipo] || { ico: "\u{1F514}", bg: "#f0f0f0" };
 
+// El numerito del carrito en el header. El carrito vive en localStorage, asi
+// que cualquier pantalla puede tocarlo y despues avisar con esto.
+export function refrescarCarrito() {
+  const el = document.getElementById("cart-hdr-n");
+  if (!el) return;
+  let n = 0;
+  try { n = JSON.parse(localStorage.getItem("sc_cart") || "[]").length; } catch (_) { n = 0; }
+  el.textContent = n > 9 ? "9+" : n;
+  el.style.background = n ? "var(--acc)" : "#555";
+}
+
 export function hace(fecha) {
   const seg = Math.floor((Date.now() - new Date(fecha).getTime()) / 1000);
   if (seg < 60) return "recién";
@@ -173,6 +184,15 @@ export async function renderHeader(activo) {
       </div>
       <a class="btn-cta" href="${user ? "/publicar.html" : "/vender.html"}">Vender gratis</a>
       <div class="hdr-links">
+        <a class="campana" href="/carrito.html" id="cart-hdr" title="Tu carrito" aria-label="Tu carrito"
+           style="text-decoration:none">
+          <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+            stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="9" cy="20" r="1.4"/><circle cx="18" cy="20" r="1.4"/>
+            <path d="M2 3h2.5l2.4 12.2a1.6 1.6 0 0 0 1.6 1.3h8.9a1.6 1.6 0 0 0 1.6-1.3L21 7H5.6"/>
+          </svg>
+          <span class="campana-n" id="cart-hdr-n">0</span>
+        </a>
         ${user ? `
           <div class="campana-wrap">
             <button class="campana" id="campana-btn" title="Notificaciones" aria-label="Notificaciones">
@@ -205,6 +225,8 @@ export async function renderHeader(activo) {
     <div class="tira" aria-label="10% de descuento pagando por transferencia">
       <div class="tira-in">${tiraTexto()}${tiraTexto()}</div>
     </div>`;
+
+  refrescarCarrito();
 
   // Un solo desplegable abierto a la vez: campanita, menú del avatar y buscador
   // se cierran entre sí. También cierran con Escape y con un clic afuera.
