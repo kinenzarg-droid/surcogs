@@ -21,6 +21,12 @@ export async function onRequestPost({ request, env }) {
   // Quién compró. Se saca de la sesión, nunca de lo que manda el navegador,
   // porque si no cualquiera podría hacerse pasar por otro.
   const buyer_id = await quienEs(request, env);
+  // Cómo eligió recibirlo el comprador, por vendedor. Si no vino nada, queda
+  // en null y se trata como "a coordinar", que es lo que se hacía antes.
+  const entregas = (body.entregas && typeof body.entregas === "object") ? body.entregas : {};
+  const entregaDe = (sellerId) =>
+    ["coordinar", "express"].includes(entregas[sellerId]) ? entregas[sellerId] : null;
+
   const datosEnvio = {
     buyer_name: body.buyer_name || null,
     buyer_phone: body.buyer_phone || null,
@@ -68,6 +74,7 @@ export async function onRequestPost({ request, env }) {
       monto_vendedor: rec.price,
       metodo_pago: "mercadopago",
       purchase_id: purchaseId,
+      entrega: entregaDe(rec.seller_id),
       ...datosEnvio,
     });
   }
