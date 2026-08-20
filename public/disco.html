@@ -112,7 +112,7 @@ function fichaVendedor(g) {
 
 async function cargar() {
   const { data: d, error } = await sb.from("records")
-    .select("*, profiles!records_seller_id_fkey(name, whatsapp, zona, mp_connected)")
+    .select("*, profiles!records_seller_id_fkey(name, whatsapp, zona, localidad, mp_connected)")
     .eq("id", id).single();
   if (error || !d) { cont.innerHTML = "<p>No encontramos ese disco. <a href='/'>Volver al catálogo</a></p>"; return; }
 
@@ -144,7 +144,7 @@ async function cargar() {
       <div class="price-big">${d.old_price && d.old_price > d.price ? `<span class="p-old" style="font-size:18px">${fmtPrecio(precioComprador(d.old_price))}</span>` : ""}${fmtPrecio(precioComprador(d.price))}</div>
       <div class="p-transf"><b>${fmtPrecio(precioTransferencia(d.price))}</b> pagando por transferencia
         <span class="p-off">10% OFF</span></div>
-      <p class="meta">Vende <a href="/perfil.html?id=${d.seller_id}"><strong>${p?.name || "—"}</strong></a>${d.zona || p?.zona ? " · " + (d.zona || p.zona) : ""} · <a href="/perfil.html?id=${d.seller_id}">ver su discografía →</a></p>
+      <p class="meta">Vende <a href="/perfil.html?id=${d.seller_id}"><strong>${p?.name || "—"}</strong></a>${p?.localidad || d.localidad ? " · 📍 " + (p?.localidad || d.localidad) : ""} · <a href="/perfil.html?id=${d.seller_id}">ver su discografía →</a></p>
       ${esMio && d.status !== "vendido" ? `<p style="margin:10px 0">
         <a class="btn small ghost" href="/publicar.html?edit=${d.id}">✎ Editar</a>
         <button class="btn small ghost" id="btn-del-disco" style="margin-left:8px;color:#ff6b6b">🗑 Eliminar</button></p>` : ""}

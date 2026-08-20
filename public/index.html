@@ -359,6 +359,11 @@ const POR_PAGINA = 48;
 const tracksCache = new Map(); // tracklists solo de la página visible
 const filtro = { q: "", genre: "", zona: "", nuevo: "", orden: "" };
 const esMio = (d) => usuario && (usuario.id === d.seller_id || usuario.id === ADMIN_ID);
+// La ubicación sale del perfil del vendedor, no de una copia guardada en el
+// disco: si alguien se muda, se actualizan todas sus publicaciones de una vez.
+// Lo del disco queda de respaldo para las publicaciones viejas.
+const zonaDe = (d) => d.profiles?.zona || d.zona || "";
+const locDe = (d) => d.profiles?.localidad || d.localidad || "";
 const envCosto = (d) => (d.shipping_mode === "fijo" && d.shipping_cost > 0) ? d.shipping_cost : 0;
 
 // ?q= y ?genre= desde el header u otras páginas
@@ -371,7 +376,7 @@ async function cargar() {
   const [u, { data, error }] = await Promise.all([
     getUser(),
     sb.from("records")
-      .select("id, seller_id, artist, title, label, year, format, price, old_price, condition_media, condition_sleeve, zona, localidad, genre, photos, status, created_at, shipping_mode, shipping_cost")
+      .select("id, seller_id, artist, title, label, year, format, price, old_price, condition_media, condition_sleeve, zona, localidad, genre, photos, status, created_at, shipping_mode, shipping_cost, profiles!records_seller_id_fkey(zona, localidad)")
       .eq("status", "disponible")
       .order("created_at", { ascending: false }),
   ]);
@@ -387,7 +392,7 @@ function visibles() {
   const hoy = Date.now();
   const out = discos.filter(d => {
     if (filtro.genre && d.genre !== filtro.genre) return false;
-    if (filtro.zona && d.zona !== filtro.zona) return false;
+    if (filtro.zona && zonaDe(d) !== filtro.zona) return false;
     if (filtro.q && !`${d.artist} ${d.title} ${d.label || ""}`.toLowerCase().includes(filtro.q)) return false;
     const edad = hoy - new Date(d.created_at).getTime();
     if (filtro.nuevo === "semana" && edad > 7 * DIA) return false;
@@ -404,7 +409,8 @@ function pintarSidebar() {
   const generos = {}, zonas = {};
   discos.forEach(d => {
     if (d.genre) generos[d.genre] = (generos[d.genre] || 0) + 1;
-    if (d.zona) zonas[d.zona] = (zonas[d.zona] || 0) + 1;
+    const z = zonaDe(d);
+    if (z) zonas[z] = (zonas[z] || 0) + 1;
   });
 
   document.getElementById("side").innerHTML = `
@@ -473,7 +479,7 @@ async function pintar(mantenerScroll) {
         <button class="del" data-del="${d.id}" title="Eliminar">🗑</button></span>` : ""}
       <div class="gbody">
         <a class="gname" href="/disco.html?id=${d.id}"><b>${esc(d.artist)}:</b> ${esc(d.title)}</a>
-        <div class="gmeta">${d.label ? `<a class="lk-sello" data-q="${esc(d.label)}" href="/?q=${encodeURIComponent(d.label)}">${esc(d.label)}</a> · ` : ""}${esc(d.format)}${d.zona ? " · 📍 " + esc(d.zona) + (d.localidad ? " · " + esc(d.localidad) : "") : ""}
+        <div class="gmeta">${d.label ? `<a class="lk-sello" data-q="${esc(d.label)}" href="/?q=${encodeURIComponent(d.label)}">${esc(d.label)}</a> · ` : ""}${esc(d.format)}${locDe(d) ? " · 📍 " + esc(locDe(d)) : ""}
           · <span class="${d.status === "disponible" ? "disp" : ""}">● ${d.status}</span></div>
         <div class="gestado" title="Estado del disco según la escala Goldmine">Estado del disco: <b>${esc(d.condition_media)}</b></div>
         ${trackBtns(d, i)}
@@ -830,7 +836,7 @@ function mostrarFicha(d) {
         <div class="bdg">
           <span>Estado del disco: <b>${esc(d.condition_media)}</b></span>
           <span class="disp">${esc(d.status)}</span>
-          ${d.zona ? `<span>📍 ${esc(d.zona)}${d.localidad ? " · " + esc(d.localidad) : ""}</span>` : ""}
+          ${locDe(d) ? `<span>📍 ${esc(locDe(d))}</span>` : ""}
         </div>
         <div class="prc">${fmtPrecio(precioComprador(d.price))}</div>
         <div class="p-transf"><b>${fmtPrecio(Math.round(precioComprador(d.price) * 0.9))}</b> pagando por transferencia
