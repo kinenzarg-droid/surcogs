@@ -428,7 +428,7 @@ img, iframe { max-width: 100%; }
 /* Redondo, fijo abajo a la derecha. Aparece recién cuando ya scrolleaste un
    poco; el JS le sube el "bottom" si el reproductor o el carrito están abajo. */
 #btn-arriba {
-  position: fixed; right: 18px; bottom: 18px; z-index: 68;
+  position: fixed; left: 18px; bottom: 18px; z-index: 68;
   width: 44px; height: 44px; border-radius: 50%;
   display: flex; align-items: center; justify-content: center;
   background: var(--acc); color: #fff; border: 0; cursor: pointer;
@@ -437,9 +437,22 @@ img, iframe { max-width: 100%; }
   transition: opacity .18s, transform .18s, visibility .18s, bottom .18s;
 }
 #btn-arriba.ver { opacity: .94; visibility: visible; transform: none; }
+
+/* WhatsApp fijo abajo a la derecha, siempre a la vista. El botón de subir se
+   fue a la izquierda para que no se peleen por el mismo rincón. */
+#btn-wa {
+  position: fixed; right: 18px; bottom: 18px; z-index: 68;
+  width: 48px; height: 48px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  background: #25d366; color: #fff;
+  box-shadow: 0 3px 14px rgba(0, 0, 0, .3);
+  transition: transform .18s, bottom .18s;
+}
+#btn-wa:hover { transform: scale(1.07); color: #fff; }
+@media (max-width: 680px) { #btn-wa { right: 12px; width: 44px; height: 44px; } }
 #btn-arriba:hover { opacity: 1; background: #e04d00; }
 @media (max-width: 680px) {
-  #btn-arriba { right: 12px; width: 40px; height: 40px; }
+  #btn-arriba { left: 12px; width: 40px; height: 40px; }
 }
 @media (prefers-reduced-motion: reduce) {
   #btn-arriba { transition: none; }
