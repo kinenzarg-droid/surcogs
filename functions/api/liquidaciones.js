@@ -25,6 +25,19 @@ export async function onRequestGet({ request, env }) {
   const listas = await sel(env, "orders",
     "liquidado_at=not.is.null&select=id,monto_vendedor,liquidado_at,seller_id&order=liquidado_at.desc&limit=20");
 
+  // La vista de pendientes ya trae nombre y alias del vendedor, pero orders no.
+  // Los busco aparte para poder mostrarlos también en las ya liquidadas.
+  const idsVend = [...new Set((listas || []).map((o) => o.seller_id).filter(Boolean))];
+  const perfiles = idsVend.length
+    ? await sel(env, "profiles", `id=in.(${idsVend.join(",")})&select=id,name,alias`)
+    : [];
+  const P = Object.fromEntries((perfiles || []).map((p) => [p.id, p]));
+  const liquidadas = (listas || []).map((o) => ({
+    ...o,
+    vendedor: P[o.seller_id]?.name || null,
+    vendedor_alias: P[o.seller_id]?.alias || null,
+  }));
+
   // Compras por transferencia esperando que yo confirme que entró la plata.
   // Se agrupan por purchase_id: una compra puede tener varios discos.
   const res = await sel(env, "orders",
@@ -44,7 +57,7 @@ export async function onRequestGet({ request, env }) {
     reservas: Object.values(porCompra),
     liberables: (pend || []).filter((o) => o.liberable),
     esperando: (pend || []).filter((o) => !o.liberable),
-    liquidadas: listas || [],
+    liquidadas,
   });
 }
 
