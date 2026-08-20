@@ -170,7 +170,7 @@ a:hover .hw-chip{background:#fff;box-shadow:1px 1px 0 rgba(0,0,0,.15)}
 .gbtns>*{flex:1;display:flex;align-items:center;justify-content:center;gap:5px;text-align:center}
 /* carrito estilo Bandcamp: panel derecho (desktop) / bandeja inferior (mobile) */
 @keyframes cartpulse{0%{box-shadow:0 0 0 0 rgba(46,168,96,.75)}100%{box-shadow:0 0 0 16px rgba(46,168,96,0)}}
-.cartp{position:fixed;right:12px;top:120px;width:240px;background:#fff;color:#1d1d1d;border:1px solid #ddd;
+.cartp{position:fixed;right:12px;top:215px;width:240px;background:#fff;color:#1d1d1d;border:1px solid #ddd;
   z-index:65;display:none;box-shadow:0 4px 22px rgba(0,0,0,.45);border-radius:4px;
   max-height:calc(100vh - 200px);overflow:auto}
 .cartp.pulse{animation:cartpulse .55s ease-out 2}
@@ -635,6 +635,10 @@ function ajustarBarras() {
   if (esMobile) { cart.style.top = ""; cart.style.maxHeight = ""; return; }
   const header = document.getElementById("header");
   const finHeader = header ? header.getBoundingClientRect().bottom : 0;
+  // renderHeader es asincrono: si todavia no se dibujo, el rect da 0 y el
+  // carrito se apoyaria en 12px, tapando el banner. Lo dejamos donde lo puso
+  // el CSS y esperamos: el observador de abajo reacomoda apenas aparezca.
+  if (finHeader <= 0) return;
   const top = Math.max(12, Math.round(finHeader) + 10);
   cart.style.top = top + "px";
   cart.style.maxHeight = `calc(100vh - ${top + 24}px)`;
@@ -643,6 +647,13 @@ function ajustarBarras() {
 // El header scrollea con la página, así que hay que recalcular al scrollear
 window.addEventListener("scroll", ajustarBarras, { passive: true });
 window.addEventListener("resize", ajustarBarras);
+
+// El header aparece después y puede cambiar de alto (la tira, el buscador en
+// mobile). Cada vez que eso pasa, el carrito se reacomoda solo.
+{
+  const hdr = document.getElementById("header");
+  if (hdr && window.ResizeObserver) new ResizeObserver(ajustarBarras).observe(hdr);
+}
 
 document.getElementById("cart-buy").onclick = () => { location.href = "/carrito.html"; };
 document.getElementById("cart-clear").onclick = () => {
