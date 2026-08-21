@@ -80,9 +80,9 @@ const opciones = (g) => [
   { k: "coordinar", ico: "🤝", tit: "A coordinar con el vendedor",
     det: "Arreglan entre ustedes: punto de encuentro o envío.",
     hay: g.every((d) => d.envio_coordinar !== false) },
-  { k: "express", ico: "🚚", tit: "Envío por SURCOGS Express",
-    det: "Lo retiramos por la casa del vendedor y te lo llevamos. Coordinamos el envío con vos.",
-    hay: g.every((d) => d.envio_express !== false) },
+  { k: "correo", ico: "📦", tit: "Envío por Correo Argentino",
+    det: "El vendedor lo despacha y te llega a tu casa. Te escribimos con el costo antes de despacharlo.",
+    hay: g.every((d) => d.envio_correo !== false) },
 ].filter((o) => o.hay);
 
 // Qué eligió el comprador para cada vendedor.
@@ -93,7 +93,7 @@ async function cargar() {
   if (!carrito.size) return vacio();
 
   const { data } = await sb.from("records")
-    .select("id, seller_id, artist, title, format, price, photos, status, shipping_mode, shipping_cost, envio_coordinar, envio_express")
+    .select("id, seller_id, artist, title, format, price, photos, status, shipping_mode, shipping_cost, envio_coordinar, envio_correo")
     .in("id", [...carrito]);
 
   // Sacar del carrito lo que ya no está disponible: si alguien lo compró

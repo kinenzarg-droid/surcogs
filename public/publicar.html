@@ -131,9 +131,10 @@ async function init() {
           <span>🤝 <b>A coordinar con el comprador</b><br>
             <span class="hint">Se lo entregás en mano o lo despachás como prefieran los dos.</span></span></label>
         <label style="display:flex;gap:9px;align-items:flex-start;font-weight:400;cursor:pointer">
-          <input type="checkbox" id="e-express" checked style="width:auto;margin:2px 0 0">
-          <span>🚚 <b>Envío por SURCOGS Express</b><br>
-            <span class="hint">Pasamos a retirarlo por tu casa y lo entregamos. Por ahora solo en AMBA.</span></span></label>
+          <input type="checkbox" id="e-correo" checked style="width:auto;margin:2px 0 0">
+          <span>📦 <b>Envío por Correo Argentino</b><br>
+            <span class="hint">Lo llevás a una sucursal y Correo se encarga del resto. Llega a todo el país
+            y lo paga el comprador.</span></span></label>
       </div>
       <p class="hint">Dejá las dos tildadas si te da igual: así el comprador elige la que le queda cómoda y tu disco no pierde ventas.</p>
       <label>Temas (se completan solos desde Discogs, o cargalos a mano)</label>
@@ -208,7 +209,7 @@ async function init() {
     set("cm", editRec.condition_media);
     set("audio", editRec.audio_url); set("desc", editRec.description);
     document.getElementById("e-coordinar").checked = editRec.envio_coordinar !== false;
-    document.getElementById("e-express").checked = editRec.envio_express !== false;
+    document.getElementById("e-correo").checked = editRec.envio_correo !== false;
   }
 
   // ---- Tracklist con audio por tema ----
@@ -307,7 +308,7 @@ async function init() {
         condition_media: v("cm"), condition_sleeve: v("cm"),   // se guarda igual: la tapa ya no se pide
         zona: v("zona") || null, localidad: v("loc") || null,
         envio_coordinar: document.getElementById("e-coordinar").checked,
-        envio_express: document.getElementById("e-express").checked,
+        envio_correo: document.getElementById("e-correo").checked,
         description: v("desc") || null,
         tracks: tracks.filter(t => (t.title || "").trim()).map(t => ({
           position: (t.position || "").trim(),

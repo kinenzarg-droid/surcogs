@@ -685,7 +685,7 @@ async function abrirCheckout() {
     const t = g.reduce((s, d) => s + precioComprador(d.price), 0) + e;
     totalGeneral += t; envioGeneral += e;
     const envTxt = e > 0 ? " · envío " + fmtPrecio(e)
-      : g.some(d => d.shipping_mode === "express") ? " · envío por SURCOGS Express"
+      : g.some(d => d.shipping_mode === "express") ? " · envío por Correo Argentino"
       : g.some(d => d.shipping_mode === "gratis") ? " · envío gratis"
       : g.some(d => d.shipping_mode === "retiro") ? " · retiro en mano" : " · envío a coordinar";
     return `<div class="co-g">
