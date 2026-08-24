@@ -107,6 +107,42 @@ export async function onRequestGet({ request, env }) {
     else format = qty > 1 ? '2×12"' : '12"';
   }
 
+  // Discogs guarda los videos de YouTube que la comunidad le asocio al disco.
+  // Los aprovechamos: buscar el audio tema por tema es la parte mas tediosa de
+  // publicar, y es la razon por la que muchos discos terminan mudos.
+  const norm = (s) => (s || "").toLowerCase()
+    .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, " ").trim();
+
+  const videos = (d.videos || [])
+    .filter((v) => v.uri && /youtu/.test(v.uri))
+    .map((v) => ({ uri: v.uri, title: v.title || "", n: norm(v.title) }));
+
+  const usados = new Set();
+  const audioDe = (titulo) => {
+    const t = norm(titulo);
+    // Titulos como "A", "B2" o "Untitled" matchean con cualquier cosa
+    if (t.length < 4) return "";
+    // Entre todos los que contienen el titulo, el de nombre mas corto es el mas
+    // ajustado: asi "Escape" no se queda con el video de "Escape (Dub Mix)".
+    const i = videos.reduce((mej, v, idx) =>
+      usados.has(idx) || !v.n.includes(t) ? mej
+        : mej < 0 || v.n.length < videos[mej].n.length ? idx : mej, -1);
+    if (i < 0) return "";
+    usados.add(i);
+    return videos[i].uri;
+  };
+
+  // Tracklist tal como esta en Discogs (sin encabezados de lado)
+  const tracks = (d.tracklist || [])
+    .filter((t) => t.type_ !== "heading" && t.title)
+    .map((t) => ({
+      position: t.position || "",
+      title: t.title,
+      duration: t.duration || "",
+      audio_url: audioDe(t.title),
+    }));
+
   return guardar(json({
     artist,
     title: d.title || "",
@@ -117,14 +153,13 @@ export async function onRequestGet({ request, env }) {
     genres: [...(d.styles || []), ...(d.genres || [])].slice(0, 3),
     discogs_url: d.uri || link,
     from_master: Boolean(mMas),
-    // Tracklist tal como está en Discogs (sin encabezados de lado)
-    tracks: (d.tracklist || [])
-      .filter((t) => t.type_ !== "heading" && t.title)
-      .map((t) => ({
-        position: t.position || "",
-        title: t.title,
-        duration: t.duration || "",
-      })),
+    tracks,
+    // Videos del disco que no pudimos emparejar con ningun tema (suelen ser el
+    // disco entero o un mix). Se los mostramos al vendedor por si quiere usarlos.
+    videos_extra: videos
+      .filter((_, i) => !usados.has(i))
+      .map((v) => ({ uri: v.uri, title: v.title }))
+      .slice(0, 6),
   }));
 }
 
