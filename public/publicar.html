@@ -23,7 +23,7 @@
 <div class="wrap" id="main"></div>
 
 <script type="module">
-import { sb, renderHeader, getUser, getPerfil, GRADOS, toast, fmtPrecio, precioComprador, ADMIN_ID, zonaSelector } from "/js/app.js?v=3";
+import { sb, renderHeader, getUser, getPerfil, GRADOS, toast, fmtPrecio, precioComprador, ADMIN_ID, zonaSelector, authHeaders } from "/js/app.js?v=3";
 renderHeader("publicar");
 const main = document.getElementById("main");
 
@@ -258,7 +258,8 @@ async function init() {
     if (!link) return toast("Pegá primero el link de Discogs", true);
     btn.disabled = true; btn.textContent = "Buscando…";
     try {
-      const r = await fetch("/api/discogs?url=" + encodeURIComponent(link));
+      const r = await fetch("/api/discogs?url=" + encodeURIComponent(link),
+        { headers: await authHeaders() });
       const j = await r.json();
       if (!r.ok) throw new Error(j.error || "Error");
       document.getElementById("artist").value = j.artist || "";
