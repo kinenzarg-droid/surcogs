@@ -271,13 +271,17 @@ async function init() {
       const match = (j.genres || []).map(g => generos.find(x => g.toLowerCase().includes(x.toLowerCase()))).find(Boolean);
       document.getElementById("genre").value = match || "Otro";
       if (j.tracks?.length) {
-        tracks = j.tracks.map(t => ({ ...t, audio_url: "" }));
+        tracks = j.tracks.map(t => ({ ...t }));
         renderTracks();
       }
-      hint.textContent = j.from_master
+      const conAudio = (j.tracks || []).filter(t => t.audio_url).length;
+      const avisoAudio = conAudio
+        ? ` 🎧 <b>${conAudio} de ${j.tracks.length} temas ya quedaron con audio</b>, traídos de Discogs. Los que falten, cargalos con el botón de YouTube.`
+        : "";
+      hint.innerHTML = (j.from_master
         ? `✓ Trajimos la EDICIÓN PRINCIPAL de ese disco${j.year ? " (" + j.year + ")" : ""} — verificá que sea la tuya (sello, año, país) y corregí lo que haga falta.`
-        : `✓ Datos traídos de Discogs${j.genres?.length ? " · " + j.genres.join(", ") : ""}. Revisalos, completá estado, precio y TUS fotos.`;
-      toast("¡Datos completados desde Discogs!");
+        : `✓ Datos traídos de Discogs${j.genres?.length ? " · " + j.genres.join(", ") : ""}. Revisalos, completá estado, precio y TUS fotos.`) + avisoAudio;
+      toast(conAudio ? `¡Listo! ${conAudio} temas con audio incluido` : "¡Datos completados desde Discogs!");
     } catch (e) {
       toast(e.message, true);
     }
