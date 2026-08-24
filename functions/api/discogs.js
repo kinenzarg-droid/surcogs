@@ -140,8 +140,19 @@ export async function onRequestGet({ request, env }) {
       position: t.position || "",
       title: t.title,
       duration: t.duration || "",
-      audio_url: audioDe(t.title),
+      audio_url: "",
     }));
+
+  // Dos pasadas, y el orden importa. Primero el titulo tal cual, para que los
+  // temas mas especificos se lleven su video. Recien despues probamos sin el
+  // parentesis final: el tracklist dice "Tema (Radio Edit)" y el video de
+  // Discogs suele decir solo "Tema", asi que sin esto quedaban mudos.
+  tracks.forEach((t) => { t.audio_url = audioDe(t.title); });
+  tracks.forEach((t) => {
+    if (t.audio_url) return;
+    const base = t.title.replace(/\s*\([^)]*\)\s*$/, "");
+    if (base !== t.title) t.audio_url = audioDe(base);
+  });
 
   return guardar(json({
     artist,
