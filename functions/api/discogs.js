@@ -7,6 +7,18 @@ export async function onRequestGet({ request, env }) {
   const url = new URL(request.url);
   const link = url.searchParams.get("url") || "";
 
+  // Solo para gente logueada. Antes esto estaba abierto: cualquiera que supiera
+  // la direccion podia consultar Discogs con nuestro token y dejarnos sin cuota.
+  // Publicar un disco exige cuenta, asi que consultar Discogs tambien.
+  const auth = request.headers.get("authorization") || "";
+  if (!auth.startsWith("Bearer ")) {
+    return json({ error: "Entrá con tu cuenta para traer datos de Discogs" }, 401);
+  }
+  const quien = await fetch(`${env.SUPABASE_URL}/auth/v1/user`, {
+    headers: { apikey: env.SUPABASE_SERVICE_ROLE_KEY, Authorization: auth },
+  });
+  if (!quien.ok) return json({ error: "Tu sesión venció, volvé a entrar" }, 401);
+
   // Los datos de un disco en Discogs no cambian. Guardamos la respuesta ya
   // armada por 30 días: así consultar dos veces el mismo disco (o reintentar
   // después de un 429) no gasta ni una consulta de la cuota.
@@ -41,9 +53,12 @@ export async function onRequestGet({ request, env }) {
   let cuota = {};
   const fetchDg = async (u) => {
     let r = await fetch(u, { headers });
-    // La cuota de Discogs es por minuto: si nos limita, esperamos cada vez más.
-    for (const espera of [2000, 4000, 8000]) {
+    // La cuota de Discogs es por minuto. Reintentamos solo si el 429 parece
+    // pasajero: si Discogs ya dijo que no queda nada, insistir gasta tres
+    // consultas mas para nada y empeora el problema en vez de arreglarlo.
+    for (const espera of [2000, 4000]) {
       if (r.status !== 429) break;
+      if (r.headers.get("X-Discogs-Ratelimit-Remaining") === "0") break;
       await new Promise((res) => setTimeout(res, espera));
       r = await fetch(u, { headers });
     }
