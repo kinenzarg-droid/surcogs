@@ -149,19 +149,38 @@ function renderAuth() {
     const btn = document.getElementById("btn-reg-go");
     btn.disabled = true; btn.textContent = "Creando…";
     const v = (id) => document.getElementById(id).value.trim();
-    const { data, error } = await sb.auth.signUp({ email: v("r-email"), password: document.getElementById("r-pass").value });
+    // Los datos del perfil viajan como metadatos del usuario: el perfil lo crea
+    // un disparador en la base. Antes lo insertaba el navegador y fallaba, porque
+    // signUp no devuelve sesión cuando la cuenta necesita confirmarse por mail.
+    const { data, error } = await sb.auth.signUp({
+      email: v("r-email"),
+      password: document.getElementById("r-pass").value,
+      options: {
+        data: {
+          name: v("r-name"),
+          whatsapp: v("r-cel") || null,
+          zona: v("r-zona") || null,
+          localidad: v("r-loc") || null,
+        },
+      },
+    });
     if (error) { toast(error.message, true); btn.disabled = false; btn.textContent = "Crear mi cuenta"; return; }
-    // Crear el perfil en el mismo paso
-    if (data.user) {
-      const { error: e2 } = await sb.from("profiles").insert({
-        id: data.user.id, name: v("r-name"),
-        zona: v("r-zona") || null, localidad: v("r-loc") || null,
-        whatsapp: v("r-cel") || null,
-      });
-      if (e2) { toast(e2.message, true); btn.disabled = false; btn.textContent = "Crear mi cuenta"; return; }
+
+    modal.style.display = "none";
+    // Sin sesión = falta confirmar el mail. Hay que decirlo, si no el que se
+    // registra queda mirando una pantalla que no cambió y cree que falló.
+    if (!data.session) {
+      main.innerHTML = `
+        <div class="panel" style="text-align:center;max-width:460px;margin:40px auto">
+          <div style="font-size:40px;line-height:1">📬</div>
+          <h1 style="margin:10px 0 8px">Revisá tu mail</h1>
+          <p class="sub" style="line-height:1.6">Te mandamos un mensaje a <b>${v("r-email")}</b>
+            para confirmar la cuenta. Tocá el link y ya podés empezar a publicar.</p>
+          <p class="hint" style="margin-top:14px">Si no lo ves, fijate en spam.</p>
+        </div>`;
+      return;
     }
     toast("¡Cuenta creada! Bienvenido a SURCOGS");
-    modal.style.display = "none";
     init();
   };
 }
