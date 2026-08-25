@@ -5,6 +5,27 @@
 // sola vez y la plata entra a SURCOGS. Por eso todo lo que sigue (paquetes,
 // avisos, mails) se hace agrupado por vendedor, que es la unidad de entrega.
 import { notificar } from "./_notificar.js";
+
+// Que el vendedor lea en el mail como quiere recibirlo el comprador. Antes le
+// llegaba un texto generico y la forma de entrega no aparecia por ningun lado:
+// el dato quedaba guardado en la orden y no lo veia nadie.
+function entregaVendedor(o) {
+  if (o?.entrega === "correo") {
+    const datos = [
+      o.buyer_name,
+      o.buyer_addr,
+      [o.buyer_localidad, o.buyer_cp && "CP " + o.buyer_cp].filter(Boolean).join(" · "),
+      o.buyer_phone,
+    ].filter(Boolean).join("<br>");
+    return `<p style="background:#fff6e8;border-radius:6px;padding:12px 14px;color:#6b4a1a">
+      📦 <b>El comprador pidió envío por Correo Argentino.</b> Embalá el disco y llevalo a
+      cualquier sucursal que reciba paquetes. Datos para la etiqueta:</p>
+      <p style="font-size:13.5px;line-height:1.6;padding-left:14px">${datos}</p>`;
+  }
+  return `<p style="background:#f0f7f3;border-radius:6px;padding:12px 14px;color:#3c5a4a">
+    🤝 <b>El comprador eligió coordinar la entrega con vos.</b> Escribile hoy y arreglen
+    punto de encuentro o envío.</p>`;
+}
 import { avisoAdmin } from "./_avisoAdmin.js";
 
 export async function onRequest({ request, env }) {
@@ -24,8 +45,8 @@ export async function onRequest({ request, env }) {
     // abajo se usan para armar los paquetes.
     const filtro = purchaseId ? `purchase_id=eq.${purchaseId}` : `id=eq.${orderId}`;
     const ords = await sel(env, "orders",
-      `${filtro}&select=id,seller_id,record_id,status,amount,fee,monto_vendedor,shipping_cost,` +
-      `buyer_name,buyer_phone,buyer_addr,buyer_zona,buyer_localidad,buyer_email`);
+      `${filtro}&select=id,seller_id,record_id,status,amount,fee,monto_vendedor,shipping_cost,entrega,` +
+      `buyer_name,buyer_phone,buyer_addr,buyer_zona,buyer_localidad,buyer_cp,buyer_email`);
     if (!ords.length) return ok;
     if (ords.every((o) => o.status === "pagada")) return ok;
 
@@ -113,11 +134,8 @@ export async function onRequest({ request, env }) {
           <h2>¡Felicitaciones, vendiste!</h2>
           <p>${lista}</p>
           <p>El pago ya está confirmado y guardado por SURCOGS.</p>
-          <p><b>Comprador:</b> ${g.ords[0].buyer_email || "no dejó email"}<br>
-          Escribile hoy para coordinar la entrega: punto de encuentro o envío.</p>
-          <p style="color:#555;font-size:13px">🚚 <b>SURCOGS Express.</b> Si vos y el comprador
-          están en AMBA, respondé este mail y lo coordinamos: pasamos a retirar el disco por tu
-          casa y lo entregamos. No tenés que ir hasta el correo.</p>
+          <p><b>Comprador:</b> ${g.ords[0].buyer_email || "no dejó email"}</p>
+          ${entregaVendedor(g.ords[0])}
           <p style="color:#555;font-size:13px">💰 <b>Cuándo cobrás.</b> Te transferimos a tu alias
           dentro de las 48hs hábiles de que el comprador confirme que recibió el disco, o a los
           10 días del envío si no hay reclamo. Recibís tu precio completo: las comisiones las paga
@@ -149,9 +167,11 @@ export async function onRequest({ request, env }) {
             ? `Tus discos son de <b>${sellerIds.length} vendedores</b>, así que vas a coordinar
                una entrega con cada uno. Los datos de todos están en Mis compras.`
             : "El vendedor ya está avisado y te va a escribir para coordinar la entrega."}</p>
-          <p style="color:#555;font-size:13px">🚚 <b>¿Están los dos en AMBA?</b> Respondé este
-            mail y coordinamos la entrega con <b>SURCOGS Express</b>: retiramos el disco por la
-            casa del vendedor y te lo llevamos.</p>
+          ${ords.every((o) => o.entrega === "correo")
+            ? `<p style="color:#555;font-size:13px">📦 <b>Va por Correo Argentino.</b> El vendedor
+                 lo despacha en los próximos días y te llega a la dirección que dejaste. Te
+                 escribimos con el costo del envío antes de despacharlo.</p>`
+            : ""}
           <p style="background:#f0f7f3;border-radius:6px;padding:12px 14px;color:#3c5a4a">
             🛡 <b>Tu plata está protegida.</b> El vendedor cobra recién cuando nos confirmes
             que recibiste el disco. Si en 10 días no nos decís nada y no hubo reclamo,

@@ -90,7 +90,7 @@ export async function onRequestPost({ request, env }) {
 // Mercado Pago. Sin esto los discos volvían al catálogo a las 24hs.
 async function confirmarTransferencia(env, purchaseId) {
   const ords = await sel(env, "orders",
-    `purchase_id=eq.${purchaseId}&select=id,record_id,seller_id,status,buyer_email,rating_token,monto_vendedor`);
+    `purchase_id=eq.${purchaseId}&select=id,record_id,seller_id,status,buyer_email,rating_token,monto_vendedor,entrega`);
   if (!Array.isArray(ords) || !ords.length) return json({ error: "No encontré esa compra" }, 404);
   if (ords.every((o) => o.status !== "reservado")) return json({ error: "Esa compra ya estaba confirmada" }, 409);
 
@@ -111,7 +111,9 @@ async function confirmarTransferencia(env, purchaseId) {
       user_id: sellerId,
       tipo: "venta",
       titulo: "¡Vendiste un disco!",
-      detalle: "Coordiná la entrega con el comprador. Cobrás cuando confirme que lo recibió.",
+      detalle: ords.find((o) => o.seller_id === sellerId)?.entrega === "correo"
+        ? "El comprador pidió Correo Argentino. Los datos para la etiqueta están en el mail."
+        : "Coordiná la entrega con el comprador. Cobrás cuando confirme que lo recibió.",
       link: "/cuenta.html#ventas",
     });
   }
@@ -132,9 +134,10 @@ async function confirmarTransferencia(env, purchaseId) {
           <h2>¡Listo, recibimos tu transferencia!</h2>
           <p>${lista}</p>
           <p>El vendedor ya está avisado y te va a escribir para coordinar la entrega.</p>
-          <p style="color:#555;font-size:13px">🚚 <b>¿Están los dos en AMBA?</b> Respondé este
-            mail y coordinamos la entrega con <b>SURCOGS Express</b>: retiramos el disco por la
-            casa del vendedor y te lo llevamos.</p>
+          ${ords.every((o) => o.entrega === "correo")
+            ? `<p style="color:#555;font-size:13px">📦 <b>Va por Correo Argentino.</b> El vendedor
+                 lo despacha en los próximos días y te llega a la dirección que dejaste.</p>`
+            : ""}
           <p style="background:#f0f7f3;border-radius:6px;padding:12px 14px;color:#3c5a4a">
             🛡 <b>Tu plata está protegida.</b> El vendedor cobra recién cuando nos confirmes
             que recibiste el disco. Si en 10 días no nos decís nada y no hubo reclamo,
