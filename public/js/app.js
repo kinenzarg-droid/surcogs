@@ -183,7 +183,7 @@ export async function renderHeader(activo) {
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.5" y2="16.5"/></svg>
         <div class="search-dd" id="hdr-dd"></div>
       </div>
-      <a class="btn-cta" href="${user ? "/publicar.html" : "/vender.html"}">Vender gratis</a>
+      <a class="btn-cta" href="${user ? "/publicar.html" : "/vender.html"}">Vender<span class="cta-mas"> gratis</span></a>
       <div class="hdr-links">
         <a class="campana" href="/carrito.html" id="cart-hdr" title="Tu carrito" aria-label="Tu carrito"
            style="text-decoration:none">
