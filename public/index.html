@@ -499,14 +499,18 @@ async function pintar(mantenerScroll) {
   document.getElementById("empty").style.display = out.length ? "none" : "block";
 
   // paginador
-  const nums = Array.from({ length: totalPaginas }, (_, n) => n + 1)
-    .filter(n => n === 1 || n === totalPaginas || Math.abs(n - pagina) <= 2);
+  // En el celular no entran tantos numeros: con la ventana de 2 el paginador se
+      // partia en cuatro filas. Menos vecinos y las flechas sin texto lo dejan en una.
+      const angosto = window.matchMedia("(max-width: 680px)").matches;
+      const vecinos = angosto ? 1 : 2;
+      const nums = Array.from({ length: totalPaginas }, (_, n) => n + 1)
+    .filter(n => n === 1 || n === totalPaginas || Math.abs(n - pagina) <= vecinos);
   let ult = 0;
   document.getElementById("pager").innerHTML = totalPaginas > 1 ? `
-    <button ${pagina === 1 ? "disabled" : ""} data-pag="${pagina - 1}">‹ Anterior</button>
+    <button ${pagina === 1 ? "disabled" : ""} data-pag="${pagina - 1}">${angosto ? "‹" : "‹ Anterior"}</button>
     ${nums.map(n => { const gap = n - ult > 1 ? `<span class="info">…</span>` : ""; ult = n;
       return gap + `<button class="${n === pagina ? "on" : ""}" data-pag="${n}">${n}</button>`; }).join("")}
-    <button ${pagina === totalPaginas ? "disabled" : ""} data-pag="${pagina + 1}">Siguiente ›</button>
+    <button ${pagina === totalPaginas ? "disabled" : ""} data-pag="${pagina + 1}">${angosto ? "›" : "Siguiente ›"}</button>
     <span class="info">${out.length} discos</span>` : "";
   document.querySelectorAll("#pager [data-pag]").forEach(b => b.onclick = () => {
     pagina = Number(b.dataset.pag);
