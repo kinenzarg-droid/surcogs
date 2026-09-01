@@ -43,6 +43,7 @@
 .k-link:hover { color: var(--acc) }
 .k-link .n { flex: 1; min-width: 0 }
 .k-entrega { padding: 12px 15px; border-bottom: 1px solid var(--line); background: #fafafa }
+.k-op-fija { font-size: 13.5px; line-height: 1.45 }
 .k-elab { font-size: 12.5px; color: var(--dim); margin-bottom: 8px }
 .k-op { display: flex; gap: 9px; align-items: flex-start; font-size: 13.5px; cursor: pointer;
   padding: 6px 0; line-height: 1.45 }
@@ -80,9 +81,6 @@ const opciones = (g) => [
   { k: "coordinar", ico: "🤝", tit: "A coordinar con el vendedor",
     det: "Arreglan entre ustedes: punto de encuentro o envío.",
     hay: g.every((d) => d.envio_coordinar !== false) },
-  { k: "correo", ico: "📦", tit: "Envío por Correo Argentino",
-    det: "El vendedor lo despacha y te llega a tu casa. Te escribimos con el costo antes de despacharlo.",
-    hay: g.every((d) => d.envio_correo !== false) },
 ].filter((o) => o.hay);
 
 // Qué eligió el comprador para cada vendedor.
@@ -144,13 +142,9 @@ function pintar() {
       <div class="k-vend">
         <div class="k-vh">Vende <b><a href="/perfil.html?id=${sid}">${esc(nombreVend(sid))}</a></b></div>
         <div class="k-entrega">
-          <div class="k-elab">¿Cómo querés recibirlo?</div>
-          ${ops.length ? ops.map((o) => `
-            <label class="k-op">
-              <input type="radio" name="ent-${sid}" value="${o.k}" ${elegido[sid] === o.k ? "checked" : ""}
-                data-sid="${sid}">
-              <span>${o.ico} <b>${o.tit}</b><br><span class="hint">${o.det}</span></span>
-            </label>`).join("")
+          <div class="k-elab">Entrega</div>
+          ${ops.length ? `<div class="k-op-fija">${ops[0].ico} <b>${ops[0].tit}</b><br>
+            <span class="hint">${ops[0].det}</span></div>`
           : `<p class="hint" style="color:var(--err);margin:0">Estos discos tienen formas de entrega
              distintas entre sí. Compralos por separado y elegí la que quieras en cada uno.</p>`}
         </div>
