@@ -294,9 +294,19 @@ async function renderPanel(user, perfil) {
             <strong>${v.records ? v.records.artist + " – " + v.records.title : "Disco"}</strong><br>
             <span class="hint">${fmtPrecio(v.amount)} · comisión ${fmtPrecio(v.fee)} · ${new Date(v.created_at).toLocaleDateString("es-AR")}
             · ${v.entregado_at ? "✅ Entregado" : "📦 Esperando la entrega"}
-            ${v.buyer_email ? " · comprador: " + v.buyer_email : ""}</span>
+              </span>
+            <div style="margin-top:6px;font-size:12.5px">
+              ${v.buyer_name ? `<b>${esc(v.buyer_name)}</b>` : ""}${v.buyer_localidad
+                ? ` · <span class="hint">${esc(v.buyer_localidad)}</span>` : ""}
+              ${v.buyer_name || v.buyer_localidad ? "<br>" : ""}
+              ${v.buyer_phone ? `<a href="https://wa.me/${(v.buyer_phone || "").replace(/\D/g, "").replace(/^(?!54)/, "54")}"
+                target="_blank" rel="noopener" style="color:var(--acc)">💬 ${esc(v.buyer_phone)}</a>` : ""}
+              ${v.buyer_phone && v.buyer_email ? " · " : ""}
+              ${v.buyer_email ? `<a href="mailto:${esc(v.buyer_email)}" style="color:var(--acc)">✉ ${esc(v.buyer_email)}</a>` : ""}
+              ${!v.buyer_phone && !v.buyer_email
+                ? `<span class="hint">El comprador no dejó datos de contacto</span>` : ""}
+            </div>
           </div>
-          ${v.buyer_email ? `<a class="btn small" href="mailto:${v.buyer_email}?subject=${encodeURIComponent("Tu compra en SURCOGS")}&body=${encodeURIComponent("¡Hola! Soy " + perfil.name + ", me compraste " + (v.records ? v.records.artist + " – " + v.records.title : "un disco") + " en SURCOGS. ¿Coordinamos la entrega? Puedo ofrecerte punto de encuentro o envío. El disco va embalado en cartón rígido.")}">✉ Contactar</a>` : ""}
         </div>`).join("") || "<p class='sub'>Todavía no tenés ventas.</p>"}
     </div>`;
 
