@@ -25,7 +25,7 @@ export async function onRequestPost({ request, env }) {
   // en null y se trata como "a coordinar", que es lo que se hacía antes.
   const entregas = (body.entregas && typeof body.entregas === "object") ? body.entregas : {};
   const entregaDe = (sellerId) =>
-    ["coordinar", "express"].includes(entregas[sellerId]) ? entregas[sellerId] : null;
+    ["coordinar", "correo"].includes(entregas[sellerId]) ? entregas[sellerId] : null;
 
   const datosEnvio = {
     buyer_name: body.buyer_name || null,
