@@ -66,6 +66,9 @@ export async function onRequestPost({ request, env }) {
   const b = await request.json().catch(() => ({}));
 
   // --- Confirmar que entró una transferencia ---
+  // --- No pagó: el disco vuelve al catálogo ---
+  if (b.liberar) return liberarReserva(env, b.liberar);
+
   if (b.purchase_id) return confirmarTransferencia(env, b.purchase_id);
 
   // --- Marcar que ya le transferí al vendedor ---
@@ -88,6 +91,30 @@ export async function onRequestPost({ request, env }) {
 
 // Cobré por transferencia: la compra pasa a valer igual que una pagada con
 // Mercado Pago. Sin esto los discos volvían al catálogo a las 24hs.
+// El comprador avisa que no va a pagar: no tiene sentido dejar el disco 24hs
+// fuera del catalogo esperando una transferencia que no va a llegar.
+async function liberarReserva(env, purchaseId) {
+  const ords = await sel(env, "orders",
+    `purchase_id=eq.${purchaseId}&select=id,record_id,status`);
+  if (!ords.length) return json({ error: "No encontré esa compra" }, 404);
+  if (ords.every((o) => o.status !== "reservado"))
+    return json({ error: "Esa compra ya no está reservada" }, 409);
+
+  for (const o of ords) {
+    await fetch(`${env.SUPABASE_URL}/rest/v1/records?id=eq.${o.record_id}`, {
+      method: "PATCH",
+      headers: H(env),
+      body: JSON.stringify({ status: "disponible", reservado_hasta: null }),
+    });
+  }
+  await fetch(`${env.SUPABASE_URL}/rest/v1/orders?purchase_id=eq.${purchaseId}`, {
+    method: "PATCH",
+    headers: H(env),
+    body: JSON.stringify({ status: "vencida" }),
+  });
+  return json({ ok: true, discos: ords.length });
+}
+
 async function confirmarTransferencia(env, purchaseId) {
   const ords = await sel(env, "orders",
     `purchase_id=eq.${purchaseId}&select=id,record_id,seller_id,status,buyer_email,rating_token,monto_vendedor,entrega`);
