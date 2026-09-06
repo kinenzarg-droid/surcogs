@@ -68,6 +68,8 @@ const cardReserva = (g) => `
       <div style="text-align:right">
         <div class="mt">${pesos(g.total)}</div>
         <button class="btn small" onclick="cobrado('${g.purchase_id}',this)">Ya me transfirió</button>
+        <button class="btn small ghost" onclick="liberar('${g.purchase_id}',this)"
+          style="margin-left:6px">No pagó</button>
       </div>
     </div>
   </div>`;
@@ -131,6 +133,20 @@ window.copiar = (el) => {
 // Los onclick del HTML buscan las funciones en window, pero este script es un
 // módulo y tiene su propio scope. Sin esto, los botones no hacen nada.
 window.pagar = pagar;
+// Cuando el comprador avisa que se arrepintio, no hay por que dejar el disco
+// 24hs fuera del catalogo esperando una transferencia que no va a llegar.
+async function liberar(purchase_id, btn) {
+  if (!confirm("¿El comprador no va a pagar? El disco vuelve al catálogo ahora mismo.")) return;
+  btn.disabled = true; btn.textContent = "Liberando…";
+  const r = await fetch("/api/liquidaciones", {
+    method: "POST",
+    headers: await authHeaders(),
+    body: JSON.stringify({ liberar: purchase_id }),
+  });
+  r.ok ? cargar() : (btn.disabled = false, btn.textContent = "No pagó");
+}
+window.liberar = liberar;
+
 window.cobrado = cobrado;
 
 // Sin sesión de admin no tiene sentido ni pedir los datos.
