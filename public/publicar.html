@@ -124,19 +124,7 @@ async function init() {
           <input id="cp" placeholder="1688" inputmode="numeric" required></div>
       </div>
       <p class="hint" id="hint-despacho">Con tu código postal calculamos el envío a cada comprador. La dirección va en la etiqueta del envío y no se muestra en la publicación.</p>
-      <label>¿Cómo se lo hacés llegar? *</label>
-      <div style="display:flex;flex-direction:column;gap:9px;margin-bottom:6px">
-        <label style="display:flex;gap:9px;align-items:flex-start;font-weight:400;cursor:pointer">
-          <input type="checkbox" id="e-coordinar" checked style="width:auto;margin:2px 0 0">
-          <span>🤝 <b>A coordinar con el comprador</b><br>
-            <span class="hint">Se lo entregás en mano o lo despachás como prefieran los dos.</span></span></label>
-        <label style="display:flex;gap:9px;align-items:flex-start;font-weight:400;cursor:pointer">
-          <input type="checkbox" id="e-correo" checked style="width:auto;margin:2px 0 0">
-          <span>📦 <b>Envío por Correo Argentino</b><br>
-            <span class="hint">Lo llevás a una sucursal y Correo se encarga del resto. Llega a todo el país
-            y lo paga el comprador.</span></span></label>
-      </div>
-      <p class="hint">Dejá las dos tildadas si te da igual: así el comprador elige la que le queda cómoda y tu disco no pierde ventas.</p>
+      <p class="hint" style="margin-bottom:14px">🤝 <b>La entrega la coordinás con el comprador.</b> Se lo entregás en mano o lo despachan como prefieran los dos.</p>
       <label>Temas (se completan solos desde Discogs, o cargalos a mano)</label>
       <p class="hint" style="margin:-4px 0 10px">🎧 <b>Para que se pueda escuchar:</b> al lado de cada tema tenés el botón de
       YouTube. Tocalo y se abre YouTube <b>ya buscando el nombre del artista más el del tema</b>, sin que escribas nada.
@@ -208,8 +196,7 @@ async function init() {
     set("genre", editRec.genre || "Techno");
     set("cm", editRec.condition_media);
     set("audio", editRec.audio_url); set("desc", editRec.description);
-    document.getElementById("e-coordinar").checked = editRec.envio_coordinar !== false;
-    document.getElementById("e-correo").checked = editRec.envio_correo !== false;
+      // Sin casillas de envio: todos los discos se entregan a coordinar.
   }
 
   // ---- Tracklist con audio por tema ----
@@ -312,8 +299,8 @@ async function init() {
         genre: v("genre"),
         condition_media: v("cm"), condition_sleeve: v("cm"),   // se guarda igual: la tapa ya no se pide
         zona: v("zona") || null, localidad: v("loc") || null,
-        envio_coordinar: document.getElementById("e-coordinar").checked,
-        envio_correo: document.getElementById("e-correo").checked,
+        envio_coordinar: true,
+        envio_correo: false,
         description: v("desc") || null,
         tracks: tracks.filter(t => (t.title || "").trim()).map(t => ({
           position: (t.position || "").trim(),
