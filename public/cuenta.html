@@ -12,6 +12,13 @@
 <link rel="apple-touch-icon" href="/icono-192.png">
 <link rel="stylesheet" href="/css/style.css">
 <style>#compras,#ventas{scroll-margin-top:90px}</style>
+// Declarada como funcion y no como const: asi esta disponible apenas arranca
+// el script, sin importar en que orden corran las cosas.
+function textoPlano(s) {
+  return String(s ?? "").replace(/[&<>"']/g, (c) =>
+    ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+}
+
 <script src="/js/config.js"></script>
 </head>
 <body>
@@ -296,13 +303,13 @@ async function renderPanel(user, perfil) {
             · ${v.entregado_at ? "✅ Entregado" : "📦 Esperando la entrega"}
               </span>
             <div style="margin-top:6px;font-size:12.5px">
-              ${v.buyer_name ? `<b>${esc(v.buyer_name)}</b>` : ""}${v.buyer_localidad
-                ? ` · <span class="hint">${esc(v.buyer_localidad)}</span>` : ""}
+              ${v.buyer_name ? `<b>${textoPlano(v.buyer_name)}</b>` : ""}${v.buyer_localidad
+                ? ` · <span class="hint">${textoPlano(v.buyer_localidad)}</span>` : ""}
               ${v.buyer_name || v.buyer_localidad ? "<br>" : ""}
               ${v.buyer_phone ? `<a href="https://wa.me/${(v.buyer_phone || "").replace(/\D/g, "").replace(/^(?!54)/, "54")}"
-                target="_blank" rel="noopener" style="color:var(--acc)">💬 ${esc(v.buyer_phone)}</a>` : ""}
+                target="_blank" rel="noopener" style="color:var(--acc)">💬 ${textoPlano(v.buyer_phone)}</a>` : ""}
               ${v.buyer_phone && v.buyer_email ? " · " : ""}
-              ${v.buyer_email ? `<a href="mailto:${esc(v.buyer_email)}" style="color:var(--acc)">✉ ${esc(v.buyer_email)}</a>` : ""}
+              ${v.buyer_email ? `<a href="mailto:${textoPlano(v.buyer_email)}" style="color:var(--acc)">✉ ${textoPlano(v.buyer_email)}</a>` : ""}
               ${!v.buyer_phone && !v.buyer_email
                 ? `<span class="hint">El comprador no dejó datos de contacto</span>` : ""}
             </div>
