@@ -12,13 +12,6 @@
 <link rel="apple-touch-icon" href="/icono-192.png">
 <link rel="stylesheet" href="/css/style.css">
 <style>#compras,#ventas{scroll-margin-top:90px}</style>
-// Declarada como funcion y no como const: asi esta disponible apenas arranca
-// el script, sin importar en que orden corran las cosas.
-function textoPlano(s) {
-  return String(s ?? "").replace(/[&<>"']/g, (c) =>
-    ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
-}
-
 <script src="/js/config.js"></script>
 </head>
 <body>
@@ -27,6 +20,13 @@ function textoPlano(s) {
 
 <script type="module">
 import { sb, renderHeader, getUser, getPerfil, fmtPrecio, fotoPrincipal, toast, zonaSelector, authHeaders } from "/js/app.js?v=3";
+
+// Declarada como funcion y no como const: asi esta disponible apenas arranca
+// el script, sin importar en que orden corran las cosas.
+function textoPlano(s) {
+  return String(s ?? "").replace(/[&<>"']/g, (c) =>
+    ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+}
 renderHeader("cuenta");
 const main = document.getElementById("main");
 
