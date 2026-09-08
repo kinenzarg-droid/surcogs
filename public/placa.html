@@ -1,0 +1,255 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SURCOGS — Placa para Instagram</title>
+<meta name="robots" content="noindex">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/css/style.css">
+<script src="/js/config.js"></script>
+<style>
+.pl-top { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin: 22px 0 16px }
+.pl-top h1 { font-size: 24px; margin: 0; flex: none }
+.pl-top input { flex: 1; min-width: 190px; padding: 9px 12px; border: 1px solid var(--line);
+  border-radius: 7px; background: #fff; font-family: inherit; font-size: 14px; color: var(--txt) }
+.pl-cols { display: grid; grid-template-columns: 300px 1fr; gap: 22px; align-items: start }
+.pl-lista { max-height: 74vh; overflow-y: auto; border: 1px solid var(--line);
+  border-radius: 9px; background: #fff }
+.pl-it { display: flex; gap: 10px; padding: 9px 10px; cursor: pointer; border-bottom: 1px solid var(--line);
+  align-items: center }
+.pl-it:last-child { border-bottom: 0 }
+.pl-it:hover { background: #faf9f7 }
+.pl-it.on { background: #111 }
+.pl-it.on .pl-a, .pl-it.on .pl-t { color: #fff }
+.pl-it img { width: 42px; height: 42px; object-fit: cover; border-radius: 3px; flex: none; background: #eee }
+.pl-a { font-weight: 600; font-size: 13px; line-height: 1.25 }
+.pl-t { color: var(--dim); font-size: 12px; line-height: 1.3 }
+.pl-vista { position: sticky; top: 16px }
+.pl-marco { background: #f2f0ed; border: 1px solid var(--line); border-radius: 10px; padding: 16px;
+  display: flex; flex-direction: column; align-items: center; gap: 14px }
+#lienzo { width: 100%; max-width: 420px; height: auto; border-radius: 6px; display: block }
+.pl-acc { display: flex; gap: 9px; flex-wrap: wrap; justify-content: center }
+.pl-vacio { color: var(--dim); font-size: 14px; padding: 40px 16px; text-align: center; line-height: 1.6 }
+.pl-copy { width: 100%; max-width: 420px; background: #fff; border: 1px solid var(--line);
+  border-radius: 7px; padding: 12px; font-size: 13px; line-height: 1.55; color: var(--txt);
+  font-family: inherit; resize: vertical; min-height: 92px }
+.pl-hint { color: var(--dim); font-size: 12.5px; line-height: 1.5; max-width: 420px }
+@media (max-width: 860px) {
+  .pl-cols { grid-template-columns: 1fr }
+  .pl-lista { max-height: 300px }
+  .pl-vista { position: static }
+}
+</style>
+</head>
+<body>
+<div id="header"></div>
+<div class="wrap">
+
+  <div class="pl-top">
+    <h1>Placa para Instagram</h1>
+    <input id="buscar" type="search" placeholder="Buscar por artista, disco o sello" autocomplete="off">
+  </div>
+
+  <div class="pl-cols">
+    <div class="pl-lista" id="lista"><p class="pl-vacio">Cargando discos…</p></div>
+
+    <div class="pl-vista">
+      <div class="pl-marco">
+        <canvas id="lienzo" width="1080" height="1080"></canvas>
+        <div class="pl-acc">
+          <button class="btn" id="bajar" disabled>Descargar la placa</button>
+          <button class="btn sec" id="copiar" disabled>Copiar el texto</button>
+        </div>
+        <textarea class="pl-copy" id="copy" placeholder="Elegí un disco de la lista"></textarea>
+        <p class="pl-hint">Bajás el PNG, lo subís desde el celular y ahí le ponés el audio
+          con el buscador de Instagram. Usá siempre un tema del catálogo de la app: los que
+          subís por afuera te los pueden silenciar por derechos de autor.</p>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script type="module">
+import { sb, renderHeader, fmtPrecio, precioComprador, precioTransferencia,
+  fotoPrincipal, getUser, toast } from "/js/app.js?v=3";
+
+renderHeader("");
+
+const lienzo = document.getElementById("lienzo");
+const ctx = lienzo.getContext("2d");
+const L = 1080;
+let discos = [], elegido = null;
+
+// La cuenta de Instagram es una sola y es de Nico: esta pantalla no tiene por
+// que verla nadie mas.
+const user = await getUser();
+if (!user) {
+  document.querySelector(".pl-cols").innerHTML =
+    `<p class="pl-vacio">Entrá con tu cuenta para usar esta pantalla.</p>`;
+} else {
+  cargar();
+}
+
+async function cargar() {
+  const { data, error } = await sb.from("records")
+    .select("id,artist,title,label,year,price,photos,status")
+    .eq("status", "disponible")
+    .order("created_at", { ascending: false });
+  if (error) { toast(error.message, true); return; }
+  discos = data || [];
+  pintarLista();
+}
+
+function pintarLista() {
+  const q = document.getElementById("buscar").value.trim().toLowerCase();
+  const vis = discos.filter(d =>
+    !q || `${d.artist} ${d.title} ${d.label || ""}`.toLowerCase().includes(q));
+  const lista = document.getElementById("lista");
+  if (!vis.length) { lista.innerHTML = `<p class="pl-vacio">Ningún disco con eso.</p>`; return; }
+  lista.innerHTML = vis.map(d => `
+    <div class="pl-it ${elegido && elegido.id === d.id ? "on" : ""}" data-id="${d.id}">
+      <img src="${fotoPrincipal(d) || ""}" alt="" loading="lazy">
+      <div><div class="pl-a">${esc(d.artist)}</div><div class="pl-t">${esc(d.title)}</div></div>
+    </div>`).join("");
+  lista.querySelectorAll("[data-id]").forEach(el => {
+    el.onclick = () => elegir(discos.find(d => String(d.id) === el.dataset.id));
+  });
+}
+
+document.getElementById("buscar").addEventListener("input", pintarLista);
+
+const esc = (s) => String(s ?? "").replace(/[<>&]/g, c => ({ "<": "&lt;", ">": "&gt;", "&": "&amp;" }[c]));
+
+async function elegir(d) {
+  if (!d) return;
+  elegido = d;
+  pintarLista();
+  document.getElementById("copy").value = textoDelPosteo(d);
+  document.getElementById("bajar").disabled = false;
+  document.getElementById("copiar").disabled = false;
+  await dibujar(d);
+}
+
+function textoDelPosteo(d) {
+  return `${d.artist} — ${d.title}\n`
+    + (d.label ? `${d.label}${d.year ? " · " + d.year : ""}\n` : "")
+    + `\n${fmtPrecio(precioComprador(d.price))}\n`
+    + `${fmtPrecio(precioTransferencia(d.price))} pagando por transferencia (10% OFF)\n\n`
+    + `Disponible en surcogs.com.ar\n`
+    + `Tu plata queda protegida: el vendedor cobra cuando confirmás que lo recibiste.`;
+}
+
+// El texto de una tapa puede ser larguisimo. En vez de cortarlo con puntos
+// suspensivos, achicamos la tipografia hasta que entre: se lee todo igual.
+function escribirAjustado(txt, x, y, anchoMax, tamInicial, peso, color) {
+  let tam = tamInicial;
+  do {
+    ctx.font = `${peso} ${tam}px -apple-system, "Segoe UI", Helvetica, Arial, sans-serif`;
+    if (ctx.measureText(txt).width <= anchoMax) break;
+    tam -= 2;
+  } while (tam > 20);
+  ctx.fillStyle = color;
+  ctx.fillText(txt, x, y);
+  return tam;
+}
+
+async function dibujar(d) {
+  ctx.fillStyle = "#0d0d0d";
+  ctx.fillRect(0, 0, L, L);
+
+  const M = 76;                    // margen
+  const ladoTapa = 600;
+  const xTapa = (L - ladoTapa) / 2;
+  const yTapa = 168;
+
+  ctx.textBaseline = "alphabetic";
+  ctx.font = `500 26px -apple-system, "Segoe UI", Helvetica, Arial, sans-serif`;
+  ctx.fillStyle = "#ffffff";
+  ctx.letterSpacing = "9px";
+  ctx.fillText("SURCOGS", M, 108);
+  ctx.letterSpacing = "0px";
+
+  // La tapa viaja por nuestro proxy: si la pidieramos directo a Discogs el
+  // navegador no nos dejaria exportar el PNG despues.
+  const url = fotoPrincipal(d);
+  let img = null;
+  if (url) {
+    try { img = await cargarImagen("/api/tapa?u=" + encodeURIComponent(url)); }
+    catch { img = null; }
+  }
+
+  if (img) {
+    // Recorte centrado para que una tapa rectangular no salga estirada.
+    const lado = Math.min(img.width, img.height);
+    ctx.drawImage(img, (img.width - lado) / 2, (img.height - lado) / 2, lado, lado,
+      xTapa, yTapa, ladoTapa, ladoTapa);
+  } else {
+    ctx.fillStyle = "#2a2724";
+    ctx.fillRect(xTapa, yTapa, ladoTapa, ladoTapa);
+    ctx.fillStyle = "#5c554c";
+    ctx.font = `400 26px -apple-system, "Segoe UI", Helvetica, Arial, sans-serif`;
+    ctx.fillText("sin foto", xTapa + 30, yTapa + ladoTapa / 2);
+  }
+
+  escribirAjustado(d.artist || "", M, 852, L - M * 2, 52, 600, "#ffffff");
+  escribirAjustado(d.title || "", M, 902, L - M * 2, 38, 400, "#c9c3ba");
+
+  // El precio que va es el que ve el comprador en el catalogo, no el neto del
+  // vendedor: si en el posteo aparece uno y en la web otro, se cae la confianza.
+  ctx.font = `600 56px -apple-system, "Segoe UI", Helvetica, Arial, sans-serif`;
+  ctx.fillStyle = "#ff5500";
+  ctx.fillText(fmtPrecio(precioComprador(d.price)), M, 976);
+
+  ctx.font = `500 27px -apple-system, "Segoe UI", Helvetica, Arial, sans-serif`;
+  ctx.fillStyle = "#4cd964";
+  ctx.fillText(`${fmtPrecio(precioTransferencia(d.price))} con transferencia · 10% OFF`, M, 1018);
+
+  ctx.font = `400 24px -apple-system, "Segoe UI", Helvetica, Arial, sans-serif`;
+  ctx.fillStyle = "#6f6862";
+  const dir = "surcogs.com.ar";
+  ctx.fillText(dir, L - M - ctx.measureText(dir).width, 976);
+}
+
+function cargarImagen(src) {
+  return new Promise((ok, mal) => {
+    const i = new Image();
+    i.crossOrigin = "anonymous";
+    i.onload = () => ok(i);
+    i.onerror = () => mal(new Error("no cargó"));
+    i.src = src;
+  });
+}
+
+document.getElementById("bajar").onclick = () => {
+  if (!elegido) return;
+  lienzo.toBlob((blob) => {
+    if (!blob) { toast("No se pudo generar la imagen", true); return; }
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = nombreArchivo(elegido);
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+  }, "image/png");
+};
+
+function nombreArchivo(d) {
+  const limpio = `${d.artist}-${d.title}`.toLowerCase()
+    .normalize("NFD").replace(/[̀-ͯ]/g, "")
+    .replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 60);
+  return `surcogs-${limpio || d.id}.png`;
+}
+
+document.getElementById("copiar").onclick = async () => {
+  try {
+    await navigator.clipboard.writeText(document.getElementById("copy").value);
+    toast("Texto copiado");
+  } catch {
+    document.getElementById("copy").select();
+    toast("Copialo con Ctrl+C", true);
+  }
+};
+</script>
+</body>
+</html>
