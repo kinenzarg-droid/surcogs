@@ -173,6 +173,17 @@ function renderAuth() {
     });
     if (error) { toast(error.message, true); btn.disabled = false; btn.textContent = "Crear mi cuenta"; return; }
 
+    // Supabase no da error si el mail ya tiene cuenta: lo hace a proposito,
+    // para no revelarle a cualquiera que direcciones estan registradas. Lo
+    // delata devolviendo la lista de identidades vacia. Sin esto, el que se
+    // registra dos veces ve "Revisá tu mail" y espera un mail que nunca sale.
+    if (data?.user && Array.isArray(data.user.identities) && !data.user.identities.length) {
+      toast("Ese mail ya tiene una cuenta. Entrá con tu contraseña, o tocá \"Olvidé mi contraseña\".", true);
+      btn.disabled = false;
+      btn.textContent = "Crear mi cuenta";
+      return;
+    }
+
     modal.style.display = "none";
     // Sin sesión = falta confirmar el mail. Hay que decirlo, si no el que se
     // registra queda mirando una pantalla que no cambió y cree que falló.
