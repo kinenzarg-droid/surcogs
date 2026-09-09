@@ -24,6 +24,7 @@
 
 <script type="module">
 import { sb, renderHeader, getUser, getPerfil, GRADOS, toast, fmtPrecio, precioComprador, ADMIN_ID, zonaSelector, authHeaders } from "/js/app.js?v=3";
+import { traerDeDiscogs } from "/js/discogs.js?v=1";
 renderHeader("publicar");
 const main = document.getElementById("main");
 
@@ -245,10 +246,21 @@ async function init() {
     if (!link) return toast("Pegá primero el link de Discogs", true);
     btn.disabled = true; btn.textContent = "Buscando…";
     try {
-      const r = await fetch("/api/discogs?url=" + encodeURIComponent(link),
-        { headers: await authHeaders() });
-      const j = await r.json();
-      if (!r.ok) throw new Error(j.error || "Error");
+        // Primero desde el navegador. Discogs limita por direccion de
+        // internet, y la del servidor la comparten miles de sitios: por eso
+        // la cuota aparecia siempre agotada aunque nadie usara SURCOGS.
+        let j;
+        try {
+          j = await traerDeDiscogs(link);
+        } catch (falloNavegador) {
+          // Si el navegador no pudo, probamos por el servidor antes de
+          // darnos por vencidos.
+          const r = await fetch("/api/discogs?url=" + encodeURIComponent(link),
+            { headers: await authHeaders() });
+          const alt = await r.json().catch(() => ({}));
+          if (!r.ok) throw new Error(alt.error || falloNavegador.message);
+          j = alt;
+        }
       document.getElementById("artist").value = j.artist || "";
       document.getElementById("title").value = j.title || "";
       document.getElementById("label").value = j.label || "";
