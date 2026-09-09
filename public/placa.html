@@ -9,6 +9,7 @@
 <link rel="stylesheet" href="/css/style.css">
 <script src="/js/config.js"></script>
 <style>
+.hwh-banner, .marquee, .mq { display: none }
 .pl-top { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin: 22px 0 16px }
 .pl-top h1 { font-size: 24px; margin: 0; flex: none }
 .pl-top input { flex: 1; min-width: 190px; padding: 9px 12px; border: 1px solid var(--line);
@@ -28,7 +29,8 @@
 .pl-vista { position: sticky; top: 16px }
 .pl-marco { background: #f2f0ed; border: 1px solid var(--line); border-radius: 10px; padding: 16px;
   display: flex; flex-direction: column; align-items: center; gap: 14px }
-#lienzo { width: 100%; max-width: 300px; height: auto; border-radius: 6px; display: block }
+#lienzo { height: 66vh; min-height: 420px; width: auto; max-width: 100%;
+  border-radius: 6px; display: block }
 .pl-acc { display: flex; gap: 9px; flex-wrap: wrap; justify-content: center }
 .pl-vacio { color: var(--dim); font-size: 14px; padding: 40px 16px; text-align: center; line-height: 1.6 }
 .pl-copy { width: 100%; max-width: 420px; background: #fff; border: 1px solid var(--line);
