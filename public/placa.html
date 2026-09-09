@@ -137,8 +137,7 @@ function textoDelPosteo(d) {
     + (d.label ? `${d.label}${d.year ? " · " + d.year : ""}\n` : "")
     + `\n${fmtPrecio(precioComprador(d.price))}\n`
     + `${fmtPrecio(precioTransferencia(d.price))} pagando por transferencia (10% OFF)\n\n`
-    + `Disponible en surcogs.com.ar\n`
-    + `Tu plata queda protegida: el vendedor cobra cuando confirmás que lo recibiste.`;
+    + `Disponible en surcogs.com.ar`;
 }
 
 // El texto de una tapa puede ser larguisimo. En vez de cortarlo con puntos
