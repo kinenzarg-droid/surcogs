@@ -163,17 +163,23 @@ async function dibujar(d) {
   ctx.fillStyle = "#0d0d0d";
   ctx.fillRect(0, 0, L, ALTO);
 
-  const M = 76;                    // margen
-  const ladoTapa = 800;
-  const xTapa = (L - ladoTapa) / 2;
-  const yTapa = 200;
-
+  // Instagram a veces muestra la placa entera y a veces la recorta al cuadrado
+  // del medio. Por eso TODO vive dentro de ese cuadrado central: si recorta,
+  // no se pierde nada, y si no recorta, queda aire arriba y abajo.
+  const SEGURO = (ALTO - L) / 2;   // 135px arriba y abajo
+  const centro = L / 2;
+  ctx.textAlign = "center";
   ctx.textBaseline = "alphabetic";
+
   ctx.font = `500 26px -apple-system, "Segoe UI", Helvetica, Arial, sans-serif`;
   ctx.fillStyle = "#ffffff";
   ctx.letterSpacing = "9px";
-  ctx.fillText("SURCOGS", M, 120);
+  ctx.fillText("SURCOGS", centro, SEGURO + 58);
   ctx.letterSpacing = "0px";
+
+  const ladoTapa = 620;
+  const xTapa = (L - ladoTapa) / 2;
+  const yTapa = SEGURO + 105;
 
   // La tapa viaja por nuestro proxy: si la pidieramos directo a Discogs el
   // navegador no nos dejaria exportar el PNG despues.
@@ -194,36 +200,45 @@ async function dibujar(d) {
     ctx.fillRect(xTapa, yTapa, ladoTapa, ladoTapa);
     ctx.fillStyle = "#5c554c";
     ctx.font = `400 26px -apple-system, "Segoe UI", Helvetica, Arial, sans-serif`;
-    ctx.fillText("sin foto", xTapa + 30, yTapa + ladoTapa / 2);
+    ctx.fillText("sin foto", centro, yTapa + ladoTapa / 2);
   }
 
-  escribirAjustado(d.artist || "", M, 1085, L - M * 2, 54, 600, "#ffffff");
-  escribirAjustado(d.title || "", M, 1139, L - M * 2, 40, 400, "#c9c3ba");
+  const anchoMax = L - 120;
+  let y = yTapa + ladoTapa + 72;
+
+  escribirAjustado(d.artist || "", centro, y, anchoMax, 52, 600, "#ffffff");
+  y += 52;
+  escribirAjustado(d.title || "", centro, y, anchoMax, 38, 400, "#c9c3ba");
 
   // Formato y estado: para un coleccionista, un 2x12 sellado y un 12 gastado
   // son dos productos distintos.
   const ficha = [d.format, d.condition_media ? "Estado " + d.condition_media : ""]
     .filter(Boolean).join("  ·  ");
   if (ficha) {
-    ctx.font = `400 28px -apple-system, "Segoe UI", Helvetica, Arial, sans-serif`;
+    y += 44;
+    ctx.font = `400 27px -apple-system, "Segoe UI", Helvetica, Arial, sans-serif`;
     ctx.fillStyle = "#8f887f";
-    ctx.fillText(ficha, M, 1187);
+    ctx.fillText(ficha, centro, y);
   }
 
   // El precio que va es el que ve el comprador en el catalogo, no el neto del
   // vendedor: si en el posteo aparece uno y en la web otro, se cae la confianza.
-  ctx.font = `600 56px -apple-system, "Segoe UI", Helvetica, Arial, sans-serif`;
+  y += 68;
+  ctx.font = `600 58px -apple-system, "Segoe UI", Helvetica, Arial, sans-serif`;
   ctx.fillStyle = "#ff5500";
-  ctx.fillText(fmtPrecio(precioComprador(d.price)), M, 1262);
+  ctx.fillText(fmtPrecio(precioComprador(d.price)), centro, y);
 
+  y += 44;
   ctx.font = `500 27px -apple-system, "Segoe UI", Helvetica, Arial, sans-serif`;
   ctx.fillStyle = "#4cd964";
-  ctx.fillText(`${fmtPrecio(precioTransferencia(d.price))} con transferencia · 10% OFF`, M, 1304);
+  ctx.fillText(`${fmtPrecio(precioTransferencia(d.price))} con transferencia · 10% OFF`, centro, y);
 
+  y += 46;
   ctx.font = `400 24px -apple-system, "Segoe UI", Helvetica, Arial, sans-serif`;
   ctx.fillStyle = "#6f6862";
-  const dir = "surcogs.com.ar";
-  ctx.fillText(dir, L - M - ctx.measureText(dir).width, 1262);
+  ctx.fillText("surcogs.com.ar", centro, y);
+
+  ctx.textAlign = "left";
 }
 
 function cargarImagen(src) {
