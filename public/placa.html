@@ -56,7 +56,7 @@
 
     <div class="pl-vista">
       <div class="pl-marco">
-        <canvas id="lienzo" width="1080" height="1080"></canvas>
+        <canvas id="lienzo" width="1080" height="1350"></canvas>
         <div class="pl-acc">
           <button class="btn" id="bajar" disabled>Descargar la placa</button>
           <button class="btn sec" id="copiar" disabled>Copiar el texto</button>
@@ -79,7 +79,8 @@ renderHeader("");
 
 const lienzo = document.getElementById("lienzo");
 const ctx = lienzo.getContext("2d");
-const L = 1080;
+const L = 1080;        // ancho
+const ALTO = 1350;     // 4:5, el formato que Instagram no recorta
 let discos = [], elegido = null;
 
 // La cuenta de Instagram es una sola y es de Nico: esta pantalla no tiene por
@@ -94,7 +95,7 @@ if (!user) {
 
 async function cargar() {
   const { data, error } = await sb.from("records")
-    .select("id,artist,title,label,year,price,photos,status")
+    .select("id,artist,title,label,year,format,condition_media,price,photos,status")
     .eq("status", "disponible")
     .order("created_at", { ascending: false });
   if (error) { toast(error.message, true); return; }
@@ -135,6 +136,8 @@ async function elegir(d) {
 function textoDelPosteo(d) {
   return `${d.artist} — ${d.title}\n`
     + (d.label ? `${d.label}${d.year ? " · " + d.year : ""}\n` : "")
+    + [d.format, d.condition_media ? "Estado " + d.condition_media : ""]
+        .filter(Boolean).join(" · ") + "\n"
     + `\n${fmtPrecio(precioComprador(d.price))}\n`
     + `${fmtPrecio(precioTransferencia(d.price))} pagando por transferencia (10% OFF)\n\n`
     + `Disponible en surcogs.com.ar`;
@@ -156,18 +159,18 @@ function escribirAjustado(txt, x, y, anchoMax, tamInicial, peso, color) {
 
 async function dibujar(d) {
   ctx.fillStyle = "#0d0d0d";
-  ctx.fillRect(0, 0, L, L);
+  ctx.fillRect(0, 0, L, ALTO);
 
   const M = 76;                    // margen
-  const ladoTapa = 600;
+  const ladoTapa = 800;
   const xTapa = (L - ladoTapa) / 2;
-  const yTapa = 168;
+  const yTapa = 200;
 
   ctx.textBaseline = "alphabetic";
   ctx.font = `500 26px -apple-system, "Segoe UI", Helvetica, Arial, sans-serif`;
   ctx.fillStyle = "#ffffff";
   ctx.letterSpacing = "9px";
-  ctx.fillText("SURCOGS", M, 108);
+  ctx.fillText("SURCOGS", M, 120);
   ctx.letterSpacing = "0px";
 
   // La tapa viaja por nuestro proxy: si la pidieramos directo a Discogs el
@@ -192,23 +195,33 @@ async function dibujar(d) {
     ctx.fillText("sin foto", xTapa + 30, yTapa + ladoTapa / 2);
   }
 
-  escribirAjustado(d.artist || "", M, 852, L - M * 2, 52, 600, "#ffffff");
-  escribirAjustado(d.title || "", M, 902, L - M * 2, 38, 400, "#c9c3ba");
+  escribirAjustado(d.artist || "", M, 1085, L - M * 2, 54, 600, "#ffffff");
+  escribirAjustado(d.title || "", M, 1139, L - M * 2, 40, 400, "#c9c3ba");
+
+  // Formato y estado: para un coleccionista, un 2x12 sellado y un 12 gastado
+  // son dos productos distintos.
+  const ficha = [d.format, d.condition_media ? "Estado " + d.condition_media : ""]
+    .filter(Boolean).join("  ·  ");
+  if (ficha) {
+    ctx.font = `400 28px -apple-system, "Segoe UI", Helvetica, Arial, sans-serif`;
+    ctx.fillStyle = "#8f887f";
+    ctx.fillText(ficha, M, 1187);
+  }
 
   // El precio que va es el que ve el comprador en el catalogo, no el neto del
   // vendedor: si en el posteo aparece uno y en la web otro, se cae la confianza.
   ctx.font = `600 56px -apple-system, "Segoe UI", Helvetica, Arial, sans-serif`;
   ctx.fillStyle = "#ff5500";
-  ctx.fillText(fmtPrecio(precioComprador(d.price)), M, 976);
+  ctx.fillText(fmtPrecio(precioComprador(d.price)), M, 1262);
 
   ctx.font = `500 27px -apple-system, "Segoe UI", Helvetica, Arial, sans-serif`;
   ctx.fillStyle = "#4cd964";
-  ctx.fillText(`${fmtPrecio(precioTransferencia(d.price))} con transferencia · 10% OFF`, M, 1018);
+  ctx.fillText(`${fmtPrecio(precioTransferencia(d.price))} con transferencia · 10% OFF`, M, 1304);
 
   ctx.font = `400 24px -apple-system, "Segoe UI", Helvetica, Arial, sans-serif`;
   ctx.fillStyle = "#6f6862";
   const dir = "surcogs.com.ar";
-  ctx.fillText(dir, L - M - ctx.measureText(dir).width, 976);
+  ctx.fillText(dir, L - M - ctx.measureText(dir).width, 1262);
 }
 
 function cargarImagen(src) {
