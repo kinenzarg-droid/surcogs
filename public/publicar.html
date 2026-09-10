@@ -24,7 +24,7 @@
 
 <script type="module">
 import { sb, renderHeader, getUser, getPerfil, GRADOS, toast, fmtPrecio, precioComprador, ADMIN_ID, zonaSelector, authHeaders } from "/js/app.js?v=3";
-import { traerDeDiscogs } from "/js/discogs.js?v=1";
+import { traerDeDiscogs } from "/js/discogs.js?v=2";
 renderHeader("publicar");
 const main = document.getElementById("main");
 
@@ -135,7 +135,9 @@ async function init() {
       <p class="hint">Los discos que se pueden escuchar se venden bastante más rápido. No hace falta cargar todos los temas: con uno o dos alcanza.</p>
       <button type="button" class="btn small ghost" id="btn-add-track">+ Agregar tema</button>
       <label>Fotos (hasta 4 — tapa, vinilo, etiqueta)</label>
+      <p class="hint" style="margin:-4px 0 8px">La tapa la traemos de Discogs. Sumá fotos de <b>tu</b> ejemplar y tocá una para ponerla primera: esa es la que se ve en el catálogo.</p>
       <input id="fotos" type="file" accept="image/*" multiple>
+      <div id="fotos-box" style="display:flex;gap:9px;flex-wrap:wrap;margin-top:10px"></div>
       <label>Notas (opcional)</label><textarea id="desc" placeholder="Warp leve que no afecta reproducción, edición original US…"></textarea>
       <br><button class="btn" type="submit" id="btn-pub">${editRec ? "Guardar cambios" : "Publicar"}</button>
     </form>`;
@@ -237,6 +239,46 @@ async function init() {
     });
   }
   const esc = (s) => String(s ?? "").replace(/"/g, "&quot;").replace(/</g, "&lt;");
+  // ---- Fotos ---------------------------------------------------------
+  // La tapa la trae Discogs; el vendedor suma las de su ejemplar y decide
+  // cual va primera, que es la que se ve en el catalogo y en la placa.
+  const fotos = ((editRec && editRec.photos) || []).map((u) => ({ tipo: "guardada", url: u }));
+
+  function renderFotos() {
+    const box = document.getElementById("fotos-box");
+    if (!box) return;
+    box.innerHTML = fotos.map((f, i) => `
+      <div style="position:relative;width:80px">
+        <img src="${f.url}" data-i="${i}" class="foto-mini" title="Tocala para ponerla primera"
+          style="width:80px;height:80px;object-fit:cover;border-radius:8px;cursor:pointer;display:block;border:2px solid ${i === 0 ? "var(--acc)" : "#e3ded7"}">
+        ${i === 0 ? `<span style="position:absolute;bottom:4px;left:4px;background:var(--acc);color:#fff;font-size:9px;padding:1px 6px;border-radius:20px">Principal</span>` : ""}
+        <button type="button" class="foto-del" data-i="${i}" title="Sacar esta foto"
+          style="position:absolute;top:-7px;right:-7px;width:21px;height:21px;border-radius:50%;border:0;background:#16130f;color:#fff;cursor:pointer;line-height:1;font-size:12px;padding:0">✕</button>
+      </div>`).join("");
+
+    box.querySelectorAll(".foto-mini").forEach((im) => im.onclick = () => {
+      const i = Number(im.dataset.i);
+      if (i === 0) return;
+      fotos.unshift(fotos.splice(i, 1)[0]);
+      renderFotos();
+    });
+    box.querySelectorAll(".foto-del").forEach((b) => b.onclick = () => {
+      fotos.splice(Number(b.dataset.i), 1);
+      renderFotos();
+    });
+  }
+
+  document.getElementById("fotos").onchange = (e) => {
+    for (const file of [...e.target.files]) {
+      if (fotos.length >= 4) break;
+      fotos.push({ tipo: "archivo", file, url: URL.createObjectURL(file) });
+    }
+    e.target.value = "";
+    renderFotos();
+  };
+
+  renderFotos();
+
   document.getElementById("btn-add-track").onclick = () => {
     tracks.push({ position: "", title: "", duration: "", audio_url: "" });
     renderTracks();
@@ -271,6 +313,16 @@ async function init() {
       document.getElementById("label").value = j.label || "";
       if (j.year) document.getElementById("year").value = j.year;
       document.getElementById("format").value = j.format || '12"';
+      // La tapa entra primera. La mostramos por nuestro proxy porque
+      // i.discogs.com no habilita CORS, y esa misma URL nos sirve
+      // despues para bajarla y guardarla como foto propia.
+      if (j.cover) {
+        const yaEsta = fotos.findIndex((f) => f.tipo === "discogs");
+        if (yaEsta >= 0) fotos.splice(yaEsta, 1);
+        fotos.unshift({ tipo: "discogs", url: "/api/tapa?u=" + encodeURIComponent(j.cover) });
+        if (fotos.length > 4) fotos.length = 4;
+        renderFotos();
+      }
       // Mapear el estilo de Discogs a nuestros géneros
       const generos = ["Techno", "House", "Electro", "Minimal"];
       const match = (j.genres || []).map(g => generos.find(x => g.toLowerCase().includes(x.toLowerCase()))).find(Boolean);
@@ -299,11 +351,22 @@ async function init() {
     btn.disabled = true; btn.textContent = "Publicando…";
     try {
       // subir fotos
-      const files = [...document.getElementById("fotos").files].slice(0, 4);
+      // En el orden que dejo el vendedor. La tapa de Discogs la bajamos y
+      // la guardamos como propia: si manana cambian el link, la
+      // publicacion no se queda sin imagen.
       const photos = [];
-      for (const f of files) {
-        const path = `${user.id}/${Date.now()}-${Math.random().toString(36).slice(2)}.${f.name.split(".").pop()}`;
-        const { error } = await sb.storage.from("records").upload(path, f);
+      for (const f of fotos.slice(0, 4)) {
+        if (f.tipo === "guardada") { photos.push(f.url); continue; }
+        let archivo = f.file;
+        if (!archivo) {
+          const resp = await fetch(f.url);
+          if (!resp.ok) continue;
+          const blob = await resp.blob();
+          archivo = new File([blob], "tapa.jpg", { type: blob.type || "image/jpeg" });
+        }
+        const ext = (archivo.name.split(".").pop() || "jpg").toLowerCase();
+        const path = `${user.id}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+        const { error } = await sb.storage.from("records").upload(path, archivo);
         if (error) throw error;
         photos.push(sb.storage.from("records").getPublicUrl(path).data.publicUrl);
       }
@@ -326,7 +389,7 @@ async function init() {
           audio_url: (t.audio_url || "").trim() || null,
         })),
       };
-      if (photos.length) datos.photos = photos;
+      datos.photos = photos;
       // guardar la dirección de retiro en el perfil (la usa el courier)
       const dirRetiro = v("dir"), cpRetiro = v("cp");
       if ((dirRetiro && dirRetiro !== perfil.direccion) || (cpRetiro && cpRetiro !== perfil.cp)) {
