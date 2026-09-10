@@ -354,6 +354,25 @@ export async function renderHeader(activo) {
   });
 
   botonArriba();
+  pieDePagina();
+}
+
+// Pie de pagina. Aparece en todas las pantallas porque todas llaman a
+// renderHeader, y el link a los terminos tiene que estar siempre a mano.
+function pieDePagina() {
+  if (document.getElementById("pie")) return;
+  const p = document.createElement("footer");
+  p.id = "pie";
+  p.style.cssText = "border-top:1px solid var(--line);margin-top:50px;" +
+    "padding:22px 16px 90px;text-align:center;color:var(--dim);" +
+    "font-size:13px;line-height:1.9";
+  p.innerHTML = `
+    <a href="/terminos.html" style="color:var(--dim)">Términos y condiciones</a>
+    &nbsp;·&nbsp;
+    <a href="https://wa.me/5491123986959" target="_blank" rel="noopener"
+      style="color:var(--dim)">WhatsApp</a>
+    <br>SURCOGS · Vinilos de mano en mano · Buenos Aires`;
+  document.body.appendChild(p);
 }
 
 // Botón redondo fijo abajo a la derecha para volver al principio de la página.
