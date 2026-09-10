@@ -106,6 +106,15 @@ async function pedir(url) {
   return r.json();
 }
 
+// La tapa. Discogs devuelve varias imagenes por disco y marca como
+// "primary" la de adelante; si nadie la marco, va la primera que haya.
+// Anda sin token: probado contra la API, devuelve la de 600x600.
+function elegirTapa(d) {
+  const imgs = d.images || [];
+  const principal = imgs.find((im) => im.type === "primary") || imgs[0];
+  return (principal && (principal.uri || principal.resource_url)) || d.thumb || "";
+}
+
 // Acepta links de release (edición concreta) y de master (usa la principal).
 export async function traerDeDiscogs(link) {
   const mRel = String(link).match(/release\/(\d+)/);
@@ -134,6 +143,7 @@ export async function traerDeDiscogs(link) {
     country: d.country || null,
     genres: [...(d.styles || []), ...(d.genres || [])].slice(0, 3),
     discogs_url: d.uri || link,
+    cover: elegirTapa(d),
     from_master: Boolean(mMas),
     tracks,
     videos_extra,
