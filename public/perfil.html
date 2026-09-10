@@ -25,7 +25,11 @@ import { sb, renderHeader, getUser, fmtPrecio, fotoPrincipal, precioComprador, r
 const main = document.getElementById("main");
 
 const id = new URLSearchParams(location.search).get("id");
+import { tarjeta, activarTracks, configurarTarjetas } from "/js/tarjeta.js?v=1";
 let discos = [], carrito = new Set(), soyDueño = false;
+// La tarjeta necesita saber si el que mira es el dueño, para mostrarle
+// el lapiz y el tacho en vez del boton de comprar.
+configurarTarjetas({ esMio: () => soyDueño });
 
 async function cargar() {
   if (!id) { main.innerHTML = "<p class='sub'>Perfil no encontrado. <a href='/'>Volver al catálogo</a></p>"; return; }
@@ -77,30 +81,12 @@ async function cargar() {
 function pintar() {
   const genero = document.getElementById("f-genre").value;
   const visibles = discos.filter(d => d.status !== "vendido" && (!genero || d.genre === genero));
-  document.getElementById("grid").innerHTML = visibles.map(d => `
-    <div class="card">
-      <a href="/disco.html?id=${d.id}" style="display:block;position:relative">
-        <img src="${fotoPrincipal(d)}" alt="${d.artist} – ${d.title}" loading="lazy">
-        ${soyDueño ? `
-          <div class="own-actions">
-            <button class="own-btn" title="Editar" data-edit="${d.id}">✎</button>
-            <button class="own-btn del" title="Eliminar" data-del="${d.id}">🗑</button>
-          </div>` : ""}
-        ${!soyDueño && d.status === "disponible" ? `
-          <button class="cart-add ${carrito.has(d.id) ? "in" : ""}" data-cart="${d.id}">
-            ${carrito.has(d.id) ? "✓ En carrito" : "+ Carrito"}</button>` : ""}
-      </a>
-      <a href="/disco.html?id=${d.id}" style="display:block">
-        <div class="info">
-          <div class="t">${d.title}</div>
-          <div class="a">${d.artist}</div>
-          <div class="pr-row">
-            <span>${d.old_price && d.old_price > d.price ? `<span class="p-old">${fmtPrecio(precioComprador(d.old_price))}</span>` : ""}<span class="p">${fmtPrecio(precioComprador(d.price))}</span></span>
-            ${d.status !== "disponible" ? `<span class="badge res">${d.status}</span>` : ""}
-          </div>
-        </div>
-      </a>
-    </div>`).join("");
+  // La misma tarjeta del catalogo: tapa, etiqueta de estado, sello,
+  // localidad, precio con el 10% off y los temas con audio.
+  const caja = document.getElementById("grid");
+  caja.className = "ggrid";
+  caja.innerHTML = visibles.map((d, i) => tarjeta(d, i)).join("");
+  activarTracks(visibles, caja);
   document.getElementById("empty").style.display = visibles.length ? "none" : "block";
 
   // dueño: editar / eliminar
