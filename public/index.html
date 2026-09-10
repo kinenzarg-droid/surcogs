@@ -893,18 +893,11 @@ function cerrarFicha() {
   document.querySelectorAll(".hw-rows > *:not(#ficha)").forEach(e => e.style.display = "");
 }
 
-// interceptar el click en un disco
-document.addEventListener("click", (ev) => {
-  const a = ev.target.closest('a[href^="/disco.html?id="]');
-  if (!a || ev.metaKey || ev.ctrlKey || ev.button !== 0) return;   // ctrl+click abre pestaña, como siempre
-  if (a.classList.contains("gbuy")) return;                        // "Comprar" sí navega
-  const id = new URL(a.href, location.origin).searchParams.get("id");
-  const d = discos.find(x => x.id === id);
-  if (!d) return;
-  ev.preventDefault();
-  history.pushState({ disco: id }, "", a.getAttribute("href"));
-  mostrarFicha(d);
-});
+// El click en un disco navega a disco.html, que es la ficha de verdad.
+// Antes lo interceptabamos aca y dibujabamos una ficha propia sin recargar,
+// falseando la URL con pushState. Resultado: dos fichas distintas para el
+// mismo disco. La de aca aparecia con la barra de filtros al costado y no
+// mostraba el vendedor ni el link a su coleccion, porque nunca los tuvo.
 
 window.addEventListener("popstate", () => {
   const p = new URLSearchParams(location.search);
