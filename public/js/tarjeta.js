@@ -153,3 +153,33 @@ export function cerrarPlayer() {
   p.style.display = "none";
   ajustarBarras();
 }
+
+// Las flechitas que hacen scroll dentro de la lista de temas. Se instalan
+// una sola vez para toda la pantalla, no una por tarjeta.
+let flechasPuestas = false;
+function activarFlechas() {
+  if (flechasPuestas) return;
+  flechasPuestas = true;
+  document.addEventListener("click", (ev) => {
+    const b = ev.target.closest(".gtk-nav");
+    if (!b) return;
+    ev.preventDefault(); ev.stopPropagation();
+    const lista = b.parentElement.querySelector(".gtk-list");
+    if (lista) lista.scrollBy({ top: Number(b.dataset.tk) * 22, behavior: "smooth" });
+  });
+}
+
+// Enganchar los botones de tema despues de dibujar. Cada boton guarda la
+// posicion del disco dentro de la lista que se dibujo, asi que hay que
+// pasarle esa misma lista y en el mismo orden.
+export function activarTracks(lista, raiz = document) {
+  montarPlayer();
+  activarFlechas();
+  raiz.querySelectorAll("[data-play]").forEach((b) => {
+    b.onclick = () => {
+      const [di, ti] = b.dataset.play.split(":").map(Number);
+      const d = lista[di];
+      if (d) reproducirDisco(d, ti);
+    };
+  });
+}
