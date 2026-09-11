@@ -610,7 +610,10 @@ function pintarCartBar() {
 function ajustarBarras() {
   const pl = document.getElementById("player");
   const cart = document.getElementById("cartp");
-  const alto = pl.style.display === "block" ? pl.offsetHeight : 0;
+  if (!cart) return;
+  // El reproductor no esta en el HTML: lo inyecta /js/tarjeta.js la primera
+  // vez que alguien toca un tema. Hasta entonces no ocupa lugar.
+  const alto = pl && pl.style.display === "block" ? pl.offsetHeight : 0;
   const esMobile = window.innerWidth <= 680;
   cart.style.bottom = esMobile ? alto + "px" : "";
 
