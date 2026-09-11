@@ -279,7 +279,7 @@ a:hover .hw-chip{background:#fff;box-shadow:1px 1px 0 rgba(0,0,0,.15)}
   <aside class="hw-side" id="side"></aside>
 
   <main class="hw-rows">
-    <div id="ficha" style="display:none"></div>
+    
     <div class="chips" id="m-chips"></div>
     <div class="hw-mobile-filters">
       <select id="m-genre"></select>
@@ -799,89 +799,9 @@ document.addEventListener("click", (ev) => {
 });
 
 // Botón "atrás" del navegador: vuelve al filtro anterior en vez de quedarse trabado
-// ===== Ficha del disco sin recargar la página =====
-// Al tocar un disco no navegamos: mostramos la ficha acá mismo. Así el
-// reproductor sigue sonando. La URL igual cambia, así que el link se puede
-// compartir y quien lo abra de cero cae en disco.html, que sigue existiendo.
-const cajaFicha = () => document.getElementById("ficha");
-const cajaGrilla = () => document.querySelector(".hw-rows .ggrid")?.parentElement || null;
-
-function mostrarFicha(d) {
-  const foto = fotoPrincipal(d);
-  const tracks = (d.tracks || []).filter(t => (t.title || "").trim() || t.position);
-  const idx = itemsPagina.indexOf(d);
-  cajaFicha().innerHTML = `
-    <button class="volver" id="fic-volver">← Volver al catálogo</button>
-    <div class="fic">
-      <div><img src="${foto}" alt="${esc(d.artist)} – ${esc(d.title)}"></div>
-      <div>
-        <h2>${esc(d.artist)} – ${esc(d.title)}</h2>
-        <div class="met">${d.label ? `<a class="lk-sello" data-q="${esc(d.label)}" href="/?q=${encodeURIComponent(d.label)}">${esc(d.label)}</a> · ` : ""}${esc(d.catalog_no || "")}${d.year ? " · " + d.year : ""} · ${esc(d.format)}${d.genre ? " · " + esc(d.genre) : ""}</div>
-        <div class="bdg">
-          <span>Estado del disco: <b>${esc(d.condition_media)}</b></span>
-          <span class="disp">${esc(d.status)}</span>
-          ${locDe(d) ? `<span>📍 ${esc(locDe(d))}</span>` : ""}
-        </div>
-        <div class="prc">${fmtPrecio(precioComprador(d.price))}</div>
-        <div class="p-transf"><b>${fmtPrecio(Math.round(precioComprador(d.price) * 0.9))}</b> pagando por transferencia
-          <span class="p-off">10% OFF</span></div>
-        <div class="acc">
-          <a class="gbuy" href="/disco.html?id=${d.id}">Comprar</a>
-          <button class="gcart ${carrito.has(d.id) ? "in" : ""}" data-cart="${d.id}">
-            ${CART_ICON} ${carrito.has(d.id) ? "En el carrito" : "Agregar al carrito"}</button>
-        </div>
-        <div>
-          ${tracks.map((t) => {
-            const ti = (d.tracks || []).indexOf(t);
-            const nom = `<b>${esc(t.position || "")}</b>${esc(t.title || "Tema")}`;
-            return t.audio_url
-              ? `<button class="tk" data-play="${idx}:${ti}">▶ ${nom}</button>`
-              : `<div class="tk off">· ${nom}</div>`;
-          }).join("") || "<p class='hint'>Este disco no tiene los temas cargados.</p>"}
-        </div>
-      </div>
-    </div>`;
-  document.title = `${d.artist} – ${d.title} · SURCOGS`;
-  cajaFicha().style.display = "block";
-  document.querySelectorAll(".hw-rows > *:not(#ficha)").forEach(e => e.style.display = "none");
-  window.scrollTo({ top: 0, behavior: "smooth" });
-  document.getElementById("fic-volver").onclick = () => history.back();
-  cajaFicha().querySelectorAll("[data-play]").forEach(b => b.onclick = () => {
-    const [di, ti] = b.dataset.play.split(":").map(Number);
-    reproducirDisco(itemsPagina[di], ti);
-  });
-  cajaFicha().querySelectorAll("[data-cart]").forEach(b => b.onclick = () => {
-    const rid = b.dataset.cart;
-    const agregando = !carrito.has(rid);
-    agregando ? carrito.add(rid) : carrito.delete(rid);
-    guardarCarrito();
-    pintarCartBar();
-    if (agregando) toast("Agregado al carrito");
-    mostrarFicha(d);   // redibuja el botón con el estado nuevo
-  });
-}
-
-function cerrarFicha() {
-  document.title = "SURCOGS — Vinilos de mano en mano";
-  cajaFicha().style.display = "none";
-  cajaFicha().innerHTML = "";
-  document.querySelectorAll(".hw-rows > *:not(#ficha)").forEach(e => e.style.display = "");
-}
-
-// El click en un disco navega a disco.html, que es la ficha de verdad.
-// Antes lo interceptabamos aca y dibujabamos una ficha propia sin recargar,
-// falseando la URL con pushState. Resultado: dos fichas distintas para el
-// mismo disco. La de aca aparecia con la barra de filtros al costado y no
-// mostraba el vendedor ni el link a su coleccion, porque nunca los tuvo.
-
+// El boton "atras" del navegador vuelve al filtro anterior.
 window.addEventListener("popstate", () => {
   const p = new URLSearchParams(location.search);
-  const id = location.pathname.includes("disco.html") ? p.get("id") : null;
-  if (id) {
-    const d = discos.find(x => x.id === id);
-    if (d) return mostrarFicha(d);
-  }
-  cerrarFicha();
   filtro.q = (p.get("q") || "").toLowerCase().trim();
   document.querySelectorAll(".search input").forEach(i => i.value = filtro.q);
   pagina = 1;
