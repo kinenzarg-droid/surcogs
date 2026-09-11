@@ -57,13 +57,21 @@ export function tarjeta(d, i) {
 // El reproductor se inyecta solo, asi la pantalla que lo use no tiene
 // que acordarse de pegar el HTML.
 export function montarPlayer() {
-  if (document.getElementById("player")) return;
+  const ya = document.getElementById("player");
+  if (ya) { engancharCerrar(ya); return; }
   const p = document.createElement("div");
   p.className = "hw-player";
   p.id = "player";
   p.innerHTML = `<div class="bar"><span id="pl-titulo">▶</span><button class="cerrar" id="pl-cerrar">✕ Cerrar</button></div><div id="pl-frame"></div>`;
   document.body.appendChild(p);
-  p.querySelector("#pl-cerrar").onclick = () => cerrarPlayer();
+  engancharCerrar(p);
+}
+
+// El catalogo ya trae el reproductor en su HTML, asi que montarPlayer sale
+// antes de crear nada. El boton de cerrar hay que engancharlo igual.
+function engancharCerrar(p) {
+  const b = p.querySelector("#pl-cerrar");
+  if (b) b.onclick = () => cerrarPlayer();
 }
 
 export function trackBtns(d, i) {
@@ -116,7 +124,7 @@ function reproducir(d, t) {
   let frame = "";
   if (yt) frame = `<iframe src="https://www.youtube.com/embed/${yt}?autoplay=1" allow="autoplay; encrypted-media"></iframe>`;
   else if (url.includes("soundcloud.com"))
-    frame = `<iframe src="https://w.soundcloud.com/player/?url=${encodeURIComponent(url)}&auto_play=true&visual=false" allow="autoplay"></iframe>`;
+    frame = `<iframe class="sc" src="https://w.soundcloud.com/player/?url=${encodeURIComponent(url)}&auto_play=true&visual=false" allow="autoplay"></iframe>`;
   else if (sp) frame = `<iframe src="https://open.spotify.com/embed/track/${sp[1]}" allow="autoplay; encrypted-media"></iframe>`;
   else { window.open(url, "_blank"); return; }
 
