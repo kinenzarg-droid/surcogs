@@ -227,8 +227,12 @@ async function cargar() {
     }
   });
 
-  if (esMio) {
-    document.getElementById("btn-del-disco").onclick = async () => {
+  // El boton de eliminar solo se dibuja si el disco no esta vendido. Sin
+  // este chequeo, en un disco vendido la funcion explotaba aca y se cortaba
+  // todo lo que viene despues: la reputacion del vendedor y sus comentarios.
+  const btnDelDisco = document.getElementById("btn-del-disco");
+  if (esMio && btnDelDisco) {
+    btnDelDisco.onclick = async () => {
       if (!confirm(`¿Eliminar "${d.artist} – ${d.title}"? Esta acción no se puede deshacer.`)) return;
       const { error } = await sb.from("records").delete().eq("id", d.id);
       if (error) {
