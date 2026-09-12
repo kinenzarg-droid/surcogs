@@ -61,14 +61,23 @@ function dibujar() {
   const izq = "SURC", der = "GS";
   const esp = 10;   // aire entre letras
   const anchoDe = (s) => ctx.measureText(s).width + esp * (s.length - 1);
-  const r = tam * 0.40;
+  const y = ALTO * 0.42;
+
+  // Cuidado aca: "al medio" en tipografia no es el medio visual de una
+  // mayuscula. La caja de la letra queda mas arriba que esa linea, asi que
+  // un circulo dibujado en y se ve caido. Le pregunto al navegador donde
+  // empieza y termina el trazo real de una S y centro el disco ahi.
+  const m = ctx.measureText("S");
+  const altoLetra = m.actualBoundingBoxAscent + m.actualBoundingBoxDescent;
+  const yDisco = y + (m.actualBoundingBoxDescent - m.actualBoundingBoxAscent) / 2;
+  const r = altoLetra / 2;
+
   const total = anchoDe(izq) + esp + r * 2 + esp + anchoDe(der);
   let x = (ANCHO - total) / 2;
-  const y = ALTO * 0.42;
 
   ctx.fillStyle = "#ffffff";
   for (const c of izq) { ctx.fillText(c, x, y); x += ctx.measureText(c).width + esp; }
-  disco(x + r, y, r);
+  disco(x + r, yDisco, r);
   x += r * 2 + esp;
   for (const c of der) { ctx.fillText(c, x, y); x += ctx.measureText(c).width + esp; }
 
