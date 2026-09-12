@@ -5,11 +5,18 @@
 //
 // Cuidado con el alcance. Este archivo atiende CUALQUIER direccion de un
 // solo tramo: /luking, pero tambien /publicar.html o /favicon.ico. Por eso
-// lo primero que hace es dejar que el sitio conteste como siempre, y solo
-// se mete cuando la respuesta fue 404, es decir cuando no habia nada ahi.
+// no alcanza con mirar si la respuesta fue 404: este sitio nunca devuelve
+// 404, cualquier direccion desconocida cae en el catalogo con estado 200.
+//
+// Entonces al reves: preguntamos primero si ese nombre es de un vendedor.
+// La base tiene una restriccion que impide tomar nombres como "disco" o
+// "publicar", asi que un nombre encontrado no puede ser una pagina real.
+// Antes de preguntar descartamos lo que claramente es un archivo.
 
 const FORMATO = /^[a-z0-9][a-z0-9._-]{1,28}[a-z0-9]$/;
 const MARCA = "x-surcogs-interno";
+// Si termina en una extension conocida es un archivo, no una persona.
+const ARCHIVO = /\.(html?|ico|png|jpe?g|svg|gif|webp|css|js|mjs|json|txt|xml|map|webmanifest|pdf)$/i;
 
 const esc = (s) => String(s ?? "")
   .replace(/&/g, "&amp;").replace(/</g, "&lt;")
@@ -49,22 +56,22 @@ export async function onRequestGet(context) {
   // Si soy yo mismo pidiendo el perfil de adentro, no me vuelvo a meter.
   if (request.headers.get(MARCA)) return next();
 
-  const respuesta = await next();
-  if (respuesta.status !== 404) return respuesta;   // habia un archivo real
+  const crudo = String(params.usuario || "");
+  if (ARCHIVO.test(crudo)) return next();
 
-  const usuario = String(params.usuario || "").toLowerCase();
-  if (!FORMATO.test(usuario)) return respuesta;
-  if (!env.SUPABASE_URL || !env.SUPABASE_SERVICE_ROLE_KEY) return respuesta;
+  const usuario = crudo.toLowerCase();
+  if (!FORMATO.test(usuario)) return next();
+  if (!env.SUPABASE_URL || !env.SUPABASE_SERVICE_ROLE_KEY) return next();
 
   let p = null;
   try { p = await traerPerfil(env, usuario); } catch (e) { p = null; }
-  if (!p) return respuesta;   // no existe ese vendedor: 404 de verdad
+  if (!p) return next();   // no es ningun vendedor: que siga el camino normal
 
   const url = new URL(request.url);
   const pagina = await fetch(new Request(`${url.origin}/perfil`, {
     headers: { [MARCA]: "1" },
   }));
-  if (!pagina.ok) return respuesta;
+  if (!pagina.ok) return next();
 
   let n = null;
   try { n = await contarDiscos(env, p.id); } catch (e) { n = null; }
