@@ -49,6 +49,10 @@ const ctx = document.getElementById("lienzo").getContext("2d");
 // lienzo de 40 unidades: cuerpo 19, surcos en 16.3, 13.4 y 10.5, sello 6.8
 // y agujero 1.5. Aca las paso a fracciones del radio para que escale.
 function disco(x, y, r, c = ctx) {
+  // save/restore para devolver el lienzo como lo encontramos. Sin esto, el
+  // color del agujerito se quedaba puesto y las letras que venian despues
+  // del disco salian oscuras: el "GS" desaparecia contra el fondo negro.
+  c.save();
   const u = r / 19;   // una unidad del SVG, en pixeles
   c.beginPath(); c.arc(x, y, r, 0, Math.PI * 2);
   c.fillStyle = "#1a1a1a"; c.fill();
@@ -65,6 +69,7 @@ function disco(x, y, r, c = ctx) {
   c.fillStyle = NARANJA; c.fill();
   c.beginPath(); c.arc(x, y, 1.5 * u, 0, Math.PI * 2);
   c.fillStyle = "#1a1a1a"; c.fill();
+  c.restore();
 }
 
 function dibujar() {
