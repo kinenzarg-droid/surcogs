@@ -90,7 +90,11 @@ export async function onRequestGet(context) {
   // pobre es mucho mejor que un error.
   if (!d) return respuesta;
 
-  const { html, titulo } = armarEtiquetas(d, url.origin + url.pathname + url.search);
+  // La direccion limpia, sin lo que se cuelga de los links compartidos. Si
+  // no, el mismo disco con un ?t= o un ?utm= pegado atras parece una pagina
+  // distinta para los buscadores.
+  const limpia = `${url.origin}${url.pathname}?id=${encodeURIComponent(id)}`;
+  const { html, titulo } = armarEtiquetas(d, limpia);
 
   return new HTMLRewriter()
     .on("title", {
