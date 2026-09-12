@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SURCOGS — Imagen para compartir</title>
+<meta name="robots" content="noindex">
+<style>
+body { background:#f4f2ee; font-family:-apple-system,"Segoe UI",Roboto,Arial,sans-serif;
+  margin:0; padding:28px 20px 60px; color:#16130f; text-align:center }
+h1 { font-size:19px; font-weight:600; margin:0 0 4px }
+p.sub { color:#6b6560; font-size:14px; margin:0 0 22px; line-height:1.6 }
+canvas { width:100%; max-width:720px; height:auto; border-radius:10px;
+  box-shadow:0 2px 14px rgba(0,0,0,.18); display:block; margin:0 auto 20px }
+button { background:#16130f; color:#fff; border:0; border-radius:8px;
+  padding:13px 26px; font:inherit; font-size:15px; cursor:pointer }
+ol { text-align:left; max-width:600px; margin:26px auto 0; color:#3a352f;
+  font-size:14px; line-height:1.75 }
+code { background:#e8e4dd; padding:1px 6px; border-radius:4px; font-size:13px }
+</style>
+</head>
+<body>
+
+<h1>Imagen para compartir</h1>
+<p class="sub">Es la que aparece cuando alguien manda surcogs.com.ar por WhatsApp<br>o lo pega en Instagram. Mide 1200 × 630.</p>
+
+<canvas id="lienzo" width="1200" height="630"></canvas>
+<button id="bajar">Descargar compartir.png</button>
+
+<ol>
+  <li>Tocá el botón y guardá el archivo. Tiene que llamarse <code>compartir.png</code>.</li>
+  <li>En GitHub, entrá a la carpeta <code>public</code> y usá <b>Add file → Upload files</b>.</li>
+  <li>Arrastrá el archivo y commiteá.</li>
+  <li>Listo. WhatsApp igual guarda las vistas previas viejas un rato, así que probá con un link que no hayas mandado antes.</li>
+</ol>
+
+<script>
+const ANCHO = 1200, ALTO = 630;
+const NARANJA = "#e8541f";
+const ctx = document.getElementById("lienzo").getContext("2d");
+
+// El disco del logo: el aro naranja con el centro oscuro y el agujerito.
+function disco(x, y, r) {
+  ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2);
+  ctx.fillStyle = NARANJA; ctx.fill();
+  ctx.beginPath(); ctx.arc(x, y, r * 0.42, 0, Math.PI * 2);
+  ctx.fillStyle = "#0d0d0d"; ctx.fill();
+  ctx.beginPath(); ctx.arc(x, y, r * 0.09, 0, Math.PI * 2);
+  ctx.fillStyle = "#f4f2ee"; ctx.fill();
+}
+
+function dibujar() {
+  ctx.fillStyle = "#0d0d0d";
+  ctx.fillRect(0, 0, ANCHO, ALTO);
+
+  // La marca, con el disco en lugar de la O. La dibujo en dos mitades para
+  // poder meter el disco justo en el medio, a la altura de las letras.
+  const tam = 128;
+  ctx.font = "800 " + tam + "px -apple-system, Segoe UI, Roboto, Arial, sans-serif";
+  ctx.textBaseline = "middle";
+  const izq = "SURC", der = "GS";
+  const esp = 10;   // aire entre letras
+  const anchoDe = (s) => ctx.measureText(s).width + esp * (s.length - 1);
+  const r = tam * 0.40;
+  const total = anchoDe(izq) + esp + r * 2 + esp + anchoDe(der);
+  let x = (ANCHO - total) / 2;
+  const y = ALTO * 0.42;
+
+  ctx.fillStyle = "#ffffff";
+  for (const c of izq) { ctx.fillText(c, x, y); x += ctx.measureText(c).width + esp; }
+  disco(x + r, y, r);
+  x += r * 2 + esp;
+  for (const c of der) { ctx.fillText(c, x, y); x += ctx.measureText(c).width + esp; }
+
+  ctx.textAlign = "center";
+  ctx.fillStyle = "#c9c4bd";
+  ctx.font = "400 40px -apple-system, Segoe UI, Roboto, Arial, sans-serif";
+  ctx.fillText("Vinilos de mano en mano, entre coleccionistas", ANCHO / 2, ALTO * 0.62);
+
+  ctx.fillStyle = NARANJA;
+  ctx.fillRect(ANCHO / 2 - 40, ALTO * 0.70, 80, 3);
+
+  ctx.fillStyle = "#8e8880";
+  ctx.font = "400 30px -apple-system, Segoe UI, Roboto, Arial, sans-serif";
+  ctx.fillText("Escuchá cada tema antes de comprar", ANCHO / 2, ALTO * 0.785);
+
+  ctx.fillStyle = "#ffffff";
+  ctx.font = "600 32px -apple-system, Segoe UI, Roboto, Arial, sans-serif";
+  ctx.fillText("surcogs.com.ar", ANCHO / 2, ALTO * 0.885);
+  ctx.textAlign = "left";
+}
+
+dibujar();
+
+document.getElementById("bajar").onclick = () => {
+  const a = document.createElement("a");
+  a.download = "compartir.png";
+  a.href = document.getElementById("lienzo").toDataURL("image/png");
+  a.click();
+};
+</script>
+</body>
+</html>
