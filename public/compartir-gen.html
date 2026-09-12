@@ -27,6 +27,12 @@ code { background:#e8e4dd; padding:1px 6px; border-radius:4px; font-size:13px }
 <canvas id="lienzo" width="1200" height="630"></canvas>
 <button id="bajar">Descargar compartir.png</button>
 
+<h1 style="margin-top:42px">Foto de perfil</h1>
+<p class="sub">La de Instagram. Se recorta en círculo, así que va solo el disco:<br>el nombre ya lo pone Instagram abajo. Mide 1000 × 1000.</p>
+
+<canvas id="lienzo-perfil" width="1000" height="1000" style="max-width:300px;border-radius:50%"></canvas>
+<button id="bajar-perfil">Descargar perfil.png</button>
+
 <ol>
   <li>Tocá el botón y guardá el archivo. Tiene que llamarse <code>compartir.png</code>.</li>
   <li>En GitHub, entrá a la carpeta <code>public</code> y usá <b>Add file → Upload files</b>.</li>
@@ -39,14 +45,26 @@ const ANCHO = 1200, ALTO = 630;
 const NARANJA = "#e8541f";
 const ctx = document.getElementById("lienzo").getContext("2d");
 
-// El disco del logo: el aro naranja con el centro oscuro y el agujerito.
-function disco(x, y, r) {
-  ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2);
-  ctx.fillStyle = NARANJA; ctx.fill();
-  ctx.beginPath(); ctx.arc(x, y, r * 0.42, 0, Math.PI * 2);
-  ctx.fillStyle = "#0d0d0d"; ctx.fill();
-  ctx.beginPath(); ctx.arc(x, y, r * 0.09, 0, Math.PI * 2);
-  ctx.fillStyle = "#f4f2ee"; ctx.fill();
+// El disco del logo. Las proporciones salen del SVG del sitio, que usa un
+// lienzo de 40 unidades: cuerpo 19, surcos en 16.3, 13.4 y 10.5, sello 6.8
+// y agujero 1.5. Aca las paso a fracciones del radio para que escale.
+function disco(x, y, r, c = ctx) {
+  const u = r / 19;   // una unidad del SVG, en pixeles
+  c.beginPath(); c.arc(x, y, r, 0, Math.PI * 2);
+  c.fillStyle = "#1a1a1a"; c.fill();
+
+  c.strokeStyle = NARANJA;
+  c.globalAlpha = 0.55;
+  c.lineWidth = 1.1 * u;
+  for (const radio of [16.3, 13.4, 10.5]) {
+    c.beginPath(); c.arc(x, y, radio * u, 0, Math.PI * 2); c.stroke();
+  }
+  c.globalAlpha = 1;
+
+  c.beginPath(); c.arc(x, y, 6.8 * u, 0, Math.PI * 2);
+  c.fillStyle = NARANJA; c.fill();
+  c.beginPath(); c.arc(x, y, 1.5 * u, 0, Math.PI * 2);
+  c.fillStyle = "#1a1a1a"; c.fill();
 }
 
 function dibujar() {
@@ -100,6 +118,27 @@ function dibujar() {
 }
 
 dibujar();
+
+// La foto de perfil: fondo negro y el disco, con aire alrededor porque
+// Instagram recorta en circulo y en algunas vistas lo achica todavia mas.
+const ctxPerfil = document.getElementById("lienzo-perfil").getContext("2d");
+function dibujarPerfil() {
+  const L = 1000;
+  ctxPerfil.fillStyle = "#0d0d0d";
+  ctxPerfil.fillRect(0, 0, L, L);
+  disco(L / 2, L / 2, L * 0.315, ctxPerfil);
+}
+dibujarPerfil();
+
+function bajar(lienzo, nombre) {
+  const a = document.createElement("a");
+  a.download = nombre;
+  a.href = lienzo.toDataURL("image/png");
+  a.click();
+}
+
+document.getElementById("bajar-perfil").onclick = () =>
+  bajar(document.getElementById("lienzo-perfil"), "perfil.png");
 
 document.getElementById("bajar").onclick = () => {
   const a = document.createElement("a");
