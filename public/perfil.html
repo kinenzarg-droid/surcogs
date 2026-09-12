@@ -24,7 +24,12 @@
 import { sb, renderHeader, getUser, fmtPrecio, fotoPrincipal, precioComprador, reputacionHTML, toast, ADMIN_ID } from "/js/app.js?v=3";
 const main = document.getElementById("main");
 
-const id = new URLSearchParams(location.search).get("id");
+// El id puede venir de dos lados. Por la direccion larga, /perfil?id=...,
+// o servido desde el servidor cuando entraron por la corta, /luking: ahi
+// no hay id en la URL y la funcion de Cloudflare nos lo deja en window.
+const id = new URLSearchParams(location.search).get("id")
+  || (window.__perfil && window.__perfil.id)
+  || null;
 import { tarjeta, activarTracks, configurarTarjetas } from "/js/tarjeta.js?v=1";
 let discos = [], carrito = new Set(), soyDueño = false;
 // La tarjeta necesita saber si el que mira es el dueño, para mostrarle
