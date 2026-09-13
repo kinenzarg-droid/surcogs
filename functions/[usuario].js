@@ -24,8 +24,13 @@ const esc = (s) => String(s ?? "")
 
 async function traerPerfil(env, usuario) {
   const campos = "id,name,localidad,zona,avatar_url,usuario";
+  // Busca por el link actual y tambien por los anteriores. Cuando alguien
+  // cambia su nombre el link se regenera, pero el que ya compartio por
+  // Instagram o WhatsApp tiene que seguir funcionando.
+  const u = encodeURIComponent(usuario);
+  const filtro = `or=(usuario.eq.${u},usuarios_previos.cs.{"${u}"})`;
   const r = await fetch(
-    `${env.SUPABASE_URL}/rest/v1/profiles?usuario=eq.${encodeURIComponent(usuario)}&select=${campos}`,
+    `${env.SUPABASE_URL}/rest/v1/profiles?${filtro}&select=${campos}`,
     { headers: {
         apikey: env.SUPABASE_SERVICE_ROLE_KEY,
         Authorization: `Bearer ${env.SUPABASE_SERVICE_ROLE_KEY}`,
@@ -81,7 +86,8 @@ export async function onRequestGet(context) {
     n ? `${n} disco${n === 1 ? "" : "s"} en venta` : "Colección en SURCOGS",
     lugar,
   ].filter(Boolean).join(" · ");
-  const limpia = `${url.origin}/${usuario}`;
+  // Si llegaron por un nombre viejo, la direccion buena es la de ahora.
+  const limpia = `${url.origin}/${p.usuario || usuario}`;
 
   const metas = [
     `<meta property="og:type" content="profile">`,
