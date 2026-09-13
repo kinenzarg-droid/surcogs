@@ -8,7 +8,6 @@
 import { fotoPrincipal, fmtPrecio, precioComprador, youtubeId } from "/js/app.js?v=3";
 
 export const esc = (s) => String(s ?? "").replace(/</g, "&lt;").replace(/"/g, "&quot;");
-const DIA = 86400000;
 const CART_ICON = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#e6a817" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="pointer-events:none;flex:none"><circle cx="9" cy="20" r="1.7" fill="#e6a817" stroke="none"/><circle cx="17" cy="20" r="1.7" fill="#e6a817" stroke="none"/><path d="M3 3h2.5l2.2 12.2a1.5 1.5 0 0 0 1.5 1.3h7.9a1.5 1.5 0 0 0 1.5-1.2L20.5 8H6"/></svg>';
 
 // La localidad sale del perfil del vendedor; la copia guardada en el
@@ -29,7 +28,6 @@ export function tarjeta(d, i) {
   return `
     <div class="gcard">
       <a href="/disco.html?id=${d.id}"><img class="gcov" src="${fotoPrincipal(d)}" alt="${esc(d.artist)} – ${esc(d.title)}" loading="lazy"></a>
-      ${Date.now() - new Date(d.created_at).getTime() < 7 * DIA ? `<span class="gtag">Nuevo</span>` : ""}
       <span class="gbadge ${d.status}">${d.status.charAt(0).toUpperCase() + d.status.slice(1)}</span>
       ${esMio(d) ? `<span class="gown">
         <a href="/publicar.html?edit=${d.id}" title="Editar">✎</a>
@@ -49,7 +47,6 @@ export function tarjeta(d, i) {
           <a class="gbuy" href="/disco.html?id=${d.id}">Comprar</a>
           <button class="gcart" data-cart="${d.id}">${CART_ICON} Agregar al carrito</button>
         </div>` : ""}
-        ${d.old_price && d.old_price > d.price ? `<span class="ahorro" style="align-self:flex-start">↓ Bajó de precio</span>` : ""}
       </div>
     </div>`;
 }
