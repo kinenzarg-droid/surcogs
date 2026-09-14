@@ -32,6 +32,11 @@
 #lienzo { height: 66vh; min-height: 420px; width: auto; max-width: 100%;
   border-radius: 6px; display: block }
 .pl-acc { display: flex; gap: 9px; flex-wrap: wrap; justify-content: center }
+.pl-mas { display:block; width:100%; margin-top:10px; padding:11px 12px;
+  background:transparent; border:1px solid var(--line); border-radius:8px;
+  font:inherit; font-size:13.5px; color:var(--txt); cursor:pointer; text-align:center }
+.pl-mas:hover { border-color:#8a827a }
+.pl-mas span { color:var(--dim); font-size:12.5px }
 .pl-vacio { color: var(--dim); font-size: 14px; padding: 40px 16px; text-align: center; line-height: 1.6 }
 .pl-copy { width: 100%; max-width: 420px; background: #fff; border: 1px solid var(--line);
   border-radius: 7px; padding: 12px; font-size: 13px; line-height: 1.55; color: var(--txt);
@@ -105,23 +110,39 @@ async function cargar() {
   pintarLista();
 }
 
+// Cuantos se dibujan de una. El catalogo ya paso los 200 discos y dibujar
+// todos hacia que la lista entera se rehiciera con cada tecla del buscador.
+// El tope es solo de lo que se ve: la busqueda sigue mirando todos.
+const POR_TANDA = 60;
+let tope = POR_TANDA;
+
 function pintarLista() {
   const q = document.getElementById("buscar").value.trim().toLowerCase();
   const vis = discos.filter(d =>
     !q || `${d.artist} ${d.title} ${d.label || ""}`.toLowerCase().includes(q));
   const lista = document.getElementById("lista");
   if (!vis.length) { lista.innerHTML = `<p class="pl-vacio">Ningún disco con eso.</p>`; return; }
-  lista.innerHTML = vis.map(d => `
+  const muestra = vis.slice(0, tope);
+  lista.innerHTML = muestra.map(d => `
     <div class="pl-it ${elegido && elegido.id === d.id ? "on" : ""}" data-id="${d.id}">
       <img src="${fotoPrincipal(d) || ""}" alt="" loading="lazy">
       <div><div class="pl-a">${esc(d.artist)}</div><div class="pl-t">${esc(d.title)}</div></div>
-    </div>`).join("");
+    </div>`).join("") + (vis.length > muestra.length
+    ? `<button type="button" id="pl-mas" class="pl-mas">Ver ${Math.min(POR_TANDA, vis.length - muestra.length)} más <span>de ${vis.length - muestra.length} restantes</span></button>`
+    : "");
   lista.querySelectorAll("[data-id]").forEach(el => {
     el.onclick = () => elegir(discos.find(d => String(d.id) === el.dataset.id));
   });
+  const mas = document.getElementById("pl-mas");
+  if (mas) mas.onclick = () => { tope += POR_TANDA; pintarLista(); };
 }
 
-document.getElementById("buscar").addEventListener("input", pintarLista);
+// Esperar a que pare de escribir antes de redibujar.
+let reloj = null;
+document.getElementById("buscar").addEventListener("input", () => {
+  clearTimeout(reloj);
+  reloj = setTimeout(() => { tope = POR_TANDA; pintarLista(); }, 160);
+});
 
 const esc = (s) => String(s ?? "").replace(/[<>&]/g, c => ({ "<": "&lt;", ">": "&gt;", "&": "&amp;" }[c]));
 
