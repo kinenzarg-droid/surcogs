@@ -58,9 +58,15 @@ async function init() {
     const { data } = await sb.from("records").select("*").eq("id", editId).maybeSingle();
     const puedeEditar = data && (data.seller_id === user.id || user.id === ADMIN_ID);
     if (!puedeEditar) { toast("No encontramos ese disco entre los tuyos", true); location.href = "/perfil.html?id=" + user.id; return; }
-    // Un disco vendido no se toca: alguien ya pagó por él tal como estaba publicado
-    if (data.status === "vendido") {
-      toast("Ese disco ya se vendió, no se puede editar", true);
+    // Un disco vendido POR SURCOGS no se toca: alguien ya pagó por él tal como
+    // estaba publicado. Si el vendedor lo marcó Vendido a mano (lo vendió por
+    // fuera), no hay orden ni plata de por medio y lo puede volver a abrir.
+    const { data: ventas, error: errVentas } = await sb.from("orders")
+      .select("id").eq("record_id", data.id)
+      .in("status", ["pagada", "enviado", "entregado"]).limit(1);
+    // Ante la duda no dejamos editar: es peor cambiarle el disco a alguien que ya pagó.
+    if (errVentas || (ventas && ventas.length)) {
+      toast("Ese disco ya se vendió por SURCOGS, no se puede editar", true);
       location.href = "/disco.html?id=" + data.id;
       return;
     }
@@ -110,7 +116,12 @@ async function init() {
         <div><label>Estado del disco *</label>
           <select id="cm">${GRADOS.map(g => `<option ${g === "VG+" ? "selected" : ""}>${g}</option>`).join("")}</select>
         </div>
+        <div><label>Disponibilidad *</label>
+          <select id="disp">${[["disponible", "Disponible"], ["reservado", "Reservado"], ["vendido", "Vendido"]]
+            .map(([val, texto]) => `<option value="${val}">${texto}</option>`).join("")}</select>
+        </div>
       </div>
+      <p class="hint">Poné <b>Vendido</b> si lo vendiste por fuera de SURCOGS: sale del catálogo y nadie te lo paga de nuevo. Lo podés volver a abrir cuando quieras.</p>
       <p class="hint">Goldmine: M sellado o nunca reproducido · NM casi perfecto · VG+ uso leve · VG uso evidente · G+ / G ruido considerable. Ante la duda, poné el grado más bajo.</p>
       <label class="usar-perfil"><input type="checkbox" id="usar-perfil">
         Usar los datos de mi perfil</label>
@@ -198,6 +209,7 @@ async function init() {
     set("year", editRec.year); set("format", editRec.format); set("price", editRec.price);
     set("genre", editRec.genre || "Techno");
     set("cm", editRec.condition_media);
+    set("disp", editRec.status);
     set("audio", editRec.audio_url); set("desc", editRec.description);
       // Sin casillas de envio: todos los discos se entregan a coordinar.
   }
@@ -378,6 +390,7 @@ async function init() {
         format: v("format"), price: Number(v("price")),
         genre: v("genre"),
         condition_media: v("cm"), condition_sleeve: v("cm"),   // se guarda igual: la tapa ya no se pide
+        status: v("disp"),
         zona: v("zona") || null, localidad: v("loc") || null,
         envio_coordinar: true,
         envio_correo: false,
