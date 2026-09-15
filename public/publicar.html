@@ -421,7 +421,9 @@ async function init() {
       }
       if (error) throw error;
       toast(editRec ? "¡Cambios guardados!" : "¡Disco publicado!");
-      setTimeout(() => location.href = editRec ? "/perfil.html?id=" + user.id : "/cuenta.html", 900);
+      // Recien publicado va al catalogo: el disco queda arriba de todo y lo ve
+      // igual que lo va a ver el que compra. Editado vuelve a su propio catalogo.
+      setTimeout(() => location.href = editRec ? "/perfil.html?id=" + user.id : "/", 900);
     } catch (err) {
       toast(err.message, true);
       btn.disabled = false; btn.textContent = "Publicar";
