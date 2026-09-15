@@ -119,7 +119,7 @@ function reproducir(d, t) {
   const yt = youtubeId(url);
   const sp = url.match(/open\.spotify\.com\/(?:intl-\w+\/)?track\/([A-Za-z0-9]+)/);
   let frame = "";
-  if (yt) frame = `<iframe src="https://www.youtube.com/embed/${yt}?autoplay=1" allow="autoplay; encrypted-media"></iframe>`;
+  if (yt) frame = `<iframe id="pl-yt" src="https://www.youtube.com/embed/${yt}?autoplay=1&enablejsapi=1&origin=${encodeURIComponent(location.origin)}" allow="autoplay; encrypted-media"></iframe>`;
   else if (url.includes("soundcloud.com"))
     frame = `<iframe class="sc" src="https://w.soundcloud.com/player/?url=${encodeURIComponent(url)}&auto_play=true&visual=false" allow="autoplay"></iframe>`;
   else if (sp) frame = `<iframe src="https://open.spotify.com/embed/track/${sp[1]}" allow="autoplay; encrypted-media"></iframe>`;
@@ -135,15 +135,74 @@ function reproducir(d, t) {
     `<a class="lk-sello" data-q="${esc(d.artist)}" href="/?q=${encodeURIComponent(d.artist)}">${esc(d.artist)}</a>` +
     ` — <b>${esc(t.title || d.title)}</b>` +
     (t.position ? ` <span class="pl-pos">(${esc(t.position)})</span>` : "") +
-    (d.label ? ` · <a class="lk-sello" data-q="${esc(d.label)}" href="/?q=${encodeURIComponent(d.label)}">${esc(d.label)}</a>` : "");
+    (d.label ? ` · <a class="lk-sello" data-q="${esc(d.label)}" href="/?q=${encodeURIComponent(d.label)}">${esc(d.label)}</a>` : "") +
+    `<span id="pl-tiempo" style="opacity:.62;font-variant-numeric:tabular-nums"></span>`;
   const prev = document.getElementById("pl-prev");
   const next = document.getElementById("pl-next");
   if (prev) prev.onclick = () => moverCola(-1);
   if (next) next.onclick = () => moverCola(1);
   if (canalPlayer) canalPlayer.postMessage("play");   // callate, resto de las pestañas
+  pararReloj();
   document.getElementById("pl-frame").innerHTML = frame;
   document.getElementById("player").style.display = "block";
+  if (yt) arrancarReloj();
   ajustarBarras();
+}
+
+// ---- El reloj del tema -------------------------------------------------
+// YouTube esconde su propio reloj cuando el reproductor es tan bajo como el
+// nuestro. Se lo preguntamos por su API y lo escribimos nosotros al lado del
+// nombre del tema, con la tipografia del sitio.
+let apiYT = null;      // promesa: el script de YouTube se carga una sola vez
+let repYT = null;      // el reproductor del tema que suena ahora
+let reloj = null;      // el temporizador que refresca el numero
+
+function cargarApiYT() {
+  if (apiYT) return apiYT;
+  apiYT = new Promise((listo) => {
+    if (window.YT && window.YT.Player) return listo();
+    // Puede haber otro codigo esperando el mismo aviso: no lo pisamos.
+    const anterior = window.onYouTubeIframeAPIReady;
+    window.onYouTubeIframeAPIReady = () => { if (anterior) anterior(); listo(); };
+    const s = document.createElement("script");
+    s.src = "https://www.youtube.com/iframe_api";
+    document.head.appendChild(s);
+  });
+  return apiYT;
+}
+
+function mmss(seg) {
+  if (!isFinite(seg) || seg < 0) return "0:00";
+  return Math.floor(seg / 60) + ":" + String(Math.floor(seg % 60)).padStart(2, "0");
+}
+
+function pararReloj() {
+  if (reloj) { clearInterval(reloj); reloj = null; }
+  if (repYT && repYT.destroy) { try { repYT.destroy(); } catch (e) {} }
+  repYT = null;
+  const c = document.getElementById("pl-tiempo");
+  if (c) c.textContent = "";
+}
+
+async function arrancarReloj() {
+  const marco = document.getElementById("pl-yt");
+  if (!marco) return;
+  await cargarApiYT();
+  // Mientras cargaba la API el usuario pudo cambiar de tema o cerrar todo
+  if (document.getElementById("pl-yt") !== marco) return;
+  repYT = new YT.Player(marco, {
+    events: {
+      onReady: () => {
+        reloj = setInterval(() => {
+          if (!repYT || !repYT.getDuration) return;
+          const dur = repYT.getDuration();
+          const c = document.getElementById("pl-tiempo");
+          // Al principio YouTube contesta 0: no mostramos nada hasta que sepa
+          if (c) c.textContent = dur ? ` · ${mmss(repYT.getCurrentTime())} / ${mmss(dur)}` : "";
+        }, 500);
+      },
+    },
+  });
 }
 // Un solo reproductor sonando en todo SURCOGS, aunque tengas varias pestañas
 // abiertas: al dar play, las demás se enteran por este canal y se cierran.
@@ -154,6 +213,7 @@ export function cerrarPlayer() {
   const f = document.getElementById("pl-frame");
   const p = document.getElementById("player");
   if (!f || !p) return;
+  pararReloj();
   f.innerHTML = "";           // corta el audio: si no, sigue sonando de fondo
   p.style.display = "none";
   ajustarBarras();
