@@ -30,7 +30,7 @@ const main = document.getElementById("main");
 const id = new URLSearchParams(location.search).get("id")
   || (window.__perfil && window.__perfil.id)
   || null;
-import { tarjeta, activarTracks, configurarTarjetas } from "/js/tarjeta.js?v=1";
+import { tarjeta, activarTracks, configurarTarjetas } from "/js/tarjeta.js?v=3";
 let discos = [], carrito = new Set(), soyDueño = false;
 // La tarjeta necesita saber si el que mira es el dueño, para mostrarle
 // el lapiz y el tacho en vez del boton de comprar.
