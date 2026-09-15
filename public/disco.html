@@ -31,6 +31,9 @@
 
 <script type="module">
 import { sb, renderHeader, getUser, fmtPrecio, fotoPrincipal, youtubeId, toast, precioComprador, precioTransferencia, reputacionHTML, authHeaders, ADMIN_ID } from "/js/app.js?v=3";
+
+  // Los estados se guardan en minuscula; en pantalla van con mayuscula.
+  const cap = (s) => (s || "").charAt(0).toUpperCase() + (s || "").slice(1);
 renderHeader("catalogo");
 
 // Un solo audio sonando en todo SURCOGS: el catálogo y las otras pestañas
@@ -145,7 +148,7 @@ async function cargar() {
       <div class="badges">
         <span class="badge">Estado del disco: <b>${d.condition_media}</b></span>
 
-        <span class="badge ${disponible ? "ok" : d.status === "reservado" ? "res" : "sold"}">${d.status}</span>
+        <span class="badge ${disponible ? "ok" : d.status === "reservado" ? "res" : "sold"}">${cap(d.status)}</span>
       </div>
       <div class="price-big">${d.old_price && d.old_price > d.price ? `<span class="p-old" style="font-size:18px">${fmtPrecio(precioComprador(d.old_price))}</span>` : ""}${fmtPrecio(precioComprador(d.price))}</div>
       <div class="p-transf"><b>${fmtPrecio(precioTransferencia(d.price))}</b> pagando por transferencia
@@ -190,7 +193,7 @@ async function cargar() {
 
   const box = document.getElementById("compra");
   if (!disponible) {
-    box.innerHTML = `<button class="btn" disabled>${d.status}</button>`;
+    box.innerHTML = `<button class="btn" disabled>${cap(d.status)}</button>`;
   } else {
     // Todos los vendedores tienen Mercado Pago conectado (requisito para publicar)
     box.innerHTML = `
