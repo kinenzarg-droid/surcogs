@@ -119,7 +119,7 @@ function reproducir(d, t) {
   const yt = youtubeId(url);
   const sp = url.match(/open\.spotify\.com\/(?:intl-\w+\/)?track\/([A-Za-z0-9]+)/);
   let frame = "";
-  if (yt) frame = `<iframe id="pl-yt" src="https://www.youtube.com/embed/${yt}?autoplay=1&enablejsapi=1&origin=${encodeURIComponent(location.origin)}" allow="autoplay; encrypted-media"></iframe>`;
+  if (yt) frame = `<iframe id="pl-yt" src="https://www.youtube.com/embed/${yt}?autoplay=1&enablejsapi=1&widgetid=1&origin=${encodeURIComponent(location.origin)}" allow="autoplay; encrypted-media"></iframe>`;
   else if (url.includes("soundcloud.com"))
     frame = `<iframe class="sc" src="https://w.soundcloud.com/player/?url=${encodeURIComponent(url)}&auto_play=true&visual=false" allow="autoplay"></iframe>`;
   else if (sp) frame = `<iframe src="https://open.spotify.com/embed/track/${sp[1]}" allow="autoplay; encrypted-media"></iframe>`;
@@ -149,27 +149,13 @@ function reproducir(d, t) {
   ajustarBarras();
 }
 
-// ---- El reloj del tema -------------------------------------------------
+// ---- El reloj del tema ---------------------------------------------------
 // YouTube esconde su propio reloj cuando el reproductor es tan bajo como el
-// nuestro. Se lo preguntamos por su API y lo escribimos nosotros al lado del
-// nombre del tema, con la tipografia del sitio.
-let apiYT = null;      // promesa: el script de YouTube se carga una sola vez
-let repYT = null;      // el reproductor del tema que suena ahora
-let reloj = null;      // el temporizador que refresca el numero
-
-function cargarApiYT() {
-  if (apiYT) return apiYT;
-  apiYT = new Promise((listo) => {
-    if (window.YT && window.YT.Player) return listo();
-    // Puede haber otro codigo esperando el mismo aviso: no lo pisamos.
-    const anterior = window.onYouTubeIframeAPIReady;
-    window.onYouTubeIframeAPIReady = () => { if (anterior) anterior(); listo(); };
-    const s = document.createElement("script");
-    s.src = "https://www.youtube.com/iframe_api";
-    document.head.appendChild(s);
-  });
-  return apiYT;
-}
+// nuestro, asi que le pedimos que nos cuente en que va y lo escribimos al lado
+// del nombre del tema. Ojo: solo lo escuchamos. Si tomaramos el control con su
+// libreria, YouTube recarga el video y el tema deja de arrancar solo.
+let duracionTema = 0;
+let saludos = null;
 
 function mmss(seg) {
   if (!isFinite(seg) || seg < 0) return "0:00";
@@ -177,36 +163,46 @@ function mmss(seg) {
 }
 
 function pararReloj() {
-  if (reloj) { clearInterval(reloj); reloj = null; }
-  if (repYT && repYT.destroy) { try { repYT.destroy(); } catch (e) {} }
-  repYT = null;
+  if (saludos) { clearInterval(saludos); saludos = null; }
+  duracionTema = 0;
   const c = document.getElementById("pl-tiempo");
   if (c) c.textContent = "";
 }
 
-async function arrancarReloj() {
+function arrancarReloj() {
   const marco = document.getElementById("pl-yt");
   if (!marco) return;
-  await cargarApiYT();
-  // Mientras cargaba la API el usuario pudo cambiar de tema o cerrar todo
-  if (document.getElementById("pl-yt") !== marco) return;
-  repYT = new YT.Player(marco, {
-    events: {
-      onReady: () => {
-        // Al tomar el control del iframe, la API de YouTube descarta el autoplay
-        // de la direccion y deja el tema frenado. Le pedimos que arranque.
-        try { repYT.playVideo(); } catch (e) {}
-        reloj = setInterval(() => {
-          if (!repYT || !repYT.getDuration) return;
-          const dur = repYT.getDuration();
-          const c = document.getElementById("pl-tiempo");
-          // Al principio YouTube contesta 0: no mostramos nada hasta que sepa
-          if (c) c.textContent = dur ? ` · ${mmss(repYT.getCurrentTime())} / ${mmss(dur)}` : "";
-        }, 500);
-      },
-    },
-  });
+  const saludar = () => {
+    try {
+      marco.contentWindow.postMessage(
+        JSON.stringify({ event: "listening", id: 1, channel: "widget" }), "*");
+    } catch (e) {}
+  };
+  marco.addEventListener("load", saludar);
+  // No sabemos cuando termina de cargar, asi que insistimos hasta que conteste
+  saludos = setInterval(saludar, 800);
+  setTimeout(() => { if (saludos) { clearInterval(saludos); saludos = null; } }, 15000);
 }
+
+window.addEventListener("message", (ev) => {
+  if (ev.origin !== "https://www.youtube.com") return;
+  let d;
+  try { d = JSON.parse(ev.data); } catch (e) { return; }
+  if (!d || !d.info) return;
+  if (d.event !== "initialDelivery" && d.event !== "infoDelivery") return;
+  // Los datos llegan de a pedazos: el largo del tema viene una vez sola al
+  // principio, y el reloj despues, cada tanto, mientras suena.
+  if (typeof d.info.duration === "number" && d.info.duration > 0) {
+    duracionTema = d.info.duration;
+    if (saludos) { clearInterval(saludos); saludos = null; }
+  }
+  if (typeof d.info.currentTime !== "number") return;
+  const c = document.getElementById("pl-tiempo");
+  if (c) c.textContent = duracionTema
+    ? ` · ${mmss(d.info.currentTime)} / ${mmss(duracionTema)}`
+    : "";
+});
+
 // Un solo reproductor sonando en todo SURCOGS, aunque tengas varias pestañas
 // abiertas: al dar play, las demás se enteran por este canal y se cierran.
 const canalPlayer = ("BroadcastChannel" in window) ? new BroadcastChannel("surcogs-player") : null;
