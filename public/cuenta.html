@@ -11,7 +11,8 @@
 <link rel="icon" href="/favicon.ico" sizes="32x32">
 <link rel="apple-touch-icon" href="/icono-192.png">
 <link rel="stylesheet" href="/css/style.css">
-<style>#compras,#ventas{scroll-margin-top:90px}</style>
+<style>#compras,#ventas{scroll-margin-top:90px}
+.pill-vendido{display:inline-block;background:#6b6560;color:#fff;font-size:11.5px;padding:4px 11px;border-radius:999px;white-space:nowrap}</style>
 <script src="/js/config.js"></script>
 </head>
 <body>
@@ -503,13 +504,12 @@ async function renderPanel(user, perfil) {
       <img src="${fotoPrincipal(d)}">
       <div class="grow">
         <strong>${d.artist} – ${d.title}</strong><br>
-        <span class="hint">recibís ${fmtPrecio(d.price)} · ${d.status}</span>
+        <span class="hint">${d.status === "vendido" ? "Cobraste" : "Recibís"} ${fmtPrecio(d.price)}</span>
       </div>
       ${d.status === "vendido" ? `
-        <span class="hint" title="Un disco vendido no se puede editar ni volver a poner en venta">
-          🔒 Vendido</span>` : `
+        <span class="pill-vendido" title="Un disco vendido no se puede editar ni volver a poner en venta">Vendido</span>` : `
         <select data-id="${d.id}" class="sel-estado" style="width:auto">
-          ${["disponible", "reservado"].map(s => `<option ${s === d.status ? "selected" : ""}>${s}</option>`).join("")}
+          ${["disponible", "reservado"].map(s => `<option value="${s}" ${s === d.status ? "selected" : ""}>${s.charAt(0).toUpperCase() + s.slice(1)}</option>`).join("")}
         </select>
         <a class="btn small ghost" href="/publicar.html?edit=${d.id}">✎ Editar</a>
         <button class="btn small ghost btn-del" data-id="${d.id}">Borrar</button>`}
