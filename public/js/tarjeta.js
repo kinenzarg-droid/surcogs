@@ -193,6 +193,9 @@ async function arrancarReloj() {
   repYT = new YT.Player(marco, {
     events: {
       onReady: () => {
+        // Al tomar el control del iframe, la API de YouTube descarta el autoplay
+        // de la direccion y deja el tema frenado. Le pedimos que arranque.
+        try { repYT.playVideo(); } catch (e) {}
         reloj = setInterval(() => {
           if (!repYT || !repYT.getDuration) return;
           const dur = repYT.getDuration();
