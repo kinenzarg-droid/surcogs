@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Todos los vinilos en venta · SURCOGS</title>
+<meta name="description" content="El catálogo completo de SURCOGS en una sola página: todos los vinilos de techno y música electrónica en venta, con sello, año, estado y precio.">
+<link rel="canonical" href="https://surcogs.com.ar/discos">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="/favicon.ico" sizes="32x32">
+<link rel="apple-touch-icon" href="/icono-192.png">
+<link rel="stylesheet" href="/css/style.css">
+<script src="/js/config.js"></script>
+<style>
+.ix { padding: 30px 0 10px; }
+.ix h1 { font-size: 30px; line-height: 1.15; letter-spacing: -.4px; margin: 0 0 10px }
+.ix .sub { font-size: 15.5px; color: var(--dim); line-height: 1.55; max-width: 62ch; margin: 0 0 26px }
+.ix ul { list-style: none; margin: 0; padding: 0; columns: 2; column-gap: 38px; font-size: 14px; line-height: 1.75 }
+.ix li { break-inside: avoid; margin-bottom: 6px }
+.ix a { color: inherit; text-decoration: none }
+.ix a:hover { text-decoration: underline; text-decoration-color: var(--acc) }
+.ix span, .ix b { color: var(--dim); font-weight: 400 }
+@media (max-width: 760px) { .ix ul { columns: 1 } .ix h1 { font-size: 25px } }
+</style>
+</head>
+<body>
+<div id="header"></div>
+<div class="wrap">
+
+  <div class="ix">
+    <h1>Todos los vinilos en venta</h1>
+    <p class="sub">El catálogo entero en una sola página, para el que prefiere leer
+      la lista antes que ir filtrando. Cada disco se puede escuchar completo antes
+      de comprarlo. El vendedor cobra el precio que puso y la plata queda protegida
+      hasta que el comprador confirma que lo recibió.</p>
+
+    <!-- La lista la escribe el servidor en functions/discos.js, antes de mandar
+         la pagina. Asi la lee el buscador sin tener que ejecutar nada. -->
+    <ul id="lista-discos"><li>Cargando el catálogo…</li></ul>
+  </div>
+
+</div>
+
+<script type="module">
+import { renderHeader } from "/js/app.js?v=3";
+renderHeader("");
+</script>
+</body>
+</html>
