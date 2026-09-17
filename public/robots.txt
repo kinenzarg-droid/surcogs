@@ -1,0 +1,77 @@
+# SURCOGS - surcogs.com.ar
+# Que los buscadores y los asistentes lean el catalogo. Lo unico cerrado es
+# lo que pertenece a una persona o a la administracion.
+
+User-agent: *
+Allow: /
+
+# Paginas de una cuenta, de la administracion o de un solo uso. No le sirven
+# a nadie que llegue de una busqueda, y algunas tienen datos de gente.
+Disallow: /cuenta
+Disallow: /cuenta.html
+Disallow: /carrito
+Disallow: /carrito.html
+Disallow: /publicar
+Disallow: /publicar.html
+Disallow: /admin
+Disallow: /admin.html
+Disallow: /liquidaciones
+Disallow: /liquidaciones.html
+Disallow: /metricas
+Disallow: /metricas.html
+Disallow: /notificaciones
+Disallow: /notificaciones.html
+Disallow: /courier
+Disallow: /courier.html
+Disallow: /etiquetas
+Disallow: /etiquetas.html
+Disallow: /reset
+Disallow: /reset.html
+Disallow: /placa
+Disallow: /placa.html
+Disallow: /compartir-gen.html
+Disallow: /r.html
+Disallow: /e.html
+Disallow: /api/
+
+# Los rastreadores de inteligencia artificial entran a proposito: queremos que
+# cuando alguien le pregunte a un asistente donde comprar un vinilo de techno
+# en Argentina, SURCOGS sea una de las respuestas. Si algun dia no se quiere
+# mas, se cambia Allow por Disallow aca abajo.
+User-agent: GPTBot
+Allow: /
+
+User-agent: OAI-SearchBot
+Allow: /
+
+User-agent: ChatGPT-User
+Allow: /
+
+User-agent: ClaudeBot
+Allow: /
+
+User-agent: Claude-SearchBot
+Allow: /
+
+User-agent: Claude-User
+Allow: /
+
+User-agent: PerplexityBot
+Allow: /
+
+User-agent: Perplexity-User
+Allow: /
+
+User-agent: Google-Extended
+Allow: /
+
+User-agent: Applebot-Extended
+Allow: /
+
+User-agent: CCBot
+Allow: /
+
+User-agent: meta-externalagent
+Allow: /
+
+Sitemap: https://surcogs.com.ar/sitemap.xml
