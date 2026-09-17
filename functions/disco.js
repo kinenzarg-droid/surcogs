@@ -74,6 +74,63 @@ function armarEtiquetas(d, url) {
   return { html: m.join("\n"), titulo };
 }
 
+// Los datos del disco escritos para maquinas. Google los usa para mostrar el
+// precio y la disponibilidad en el resultado de busqueda, y los asistentes de
+// inteligencia artificial los leen para contestar "donde consigo este disco".
+// Sin esto, del otro lado solo hay un parrafo de texto que hay que adivinar.
+function datosEstructurados(d, url) {
+  const titulo = [d.artist, d.title].filter(Boolean).join(" \u2013 ") || "Disco";
+  // El sello viene junto con el numero de catalogo, separados por un punto medio
+  const partes = String(d.label || "").split(" \u00b7 ");
+  const sello = partes[0] || "";
+  const catalogo = partes[1] || "";
+  const tapa = Array.isArray(d.photos) && d.photos.length ? d.photos[0] : null;
+
+  const extras = [];
+  if (d.format) extras.push({ "@type": "PropertyValue", name: "Formato", value: d.format });
+  if (d.condition_media) extras.push({ "@type": "PropertyValue", name: "Estado", value: d.condition_media });
+  if (catalogo) extras.push({ "@type": "PropertyValue", name: "Catalogo", value: catalogo });
+
+  const ficha = {
+    "@context": "https://schema.org",
+    "@type": ["Product", "MusicAlbum"],
+    name: titulo,
+    url: url,
+    material: "Vinyl",
+  };
+  if (tapa) ficha.image = tapa;
+  if (d.artist) ficha.byArtist = { "@type": "MusicGroup", name: d.artist };
+  if (sello) ficha.recordLabel = { "@type": "Organization", name: sello };
+  if (d.genre) ficha.genre = d.genre;
+  if (d.year) ficha.datePublished = String(d.year);
+  if (extras.length) ficha.additionalProperty = extras;
+
+  if (d.price) {
+    ficha.offers = {
+      "@type": "Offer",
+      url: url,
+      priceCurrency: "ARS",
+      // El precio que realmente paga el comprador, no el neto del vendedor.
+      // Si publicaramos el neto, el que llega desde Google veria un numero
+      // mas bajo que el del checkout y se sentiria estafado.
+      price: String(Math.round(d.price * RECARGO)),
+      availability: d.status === "disponible"
+        ? "https://schema.org/InStock"
+        : "https://schema.org/OutOfStock",
+      // Goldmine: M es sellado o nunca reproducido; el resto es usado.
+      itemCondition: d.condition_media === "M"
+        ? "https://schema.org/NewCondition"
+        : "https://schema.org/UsedCondition",
+      seller: { "@type": "Organization", name: "SURCOGS", url: "https://surcogs.com.ar" },
+    };
+  }
+
+  // Los "<" se escapan para que un titulo raro no pueda cerrar la etiqueta
+  // <script> y meter cualquier cosa en la pagina.
+  const json = JSON.stringify(ficha).replace(/</g, "\\u003c");
+  return '<script type="application/ld+json">' + json + "\u003c/script>";
+}
+
 export async function onRequestGet(context) {
   const { request, env, next } = context;
   const respuesta = await next();   // el disco.html de siempre
@@ -95,13 +152,14 @@ export async function onRequestGet(context) {
   // distinta para los buscadores.
   const limpia = `${url.origin}${url.pathname}?id=${encodeURIComponent(id)}`;
   const { html, titulo } = armarEtiquetas(d, limpia);
+  const ficha = datosEstructurados(d, limpia);
 
   return new HTMLRewriter()
     .on("title", {
       element(el) { el.setInnerContent(titulo + " · SURCOGS"); },
     })
     .on("head", {
-      element(el) { el.append("\n" + html + "\n", { html: true }); },
+      element(el) { el.append("\n" + html + "\n" + ficha + "\n", { html: true }); },
     })
     .transform(respuesta);
 }
