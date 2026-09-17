@@ -4,6 +4,8 @@
 // todos los dias. Un sitemap escrito a mano se desactualiza en una semana y
 // empieza a mandar a los buscadores a discos que ya no estan.
 
+import { urlDeFicha } from "./_ficha.js";
+
 const SITIO = "https://surcogs.com.ar";
 
 // En XML estos cinco caracteres rompen el archivo si van crudos.
@@ -45,6 +47,7 @@ async function traer(env, ruta) {
 export async function onRequestGet({ env }) {
   const urls = [
     entrada({ url: `${SITIO}/`, cada: "daily", peso: "1.0" }),
+    entrada({ url: `${SITIO}/discos`, cada: "daily", peso: "0.9" }),
     entrada({ url: `${SITIO}/vender`, cada: "monthly", peso: "0.8" }),
     entrada({ url: `${SITIO}/terminos.html`, cada: "yearly", peso: "0.3" }),
   ];
@@ -64,10 +67,13 @@ export async function onRequestGet({ env }) {
     // Los discos. Solo los que se pueden comprar: mandar a los buscadores a
     // una ficha vendida es gastar el rastreo y decepcionar al que llega.
     const discos = await traer(env,
-      "records?select=id,created_at&status=eq.disponible&order=created_at.desc");
+      "records?select=id,id_corto,artist,title,created_at" +
+      "&status=eq.disponible&order=created_at.desc");
     for (const d of discos) {
       urls.push(entrada({
-        url: `${SITIO}/disco?id=${d.id}`,
+        // La direccion con nombre, que es la buena. Si aca pusieramos la vieja,
+        // le estariamos mandando a Google 229 redirecciones.
+        url: urlDeFicha(SITIO, d),
         fecha: soloFecha(d.created_at),
         cada: "weekly", peso: "0.6",
       }));
