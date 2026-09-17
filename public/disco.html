@@ -46,7 +46,9 @@ if (canalPlayer) canalPlayer.onmessage = (ev) => {
 };
 
 const params = new URLSearchParams(location.search);
-const id = params.get("id");
+// La direccion vieja trae el id en ?id=. La nueva, /disco/nombre-del-disco,
+// no lo trae: se lo deja puesto el servidor antes de mandar la pagina.
+const id = params.get("id") || (window.__disco && window.__disco.id);
 const cont = document.getElementById("detalle");
 
 // aviso post-pago + calificación
