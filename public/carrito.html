@@ -57,7 +57,7 @@
 
 <script type="module">
 import { sb, renderHeader, getUser, getPerfil, fmtPrecio, fotoPrincipal, precioComprador,
-         toast, authHeaders, refrescarCarrito } from "/js/app.js?v=3";
+         toast, authHeaders, refrescarCarrito, urlDisco } from "/js/app.js?v=3";
 renderHeader("");
 const main = document.getElementById("main");
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) =>
@@ -150,7 +150,7 @@ function pintar() {
         </div>
         ${g.map((d) => `
           <div class="k-it">
-            <a class="k-link" href="/disco.html?id=${d.id}">
+            <a class="k-link" href="${urlDisco(d)}">
               <img src="${fotoPrincipal(d)}" alt="">
               <span class="n"><b>${esc(d.artist)}</b><br>${esc(d.title)}
                 <span class="hint" style="display:block">${esc(d.format || "Vinilo")}</span></span>
