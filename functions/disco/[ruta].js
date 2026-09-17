@@ -6,7 +6,7 @@
 // el vendedor corrige el titulo, la parte legible cambia pero la direccion
 // vieja sigue funcionando, y mandamos a la nueva.
 
-import { buscarPorIdCorto, urlDeFicha, armarEtiquetas, datosEstructurados, esc }
+import { buscarPorIdCorto, urlDeFicha, urlCanonica, armarEtiquetas, datosEstructurados, esc }
   from "../_ficha.js";
 
 const ID_CORTO = /-([0-9a-f]{8})$/i;
@@ -54,8 +54,12 @@ export async function onRequestGet({ request, env }) {
   const pagina = await env.ASSETS.fetch(new URL("/disco.html", url.origin));
   if (!pagina.ok) return noExiste();
 
-  const { html, titulo } = armarEtiquetas(d, buena);
-  const ld = datosEstructurados(d, buena);
+  // Ojo: la redireccion de arriba usa la direccion por la que entro la visita,
+  // pero lo que le declaramos a Google es siempre la misma, sin www. Si no, el
+  // mismo disco visto con www y sin www serian dos paginas peleandose entre si.
+  const canonica = urlCanonica(d);
+  const { html, titulo } = armarEtiquetas(d, canonica);
+  const ld = datosEstructurados(d, canonica);
   // La pagina lee el id de aca, porque en esta direccion no viene un ?id=
   const puente = '<script>window.__disco={id:"' + esc(d.id) + '"}\u003c/script>';
 
