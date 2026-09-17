@@ -5,7 +5,7 @@
 // de lo mismo destinadas a separarse: ya nos habia pasado con la ficha
 // del disco. Estan aca para tocarlas una sola vez.
 
-import { fotoPrincipal, fmtPrecio, precioComprador, youtubeId } from "/js/app.js?v=3";
+import { fotoPrincipal, fmtPrecio, precioComprador, youtubeId, urlDisco } from "/js/app.js?v=3";
 
 export const esc = (s) => String(s ?? "").replace(/</g, "&lt;").replace(/"/g, "&quot;");
 const CART_ICON = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#e6a817" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="pointer-events:none;flex:none"><circle cx="9" cy="20" r="1.7" fill="#e6a817" stroke="none"/><circle cx="17" cy="20" r="1.7" fill="#e6a817" stroke="none"/><path d="M3 3h2.5l2.2 12.2a1.5 1.5 0 0 0 1.5 1.3h7.9a1.5 1.5 0 0 0 1.5-1.2L20.5 8H6"/></svg>';
@@ -27,13 +27,13 @@ export function configurarTarjetas(opciones = {}) {
 export function tarjeta(d, i) {
   return `
     <div class="gcard">
-      <a href="/disco.html?id=${d.id}"><img class="gcov" src="${fotoPrincipal(d)}" alt="${esc(d.artist)} – ${esc(d.title)}" loading="lazy"></a>
+      <a href="${urlDisco(d)}"><img class="gcov" src="${fotoPrincipal(d)}" alt="${esc(d.artist)} – ${esc(d.title)}" loading="lazy"></a>
       <span class="gbadge ${d.status}">${d.status.charAt(0).toUpperCase() + d.status.slice(1)}</span>
       ${esMio(d) ? `<span class="gown">
         <a href="/publicar.html?edit=${d.id}" title="Editar">✎</a>
         <button class="del" data-del="${d.id}" title="Eliminar">🗑</button></span>` : ""}
       <div class="gbody">
-        <a class="gname" href="/disco.html?id=${d.id}"><b>${esc(d.artist)}:</b> ${esc(d.title)}</a>
+        <a class="gname" href="${urlDisco(d)}"><b>${esc(d.artist)}:</b> ${esc(d.title)}</a>
         <div class="gmeta">${d.label ? `<a class="lk-sello" data-q="${esc(d.label)}" href="/?q=${encodeURIComponent(d.label)}">${esc(d.label)}</a> · ` : ""}${esc(d.format)}${d.condition_media ? ` · <b class="ggrado" title="Estado del disco, escala Goldmine">${esc(d.condition_media)}</b>` : ""}</div>
         ${locDe(d) ? `<div class="gmeta">📍 ${esc(locDe(d))}</div>` : ""}
         ${trackBtns(d, i)}
@@ -44,7 +44,7 @@ export function tarjeta(d, i) {
           </span>
         </div>
         ${d.status === "disponible" ? `<div class="gbtns">
-          <a class="gbuy" href="/disco.html?id=${d.id}">Comprar</a>
+          <a class="gbuy" href="${urlDisco(d)}">Comprar</a>
           <button class="gcart" data-cart="${d.id}">${CART_ICON} Agregar al carrito</button>
         </div>` : ""}
       </div>
