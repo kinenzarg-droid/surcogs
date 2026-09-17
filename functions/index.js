@@ -41,7 +41,7 @@ export async function onRequestGet({ request, env, next }) {
     '<section id="que-es">' +
     "<h2>Vinilos de techno, de mano en mano</h2>" +
     "<p>SURCOGS es un mercado entre coleccionistas para comprar y vender vinilos " +
-    "de techno y m\u00fasica electr\u00f3nica en Argentina. Cada disco se puede escuchar " +
+    "de m\u00fasica electr\u00f3nica en Argentina. Cada disco se puede escuchar " +
     "entero antes de comprarlo. El vendedor cobra el precio que puso y la plata " +
     "queda protegida hasta que el comprador confirma que lo recibi\u00f3.</p>" +
     '<p><a href="/discos">' +
@@ -56,7 +56,7 @@ export async function onRequestGet({ request, env, next }) {
     name: "SURCOGS",
     url: "https://surcogs.com.ar",
     description: "Mercado entre coleccionistas para comprar y vender vinilos de " +
-      "techno y musica electronica en Argentina, con audio de cada tema.",
+      "musica electronica en Argentina, con audio de cada tema.",
     areaServed: { "@type": "Country", name: "Argentina" },
     currenciesAccepted: "ARS",
     sameAs: ["https://www.instagram.com/surcogs"],
