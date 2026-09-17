@@ -367,6 +367,8 @@ function pieDePagina() {
     "padding:22px 16px 90px;text-align:center;color:var(--dim);" +
     "font-size:13px;line-height:1.9";
   p.innerHTML = `
+    <a href="/discos" style="color:var(--dim)">Todos los discos</a>
+    &nbsp;·&nbsp;
     <a href="/terminos.html" style="color:var(--dim)">Términos y condiciones</a>
     &nbsp;·&nbsp;
     <a href="https://wa.me/5491123986959" target="_blank" rel="noopener"
