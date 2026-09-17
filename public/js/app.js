@@ -342,7 +342,7 @@ export async function renderHeader(activo) {
         return;
       }
       dd.innerHTML = data.map(r => `
-        <a href="/disco.html?id=${r.id}">
+        <a href="${urlDisco(r)}">
           <img src="${fotoPrincipal(r)}" alt="">
           <div>
             <div class="sd-t">${r.title.replace(/</g, "&lt;")}</div>
@@ -436,6 +436,23 @@ export function youtubeId(url) {
   if (!url) return null;
   const m = url.match(/(?:youtu\.be\/|v=|shorts\/|embed\/)([\w-]{11})/);
   return m ? m[1] : null;
+}
+
+// La direccion de la ficha de un disco: /disco/the-vision-spectral-nomad-69cbbc8a
+//
+// Tiene que dar exactamente el mismo texto que arma el servidor en
+// functions/_ficha.js. Si difieren, el link sigue funcionando pero el servidor
+// tiene que redirigir en cada clic, y eso es un salto al pedo que ademas le
+// resta a la pagina en el buscador.
+export function urlDisco(d) {
+  const nombre = [d.artist, d.title].filter(Boolean).join(" ")
+    .normalize("NFD").replace(/[\u0300-\u036f]/g, "")   // saca los acentos
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 70)
+    .replace(/-+$/, "");
+  return `/disco/${nombre || "disco"}-${String(d.id).slice(0, 8)}`;
 }
 
 export function fotoPrincipal(rec) {
