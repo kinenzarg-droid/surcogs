@@ -32,8 +32,21 @@ export function parteLegible(d) {
   return limpio || "disco";
 }
 
+// La unica direccion buena del sitio. El sitio contesta igual con www y sin
+// www, y si cada version se declarara a si misma como la original, Google veria
+// dos paginas distintas para el mismo disco, compitiendo entre ellas.
+export const SITIO = "https://surcogs.com.ar";
+
+// Si no se pasa origen, sale la direccion completa y canonica. Se pasa origen
+// vacio cuando el enlace es interno y alcanza con la ruta.
 export function urlDeFicha(origen, d) {
-  return `${origen}/disco/${parteLegible(d)}-${d.id_corto}`;
+  const base = origen === "" ? "" : (origen || SITIO);
+  return `${base}/disco/${parteLegible(d)}-${d.id_corto}`;
+}
+
+// La direccion canonica, siempre sin www, entre por donde entre la visita.
+export function urlCanonica(d) {
+  return urlDeFicha(SITIO, d);
 }
 
 export async function buscarPorIdCorto(env, idCorto) {
