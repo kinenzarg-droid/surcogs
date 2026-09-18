@@ -271,7 +271,7 @@ async function pagar(btn, endpoint) {
     if (j.init_point) return void (location.href = j.init_point);
     btn.textContent = "Abriendo WhatsApp ✓";
     window.open(j.wa, "_blank");
-    toast("Te guardamos los discos por 24hs. Escribinos por WhatsApp para cerrar la compra.");
+    toast("Te guardamos los discos por 72hs. Escribinos por WhatsApp para cerrar la compra.");
     setTimeout(() => { location.href = "/cuenta.html#compras"; }, 2500);
   } catch (e) {
     toast("No pudimos seguir: " + e.message, true);

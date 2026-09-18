@@ -82,7 +82,7 @@ const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) =>
         "Transferencias por cobrar",
         d.porCobrar.compras
           ? `${d.porCobrar.compras} compra${d.porCobrar.compras > 1 ? "s" : ""} reservada${d.porCobrar.compras > 1 ? "s" : ""}
-             esperando que confirmes que entró la plata. <b>Si no confirmás, a las 24hs el disco vuelve al catálogo.</b>
+             esperando que confirmes que entró la plata. <b>Si no confirmás, a las 72hs el disco vuelve al catálogo.</b>
              <a href="/liquidaciones.html" style="color:var(--acc)">Confirmar →</a>`
           : "Ninguna esperando.")}
 

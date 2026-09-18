@@ -56,7 +56,7 @@ const card = (o, go) => `
   </div>`;
 
 // Compras por transferencia que todavía no cobré. Hasta que no confirme,
-// el disco sigue reservado y a las 24hs volvería al catálogo.
+// el disco sigue reservado y a las 72hs volvería al catálogo.
 const cardReserva = (g) => `
   <div class="card" style="border-color:#e0a300;background:#fffdf5">
     <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:flex-start">
@@ -134,7 +134,7 @@ window.copiar = (el) => {
 // módulo y tiene su propio scope. Sin esto, los botones no hacen nada.
 window.pagar = pagar;
 // Cuando el comprador avisa que se arrepintio, no hay por que dejar el disco
-// 24hs fuera del catalogo esperando una transferencia que no va a llegar.
+// 72hs fuera del catalogo esperando una transferencia que no va a llegar.
 async function liberar(purchase_id, btn) {
   if (!confirm("¿El comprador no va a pagar? El disco vuelve al catálogo ahora mismo.")) return;
   btn.disabled = true; btn.textContent = "Liberando…";
