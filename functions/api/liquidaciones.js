@@ -25,38 +25,63 @@ export async function onRequestGet({ request, env }) {
   const listas = await sel(env, "orders",
     "liquidado_at=not.is.null&select=id,monto_vendedor,liquidado_at,seller_id&order=liquidado_at.desc&limit=20");
 
-  // La vista de pendientes ya trae nombre y alias del vendedor, pero orders no.
-  // Los busco aparte para poder mostrarlos también en las ya liquidadas.
-  const idsVend = [...new Set((listas || []).map((o) => o.seller_id).filter(Boolean))];
+  // Compras por transferencia esperando que yo confirme que entró la plata.
+  // Se agrupan por purchase_id: una compra puede tener varios discos.
+  const res = await sel(env, "orders",
+    "metodo_pago=eq.transferencia&status=eq.reservado&select=*,records(artist,title)&order=created_at.asc");
+
+  // Todos los vendedores que aparecen en esta pantalla, en una sola consulta.
+  // Además del nombre y el alias traemos el contacto: cuando alguien paga por
+  // transferencia hay que pasarle al comprador cómo ubicar al vendedor, y eso
+  // se hace a mano desde acá.
+  const idsVend = [...new Set([
+    ...(listas || []).map((o) => o.seller_id),
+    ...(pend || []).map((o) => o.seller_id),
+    ...(Array.isArray(res) ? res : []).map((o) => o.seller_id),
+  ].filter(Boolean))];
   const perfiles = idsVend.length
-    ? await sel(env, "profiles", `id=in.(${idsVend.join(",")})&select=id,name,alias`)
+    ? await sel(env, "profiles",
+        `id=in.(${idsVend.join(",")})&select=id,name,alias,whatsapp,direccion,cp,zona,localidad`)
     : [];
   const P = Object.fromEntries((perfiles || []).map((p) => [p.id, p]));
+
+  // Sólo lo que sirve para que el comprador ubique al vendedor. El alias no va
+  // acá: ese es para pagarle yo, no para compartir.
+  const contacto = (id) => {
+    const p = P[id];
+    if (!p) return null;
+    return {
+      nombre: p.name || null,
+      whatsapp: p.whatsapp || null,
+      direccion: [p.direccion, p.cp ? "CP " + p.cp : null].filter(Boolean).join(", ") || null,
+      zona: [p.zona, p.localidad].filter(Boolean).join(" · ") || null,
+    };
+  };
+
   const liquidadas = (listas || []).map((o) => ({
     ...o,
     vendedor: P[o.seller_id]?.name || null,
     vendedor_alias: P[o.seller_id]?.alias || null,
   }));
 
-  // Compras por transferencia esperando que yo confirme que entró la plata.
-  // Se agrupan por purchase_id: una compra puede tener varios discos.
-  const res = await sel(env, "orders",
-    "metodo_pago=eq.transferencia&status=eq.reservado&select=*,records(artist,title)&order=created_at.asc");
   const porCompra = {};
   for (const o of Array.isArray(res) ? res : []) {
     const g = (porCompra[o.purchase_id] = porCompra[o.purchase_id] || {
       purchase_id: o.purchase_id, created_at: o.created_at, seller_id: o.seller_id,
       buyer_email: o.buyer_email, buyer_name: o.buyer_name,
+      contacto: contacto(o.seller_id),
       total: 0, discos: [],
     });
     g.total += Number(o.amount || 0) + Number(o.shipping_cost || 0);
     g.discos.push(`${o.records?.artist ?? "?"} – ${o.records?.title ?? "?"}`);
   }
 
+  const conContacto = (o) => ({ ...o, contacto: contacto(o.seller_id) });
+
   return json({
     reservas: Object.values(porCompra),
-    liberables: (pend || []).filter((o) => o.liberable),
-    esperando: (pend || []).filter((o) => !o.liberable),
+    liberables: (pend || []).filter((o) => o.liberable).map(conContacto),
+    esperando: (pend || []).filter((o) => !o.liberable).map(conContacto),
     liquidadas,
   });
 }
@@ -90,8 +115,8 @@ export async function onRequestPost({ request, env }) {
 }
 
 // Cobré por transferencia: la compra pasa a valer igual que una pagada con
-// Mercado Pago. Sin esto los discos volvían al catálogo a las 24hs.
-// El comprador avisa que no va a pagar: no tiene sentido dejar el disco 24hs
+// Mercado Pago. Sin esto los discos volvían al catálogo a las 72hs.
+// El comprador avisa que no va a pagar: no tiene sentido dejar el disco 72hs
 // fuera del catalogo esperando una transferencia que no va a llegar.
 async function liberarReserva(env, purchaseId) {
   const ords = await sel(env, "orders",
