@@ -42,6 +42,7 @@ export function tarjeta(d, i) {
             <span class="gprice">${d.old_price && d.old_price > d.price ? `<s>${fmtPrecio(precioComprador(d.old_price))}</s>` : ""}${fmtPrecio(precioComprador(d.price))}</span>
             <span class="gtr">${fmtPrecio(Math.round(precioComprador(d.price) * 0.9))} <b>10% OFF</b> con transferencia</span>
           </span>
+          ${esMio(d) ? `<span class="gmio">${d.status === "vendido" ? "Cobraste" : "Vos cobr\u00e1s"} <b>${fmtPrecio(d.price)}</b></span>` : ""}
         </div>
         ${d.status === "disponible" ? `<div class="gbtns">
           <a class="gbuy" href="${urlDisco(d)}">Comprar</a>
