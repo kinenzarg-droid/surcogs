@@ -334,7 +334,14 @@ textarea { min-height: 72px; resize: vertical; }
 .hwh-brand-m .vinilo-o .vo-txt { display: none; }
 @media (max-width: 680px) {
   .hwh-banner { display: none; }
-  .hwh-tabs { display: none; }
+  /* Las pestanias van a su propio renglon, debajo del buscador (que ya usa
+     order 5). Antes decian display:none y en el celular no quedaba NINGUNA
+     forma de llegar a Mi coleccion: tampoco estaba en el menu del avatar, y
+     sin sesion no hay avatar. */
+  .hwh-tabs { order: 6; flex-basis: 100%; gap: 0; margin-top: 2px;
+    border-top: 1px solid #262626; }
+  .hwh-tabs a { flex: 1; text-align: center; padding: 10px 0 9px; font-size: 13px;
+    border-radius: 0; }
   /* El boton de vender se queda en el celular. Antes desaparecia justo aca, que
      es donde mas hace falta: era la unica puerta de entrada para el que quiere
      publicar. Compacto, y sin la palabra "gratis" para que entre. */
