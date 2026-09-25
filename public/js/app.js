@@ -175,8 +175,10 @@ export async function renderHeader(activo) {
       <a class="hwh-brand-m" href="/">SURC<svg class="vinilo-o" viewBox="0 0 40 40" aria-hidden="true"><g class="vo-gira"><circle cx="20" cy="20" r="19" fill="#1a1a1a"/><circle cx="20" cy="20" r="16.3" fill="none" stroke="#ff5500" stroke-width="1.1" opacity=".55"/><circle cx="20" cy="20" r="13.4" fill="none" stroke="#ff5500" stroke-width="1.1" opacity=".55"/><circle cx="20" cy="20" r="10.5" fill="none" stroke="#ff5500" stroke-width="1.1" opacity=".55"/><circle cx="20" cy="20" r="6.8" fill="#ff5500"/><circle cx="20" cy="20" r="1.5" fill="#1a1a1a"/></g></svg>GS</a>
       <nav class="hwh-tabs">
         <a href="/" class="${activo === "catalogo" ? "on" : ""}">Catálogo</a>
+        <!-- Sin sesion decia "Mi coleccion" y te tiraba a un formulario de
+             login sin explicar por que. Ahora dice lo que va a pasar. -->
         <a href="${user ? "/perfil.html?id=" + user.id : "/cuenta.html"}"
-           class="${activo === "coleccion" ? "on" : ""}">Mi colección</a>
+           class="${activo === "coleccion" ? "on" : ""}">${user ? "Mi colección" : "Entrar"}</a>
       </nav>
       <div class="search">
         <input id="hdr-q" type="search" placeholder="Buscar artista, disco o sello" autocomplete="off">
