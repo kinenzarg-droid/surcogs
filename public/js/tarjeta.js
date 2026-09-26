@@ -14,6 +14,12 @@ const CART_ICON = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" s
 // disco es el respaldo por si el perfil no vino en la consulta.
 export const locDe = (d) => d.profiles?.localidad || d.localidad || "";
 
+// Quien vende. Sale del perfil, no de una copia en el disco: si se cambia
+// el nombre, se actualizan todas sus publicaciones de una vez. En el perfil
+// del vendedor la consulta no lo trae, y ahi no hace falta: ya sabes de quien
+// es el catalogo que estas mirando.
+export const vendedorDe = (d) => d.profiles?.name || "";
+
 // Cada pantalla define lo suyo: quien es el dueño del disco, y que hacer
 // cuando el reproductor entra o sale (el catalogo tiene que correr la
 // barra del carrito; el perfil no tiene barra).
@@ -35,7 +41,11 @@ export function tarjeta(d, i) {
       <div class="gbody">
         <a class="gname" href="${urlDisco(d)}"><b>${esc(d.artist)}:</b> ${esc(d.title)}</a>
         <div class="gmeta">${d.label ? `<a class="lk-sello" data-q="${esc(d.label)}" href="/?q=${encodeURIComponent(d.label)}">${esc(d.label)}</a> · ` : ""}${esc(d.format)}${d.condition_media ? ` · <b class="ggrado" title="Estado del disco, escala Goldmine">${esc(d.condition_media)}</b>` : ""}</div>
-        ${locDe(d) ? `<div class="gmeta">📍 ${esc(locDe(d))}</div>` : ""}
+        ${vendedorDe(d) || locDe(d) ? `<div class="gmeta">${
+          vendedorDe(d)
+            ? `<a class="gvend" href="/perfil.html?id=${d.seller_id}" title="Ver todo lo de ${esc(vendedorDe(d))}">${esc(vendedorDe(d))}</a>${locDe(d) ? " · " + esc(locDe(d)) : ""}`
+            : `📍 ${esc(locDe(d))}`
+        }</div>` : ""}
         ${trackBtns(d, i)}
         <div class="gfoot">
           <span class="gprecio">
