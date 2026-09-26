@@ -504,6 +504,10 @@ img, iframe { max-width: 100%; }
 .gname b {font-weight:700}
 .gmeta {color:#555;font-size:11.5px;line-height:1.45;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 .ggrado {color:#111;font-weight:700}
+/* El nombre del vendedor, linkeado a su catalogo. Mismo subrayado punteado
+   que el sello: se ve que es un link sin gritar dentro de la tarjeta. */
+.gvend {color:inherit;text-decoration:none;border-bottom:1px dotted #aaa}
+.gvend:hover {color:#ff5500;border-bottom-color:#ff5500}
 /* La etiqueta va sobre la tapa: asi la tarjeta mide siempre lo mismo,
    este el disco disponible o no. */
 .gbadge {position:absolute;top:8px;right:8px;color:#fff;font-size:10.5px;font-weight:600;
