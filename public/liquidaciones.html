@@ -17,6 +17,11 @@
 .al{font-family:ui-monospace,monospace;background:#f1f1f1;border-radius:4px;padding:3px 8px;font-size:13px;
   cursor:pointer;display:inline-block}
 .st{font-size:12px;color:var(--dim);margin-top:4px}
+.ct{margin-top:10px;border-top:1px dashed var(--line);padding-top:9px}
+.ct .fila{font-size:13px;line-height:1.7;color:#3a352f}
+.ct .fila b{color:#16130f}
+.ct .falta{color:var(--err)}
+.ct button{margin-top:7px}
 h2{margin:26px 0 10px;font-size:16px}
 </style>
 </head>
@@ -33,6 +38,44 @@ const out = document.getElementById("out");
 const pesos = (n) => "$" + Number(n || 0).toLocaleString("es-AR");
 const fecha = (d) => d ? new Date(d).toLocaleDateString("es-AR") : "—";
 
+// Los datos del vendedor se guardan acá y el boton los busca por numero. Asi
+// no hay que meter nombres y direcciones adentro de un atributo HTML.
+const CONTACTOS = new Map();
+let nCt = 0;
+const esc = (t) => String(t ?? "").replace(/[&<>"]/g, (c) =>
+  ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+
+// Bloque para pasarle al comprador como ubicar al vendedor cuando pago por
+// transferencia. El texto sale listo para pegar en WhatsApp.
+function bloqueContacto(c, discos) {
+  if (!c) return "";
+  const k = ++nCt;
+  const texto = [
+    discos && discos.length ? "Disco: " + discos.join(" · ") : null,
+    "",
+    "Datos del vendedor:",
+    c.nombre ? "Nombre: " + c.nombre : null,
+    c.whatsapp ? "WhatsApp: " + c.whatsapp : null,
+    c.zona ? "Zona: " + c.zona : null,
+    c.direccion ? "Dirección: " + c.direccion : null,
+  ].filter((l) => l !== null).join("\n");
+  CONTACTOS.set(k, texto);
+  const falta = [];
+  if (!c.nombre) falta.push("nombre");
+  if (!c.whatsapp) falta.push("teléfono");
+  if (!c.direccion) falta.push("dirección");
+  return `
+    <div class="ct">
+      <div class="fila">
+        <b>${esc(c.nombre || "sin nombre")}</b>${c.whatsapp ? " · " + esc(c.whatsapp) : ""}
+        ${c.zona ? "<br>" + esc(c.zona) : ""}
+        ${c.direccion ? "<br>" + esc(c.direccion) : ""}
+        ${falta.length ? `<br><span class="falta">⚠ el vendedor no cargó ${falta.join(", ")}</span>` : ""}
+      </div>
+      <button class="btn small ghost" onclick="copiarContacto(${k},this)">Copiar contacto</button>
+    </div>`;
+}
+
 const card = (o, go) => `
   <div class="card ${go ? "go" : ""}">
     <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:flex-start">
@@ -47,6 +90,7 @@ const card = (o, go) => `
             : `<span style="color:var(--err);font-size:13px">⚠ el vendedor no cargó su alias</span>`}
           ${o.vendedor_titular ? `<span class="st"> · ${o.vendedor_titular}</span>` : ""}
         </div>
+        ${go ? "" : bloqueContacto(o.contacto, [`${o.artist} – ${o.title}`])}
       </div>
       <div style="text-align:right">
         <div class="mt">${pesos(o.monto_vendedor)}</div>
@@ -64,6 +108,7 @@ const cardReserva = (g) => `
         <b>${g.discos.join(" · ")}</b>
         <div class="st">${g.buyer_name || g.buyer_email || "sin datos del comprador"} ·
           reservado el ${fecha(g.created_at)} · código SC-${g.purchase_id.slice(0,4).toUpperCase()}</div>
+        ${bloqueContacto(g.contacto, g.discos)}
       </div>
       <div style="text-align:right">
         <div class="mt">${pesos(g.total)}</div>
@@ -89,6 +134,7 @@ async function cargar() {
   const r = await fetch("/api/liquidaciones", { headers: await authHeaders() });
   const j = await r.json();
   if (!r.ok) return out.innerHTML = `<p class="sub">${j.error}</p>`;
+  CONTACTOS.clear();
   const total = j.liberables.reduce((s, o) => s + Number(o.monto_vendedor || 0), 0);
   document.getElementById("sub").innerHTML =
     `Tenés <b>${j.liberables.length}</b> transferencia${j.liberables.length === 1 ? "" : "s"} para hacer por <b>${pesos(total)}</b>.`;
@@ -128,6 +174,14 @@ window.copiar = (el) => {
   navigator.clipboard.writeText(alias);
   el.textContent = alias + "  copiado ✓";
   setTimeout(() => { el.textContent = alias; }, 1600);
+};
+
+window.copiarContacto = (k, btn) => {
+  const texto = CONTACTOS.get(k);
+  if (!texto) return;
+  navigator.clipboard.writeText(texto);
+  btn.textContent = "Copiado ✓";
+  setTimeout(() => { btn.textContent = "Copiar contacto"; }, 1600);
 };
 
 // Los onclick del HTML buscan las funciones en window, pero este script es un
