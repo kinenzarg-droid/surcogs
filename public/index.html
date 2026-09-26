@@ -322,7 +322,7 @@ async function cargar() {
   const [u, { data, error }] = await Promise.all([
     getUser(),
     sb.from("records")
-      .select("id, seller_id, artist, title, label, year, format, price, old_price, condition_media, condition_sleeve, zona, localidad, genre, photos, status, created_at, shipping_mode, shipping_cost, profiles!records_seller_id_fkey(zona, localidad)")
+      .select("id, seller_id, artist, title, label, year, format, price, old_price, condition_media, condition_sleeve, zona, localidad, genre, photos, status, created_at, shipping_mode, shipping_cost, profiles!records_seller_id_fkey(name, zona, localidad)")
       .eq("status", "disponible")
       .order("created_at", { ascending: false }),
   ]);
