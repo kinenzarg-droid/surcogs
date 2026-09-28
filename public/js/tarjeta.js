@@ -5,9 +5,10 @@
 // de lo mismo destinadas a separarse: ya nos habia pasado con la ficha
 // del disco. Estan aca para tocarlas una sola vez.
 
-import { fotoPrincipal, fmtPrecio, precioComprador, youtubeId, urlDisco } from "/js/app.js?v=3";
+import { fotoPrincipal, fmtPrecio, precioComprador, youtubeId, urlDisco, esFav, toggleFav, toast } from "/js/app.js?v=3";
 
 export const esc = (s) => String(s ?? "").replace(/</g, "&lt;").replace(/"/g, "&quot;");
+const FAV_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" style="pointer-events:none"><path d="M20.8 5.6a5 5 0 0 0-7.1 0L12 7.3l-1.7-1.7a5 5 0 1 0-7.1 7.1l8.8 8.8 8.8-8.8a5 5 0 0 0 0-7.1z"/></svg>';
 const CART_ICON = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#e6a817" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="pointer-events:none;flex:none"><circle cx="9" cy="20" r="1.7" fill="#e6a817" stroke="none"/><circle cx="17" cy="20" r="1.7" fill="#e6a817" stroke="none"/><path d="M3 3h2.5l2.2 12.2a1.5 1.5 0 0 0 1.5 1.3h7.9a1.5 1.5 0 0 0 1.5-1.2L20.5 8H6"/></svg>';
 
 // La localidad sale del perfil del vendedor; la copia guardada en el
@@ -35,6 +36,9 @@ export function tarjeta(d, i) {
     <div class="gcard">
       <a href="${urlDisco(d)}"><img class="gcov" src="${fotoPrincipal(d)}" alt="${esc(d.artist)} – ${esc(d.title)}" loading="lazy"></a>
       <span class="gbadge ${d.status}">${d.status.charAt(0).toUpperCase() + d.status.slice(1)}</span>
+      <button class="gfav ${esFav(d.id) ? "on" : ""}" data-fav="${d.id}"
+        title="Guardar en favoritos" aria-label="Guardar en favoritos"
+        aria-pressed="${esFav(d.id)}">${FAV_ICON}</button>
       ${esMio(d) ? `<span class="gown">
         <a href="/publicar.html?edit=${d.id}" title="Editar">✎</a>
         <button class="del" data-del="${d.id}" title="Eliminar">🗑</button></span>` : ""}
@@ -244,12 +248,40 @@ function activarFlechas() {
   });
 }
 
+// El corazon se engancha una sola vez para toda la pantalla, no una vez por
+// tarjeta: asi sigue andando despues de cualquier repintado. El mismo disco
+// puede estar dibujado mas de una vez, por eso se actualizan todos sus botones.
+let favsPuestos = false;
+function activarFavoritos() {
+  if (favsPuestos) return;
+  favsPuestos = true;
+  document.addEventListener("click", async (ev) => {
+    const b = ev.target.closest("[data-fav]");
+    if (!b) return;
+    ev.preventDefault(); ev.stopPropagation();
+    if (b.disabled) return;
+    b.disabled = true;
+    const id = b.dataset.fav;
+    let agregado;
+    try { agregado = await toggleFav(id); }
+    finally { b.disabled = false; }
+    document.querySelectorAll(`[data-fav="${id}"]`).forEach((x) => {
+      x.classList.toggle("on", agregado);
+      x.setAttribute("aria-pressed", String(agregado));
+    });
+    toast(agregado ? "Guardado en favoritos" : "Sacado de favoritos");
+    // Las pantallas que muestran una lista de favoritos se enteran por aca.
+    document.dispatchEvent(new CustomEvent("surcogs:fav", { detail: { id, agregado } }));
+  });
+}
+
 // Enganchar los botones de tema despues de dibujar. Cada boton guarda la
 // posicion del disco dentro de la lista que se dibujo, asi que hay que
 // pasarle esa misma lista y en el mismo orden.
 export function activarTracks(lista, raiz = document) {
   montarPlayer();
   activarFlechas();
+  activarFavoritos();
   raiz.querySelectorAll("[data-play]").forEach((b) => {
     b.onclick = () => {
       const [di, ti] = b.dataset.play.split(":").map(Number);

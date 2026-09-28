@@ -144,6 +144,67 @@ export function refrescarCarrito() {
   el.style.background = n ? "var(--acc)" : "#555";
 }
 
+/* ===== Favoritos =====
+   Se puede guardar un disco sin tener cuenta: queda en este navegador, igual
+   que el carrito. Cuando la persona entra con su cuenta, lo guardado se sube y
+   se junta con lo que ya tenia. Se SUMA, nunca se resta: perder un favorito
+   por sincronizar mal es mucho peor que ver uno de mas. */
+const FAV_KEY = "sc_favs";
+const leerFavs = () => {
+  try { return new Set(JSON.parse(localStorage.getItem(FAV_KEY) || "[]")); }
+  catch (_) { return new Set(); }
+};
+// Un solo Set para todo el sitio. Los que lo importan ven los cambios.
+export const favoritos = leerFavs();
+const guardarFavs = () => {
+  localStorage.setItem(FAV_KEY, JSON.stringify([...favoritos]));
+  refrescarFavoritos();
+};
+export const esFav = (id) => favoritos.has(id);
+
+// getSession lee la sesion guardada en el navegador y no sale a la red, asi
+// que el corazon se pinta al toque y la base se entera despues.
+const usuarioDeSesion = async () => {
+  try { return (await sb.auth.getSession()).data?.session?.user || null; }
+  catch (_) { return null; }
+};
+
+export async function toggleFav(id) {
+  const agregando = !favoritos.has(id);
+  agregando ? favoritos.add(id) : favoritos.delete(id);
+  guardarFavs();
+  const u = await usuarioDeSesion();
+  if (!u) return agregando;   // sin cuenta queda solo en este navegador
+  if (agregando) await sb.from("favoritos").upsert({ user_id: u.id, record_id: id });
+  else await sb.from("favoritos").delete().eq("user_id", u.id).eq("record_id", id);
+  return agregando;
+}
+
+// Junta lo del navegador con lo de la cuenta. Se llama al cargar una pantalla
+// que muestre corazones, despues de saber quien es el usuario.
+export async function sincronizarFavoritos(user) {
+  if (!user) return favoritos;
+  const { data, error } = await sb.from("favoritos").select("record_id").eq("user_id", user.id);
+  if (error) return favoritos;
+  const enLaCuenta = new Set((data || []).map(f => f.record_id));
+  const subir = [...favoritos].filter(id => !enLaCuenta.has(id));
+  if (subir.length) {
+    await sb.from("favoritos").upsert(subir.map(record_id => ({ user_id: user.id, record_id })));
+  }
+  enLaCuenta.forEach(id => favoritos.add(id));
+  guardarFavs();
+  return favoritos;
+}
+
+// El numerito del corazon en el header.
+export function refrescarFavoritos() {
+  const el = document.getElementById("fav-hdr-n");
+  if (!el) return;
+  const n = favoritos.size;
+  el.textContent = n > 9 ? "9+" : n;
+  el.style.background = n ? "var(--acc)" : "#555";
+}
+
 export function hace(fecha) {
   const seg = Math.floor((Date.now() - new Date(fecha).getTime()) / 1000);
   if (seg < 60) return "recién";
@@ -187,6 +248,14 @@ export async function renderHeader(activo) {
       </div>
       <a class="btn-cta" href="${user ? "/publicar.html" : "/vender.html"}">Vender<span class="cta-mas"> gratis</span></a>
       <div class="hdr-links">
+        <a class="campana" href="/?fav=1" id="fav-hdr" title="Tus favoritos" aria-label="Tus favoritos"
+           style="text-decoration:none">
+          <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+            stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M20.8 5.6a5 5 0 0 0-7.1 0L12 7.3l-1.7-1.7a5 5 0 1 0-7.1 7.1l8.8 8.8 8.8-8.8a5 5 0 0 0 0-7.1z"/>
+          </svg>
+          <span class="campana-n" id="fav-hdr-n">0</span>
+        </a>
         <a class="campana" href="/carrito.html" id="cart-hdr" title="Tu carrito" aria-label="Tu carrito"
            style="text-decoration:none">
           <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -230,6 +299,7 @@ export async function renderHeader(activo) {
     </div>`;
 
   refrescarCarrito();
+  refrescarFavoritos();
 
   // Un solo desplegable abierto a la vez: campanita, menú del avatar y buscador
   // se cierran entre sí. También cierran con Escape y con un clic afuera.
