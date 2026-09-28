@@ -130,17 +130,22 @@ function iniciales(nombre) {
 const FAV_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="pointer-events:none"><path d="M20.8 5.6a5 5 0 0 0-7.1 0L12 7.3l-1.7-1.7a5 5 0 1 0-7.1 7.1l8.8 8.8 8.8-8.8a5 5 0 0 0 0-7.1z"/></svg>';
 const MINIMO_VISIBLE = 3;
 
+// Un corazon solo no dice que hace. El texto al lado lo explica, y ademas
+// cuenta en que estado esta: si ya lo guardaste, te lo dice.
+const ROTULO = { si: "Ya lo tenés", no: "Guardar en favoritos" };
+
 const favBloque = (d) => `
   <div class="favl">
-    <button class="favb ${esFav(d.id) ? "on" : ""}" id="btn-fav"
-      aria-pressed="${esFav(d.id)}" aria-label="Guardar en favoritos"
-      title="Guardar en favoritos">${FAV_SVG}</button>
+    <button class="favb ${esFav(d.id) ? "on" : ""}" id="btn-fav" aria-pressed="${esFav(d.id)}">
+      ${FAV_SVG}<span class="favt" id="fav-t">${esFav(d.id) ? ROTULO.si : ROTULO.no}</span>
+    </button>
     <span class="favn" id="fav-n"></span>
   </div>`;
 
 function activarFav(d) {
   let n = Number(d.favs || 0);
   const num = document.getElementById("fav-n");
+  const rot = document.getElementById("fav-t");
   const b = document.getElementById("btn-fav");
   const pintar = () => {
     if (!num) return;
@@ -156,6 +161,7 @@ function activarFav(d) {
     finally { b.disabled = false; }
     b.classList.toggle("on", agregado);
     b.setAttribute("aria-pressed", String(agregado));
+    if (rot) rot.textContent = agregado ? ROTULO.si : ROTULO.no;
     // El contador de la base lo actualiza el disparador; acá se mueve a mano
     // para no tener que volver a pedir el disco entero.
     n = Math.max(0, n + (agregado ? 1 : -1));
