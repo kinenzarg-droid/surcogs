@@ -554,6 +554,18 @@ img, iframe { max-width: 100%; }
 .ahorro {display:inline-block;background:#e8f5ec;color:#1e7a44;font-size:11px;font-weight:700;
   padding:2px 7px;border-radius:2px}
 /* dueño: editar/eliminar chiquitos sobre la tapa */
+/* El corazon va en la esquina de arriba a la izquierda de la tapa: es la
+   unica que queda libre (la etiqueta de estado y los botones del dueño van
+   todos a la derecha) y es donde el pulgar llega comodo en el celular. */
+.gfav {position:absolute;top:8px;left:8px;width:31px;height:31px;padding:0;border:0;
+  border-radius:50%;background:rgba(255,255,255,.93);color:#6b6560;display:flex;
+  align-items:center;justify-content:center;cursor:pointer;z-index:3;
+  box-shadow:0 1px 3px rgba(0,0,0,.18);transition:transform .12s,color .12s}
+.gfav svg {width:17px;height:17px}
+.gfav:hover {color:#ff5500;transform:scale(1.09)}
+.gfav.on {color:#ff5500}
+.gfav.on svg {fill:currentColor}
+.gfav[disabled] {opacity:.6;cursor:default}
 .gown {position:absolute;top:40px;right:8px;display:flex;gap:6px;z-index:3}
 .gown a,.gown button {width:27px;height:27px;border-radius:5px;background:rgba(0,0,0,.72);
   border:0;color:#fff;font-size:12px;cursor:pointer;display:flex;align-items:center;
