@@ -554,10 +554,11 @@ img, iframe { max-width: 100%; }
 .ahorro {display:inline-block;background:#e8f5ec;color:#1e7a44;font-size:11px;font-weight:700;
   padding:2px 7px;border-radius:2px}
 /* dueño: editar/eliminar chiquitos sobre la tapa */
-/* El corazon de la ficha del disco: abajo del boton de comprar, grande y
-   con el total al lado, como un me gusta. */
-.favl {display:flex;align-items:center;gap:9px;margin-top:14px}
-.favb {background:transparent;border:0;padding:0;line-height:0;color:#3a352f;cursor:pointer;
+/* El corazon de la ficha del disco: pegado abajo de la tapa, grande y con el
+   total al lado, como un me gusta. Vacio y gris mientras no este guardado;
+   relleno y naranja cuando si. */
+.favl {display:flex;align-items:center;gap:9px;margin-top:11px}
+.favb {background:transparent;border:0;padding:0;line-height:0;color:#9a938c;cursor:pointer;
   transition:transform .12s,color .12s}
 .favb svg {width:26px;height:26px}
 .favb:hover {color:#ff5500;transform:scale(1.08)}
