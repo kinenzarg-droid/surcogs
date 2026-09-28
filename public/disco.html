@@ -30,7 +30,7 @@
 </div>
 
 <script type="module">
-import { sb, renderHeader, getUser, fmtPrecio, fotoPrincipal, youtubeId, toast, precioComprador, precioTransferencia, reputacionHTML, authHeaders, ADMIN_ID } from "/js/app.js?v=3";
+import { sb, renderHeader, getUser, fmtPrecio, fotoPrincipal, youtubeId, toast, precioComprador, precioTransferencia, reputacionHTML, authHeaders, esFav, toggleFav, ADMIN_ID } from "/js/app.js?v=3";
 
   // Los estados se guardan en minuscula; en pantalla van con mayuscula.
   const cap = (s) => (s || "").charAt(0).toUpperCase() + (s || "").slice(1);
@@ -121,6 +121,49 @@ function iniciales(nombre) {
     .map((p) => p[0] || "").join("").toUpperCase() || "?";
 }
 
+// El corazon de la ficha. Va abajo del boton de comprar, no al lado: el que
+// tiene que ganar la atencion es Comprar.
+//
+// El numero es el total de todos, no el mio, y sale de records.favs, que
+// mantiene al dia un disparador de la base. El numero recien se muestra de 3
+// para arriba: un "0" o un "1" no son prueba social, son lo contrario.
+const FAV_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="pointer-events:none"><path d="M20.8 5.6a5 5 0 0 0-7.1 0L12 7.3l-1.7-1.7a5 5 0 1 0-7.1 7.1l8.8 8.8 8.8-8.8a5 5 0 0 0 0-7.1z"/></svg>';
+const MINIMO_VISIBLE = 3;
+
+const favBloque = (d) => `
+  <div class="favl">
+    <button class="favb ${esFav(d.id) ? "on" : ""}" id="btn-fav"
+      aria-pressed="${esFav(d.id)}" aria-label="Guardar en favoritos"
+      title="Guardar en favoritos">${FAV_SVG}</button>
+    <span class="favn" id="fav-n"></span>
+  </div>`;
+
+function activarFav(d) {
+  let n = Number(d.favs || 0);
+  const num = document.getElementById("fav-n");
+  const b = document.getElementById("btn-fav");
+  const pintar = () => {
+    if (!num) return;
+    num.textContent = n >= MINIMO_VISIBLE ? n : "";
+    num.title = n >= MINIMO_VISIBLE ? `${n} personas lo tienen guardado` : "";
+  };
+  pintar();
+  if (!b) return;
+  b.onclick = async () => {
+    b.disabled = true;
+    let agregado;
+    try { agregado = await toggleFav(d.id); }
+    finally { b.disabled = false; }
+    b.classList.toggle("on", agregado);
+    b.setAttribute("aria-pressed", String(agregado));
+    // El contador de la base lo actualiza el disparador; acá se mueve a mano
+    // para no tener que volver a pedir el disco entero.
+    n = Math.max(0, n + (agregado ? 1 : -1));
+    pintar();
+    toast(agregado ? "Guardado en favoritos" : "Sacado de favoritos");
+  };
+}
+
 async function cargar() {
   const { data: d, error } = await sb.from("records")
     .select("*, profiles!records_seller_id_fkey(name, whatsapp, zona, localidad, mp_connected, avatar_url)")
@@ -195,15 +238,17 @@ async function cargar() {
 
   const box = document.getElementById("compra");
   if (!disponible) {
-    box.innerHTML = `<button class="btn" disabled>${cap(d.status)}</button>`;
+    box.innerHTML = `<button class="btn" disabled>${cap(d.status)}</button>${favBloque(d)}`;
   } else {
     // Todos los vendedores tienen Mercado Pago conectado (requisito para publicar)
     box.innerHTML = `
       <button class="btn" id="btn-comprar">Comprar</button>
+      ${favBloque(d)}
       <p class="hint" style="margin-top:10px">🛡 <b>Comprá tranquilo:</b> el vendedor cobra recién
       cuando confirmás que recibiste el disco.</p>`;
     document.getElementById("btn-comprar").onclick = comprar;
   }
+  activarFav(d);
 
   // Players por tema: YouTube y SoundCloud embebidos; Bandcamp u otros abren aparte
   cont.querySelectorAll(".btn-play").forEach(b => b.onclick = () => {
