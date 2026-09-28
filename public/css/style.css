@@ -558,10 +558,14 @@ img, iframe { max-width: 100%; }
    total al lado, como un me gusta. Vacio y gris mientras no este guardado;
    relleno y naranja cuando si. */
 .favl {display:flex;align-items:center;gap:9px;margin-top:11px}
-.favb {background:transparent;border:0;padding:0;line-height:0;color:#9a938c;cursor:pointer;
-  transition:transform .12s,color .12s}
-.favb svg {width:26px;height:26px}
-.favb:hover {color:#ff5500;transform:scale(1.08)}
+.favb {background:transparent;border:0;padding:0;color:#9a938c;cursor:pointer;
+  display:flex;align-items:center;gap:8px;font:inherit;transition:color .12s}
+.favb svg {width:26px;height:26px;flex:none;transition:transform .12s}
+.favt {font-size:13.5px;color:#6b6560;transition:color .12s}
+.favb:hover {color:#ff5500}
+.favb:hover .favt {color:#ff5500}
+.favb:hover svg {transform:scale(1.08)}
+.favb.on .favt {color:#ff5500}
 .favb.on {color:#ff5500}
 .favb.on svg {fill:currentColor}
 .favb[disabled] {opacity:.6;cursor:default}
