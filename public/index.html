@@ -237,7 +237,7 @@ a:hover .hw-chip{background:#fff;box-shadow:1px 1px 0 rgba(0,0,0,.15)}
     </div>
     <div class="pager" id="pager"></div>
     <p id="empty" class="sub" style="display:none;padding:20px 0">
-      No hay discos que coincidan. Probá otra búsqueda o <a href="/publicar.html" style="color:var(--acc)">publicá el tuyo</a>.
+      <span id="empty-txt">No hay discos que coincidan. Probá otra búsqueda o <a href="/publicar.html" style="color:var(--acc)">publicá el tuyo</a>.</span>
     </p>
     <p class="hw-footer">
       <strong>Grading Goldmine:</strong> M sellado o nunca reproducido · NM casi perfecto · VG+ uso leve · VG uso evidente, ruido leve · G+ / G ruido considerable.<br>
@@ -287,7 +287,7 @@ a:hover .hw-chip{background:#fff;box-shadow:1px 1px 0 rgba(0,0,0,.15)}
 
 
 <script type="module">
-import { sb, renderHeader, fmtPrecio, fotoPrincipal, precioComprador, youtubeId, toast, getUser, getPerfil, authHeaders, refrescarCarrito, ADMIN_ID } from "/js/app.js?v=3";
+import { sb, renderHeader, fmtPrecio, fotoPrincipal, precioComprador, youtubeId, toast, getUser, getPerfil, authHeaders, refrescarCarrito, favoritos, sincronizarFavoritos, ADMIN_ID } from "/js/app.js?v=3";
 import { tarjeta, activarTracks, configurarTarjetas, cerrarPlayer } from "/js/tarjeta.js?v=3";
 renderHeader("catalogo");
 
@@ -298,7 +298,7 @@ const CART_ICON = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" s
 let discos = [], usuario = null, pagina = 1, itemsPagina = [];
 const POR_PAGINA = 48;
 const tracksCache = new Map(); // tracklists solo de la página visible
-const filtro = { q: "", genre: "", zona: "", nuevo: "", orden: "" };
+const filtro = { q: "", genre: "", zona: "", nuevo: "", orden: "", fav: "" };
 const esMio = (d) => usuario && (usuario.id === d.seller_id || usuario.id === ADMIN_ID);
 // La tarjeta y el reproductor viven en /js/tarjeta.js, compartidos con el
 // perfil del vendedor. Desde aca solo les decimos lo que es propio del
@@ -316,6 +316,8 @@ const envCosto = (d) => (d.shipping_mode === "fijo" && d.shipping_cost > 0) ? d.
 const params = new URLSearchParams(location.search);
 filtro.q = (params.get("q") || "").toLowerCase().trim();
 filtro.genre = params.get("genre") || "";
+// El corazon del header entra por aca: /?fav=1
+filtro.fav = params.get("fav") === "1" ? "1" : "";
 
 async function cargar() {
   // login y catálogo en paralelo: nada espera a nadie
@@ -328,6 +330,9 @@ async function cargar() {
   ]);
   usuario = u;
   if (error) { console.error(error); return; }
+  // Los favoritos guardados sin cuenta se suben ahora y se juntan con los que
+  // ya tenia esa cuenta. Si falla, se sigue con los del navegador y listo.
+  if (u) { try { await sincronizarFavoritos(u); } catch (_) {} }
   discos = data || [];
   pintarSidebar();
   pintar();
@@ -337,6 +342,7 @@ async function cargar() {
 function visibles() {
   const hoy = Date.now();
   const out = discos.filter(d => {
+    if (filtro.fav && !favoritos.has(d.id)) return false;
     if (filtro.genre && d.genre !== filtro.genre) return false;
     if (filtro.zona && zonaDe(d) !== filtro.zona) return false;
     if (filtro.q && !`${d.artist} ${d.title} ${d.label || ""}`.toLowerCase().includes(filtro.q)) return false;
@@ -360,6 +366,10 @@ function pintarSidebar() {
   });
 
   document.getElementById("side").innerHTML = `
+    <h4>Guardados</h4>
+    <a data-f="fav" data-v="" class="${filtro.fav === "" ? "on" : ""}">Todo el catálogo</a>
+    <a data-f="fav" data-v="1" class="${filtro.fav === "1" ? "on" : ""}">Mis favoritos <span class="cnt">${
+      discos.filter(d => favoritos.has(d.id)).length}</span></a>
     <h4>Nuevos</h4>
     <a data-f="nuevo" data-v="" class="${filtro.nuevo === "" ? "on" : ""}">Todos</a>
     <a data-f="nuevo" data-v="semana" class="${filtro.nuevo === "semana" ? "on" : ""}">Esta semana</a>
@@ -418,6 +428,9 @@ async function pintar(mantenerScroll) {
   lista.className = "ggrid";
   lista.innerHTML = itemsPagina.map((d, i) => tarjeta(d, i)).join("");
   document.getElementById("empty").style.display = out.length ? "none" : "block";
+  document.getElementById("empty-txt").innerHTML = filtro.fav
+    ? "Todavía no guardaste ningún disco. Tocá el corazón de la tapa y te lo dejo acá."
+    : `No hay discos que coincidan. Probá otra búsqueda o <a href="/publicar.html" style="color:var(--acc)">publicá el tuyo</a>.`;
 
   // paginador
   // En el celular no entran tantos numeros: con la ventana de 2 el paginador se
@@ -488,6 +501,14 @@ async function pintar(mantenerScroll) {
     pintar(true);
   }
 }
+
+// El corazon lo maneja tarjeta.js para todo el sitio. Acá solo hace falta
+// refrescar el contador del costado y, si se está mirando la lista de
+// favoritos, sacar de la grilla el disco que se acaba de desguardar.
+document.addEventListener("surcogs:fav", () => {
+  pintarSidebar();
+  if (filtro.fav) { pagina = 1; pintar(true); }
+});
 
 /* ===== Carrito global (persiste entre visitas) ===== */
 let carrito = new Set(JSON.parse(localStorage.getItem("sc_cart") || "[]"));
