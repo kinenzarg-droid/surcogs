@@ -554,6 +554,18 @@ img, iframe { max-width: 100%; }
 .ahorro {display:inline-block;background:#e8f5ec;color:#1e7a44;font-size:11px;font-weight:700;
   padding:2px 7px;border-radius:2px}
 /* dueño: editar/eliminar chiquitos sobre la tapa */
+/* El corazon de la ficha del disco: abajo del boton de comprar, grande y
+   con el total al lado, como un me gusta. */
+.favl {display:flex;align-items:center;gap:9px;margin-top:14px}
+.favb {background:transparent;border:0;padding:0;line-height:0;color:#3a352f;cursor:pointer;
+  transition:transform .12s,color .12s}
+.favb svg {width:26px;height:26px}
+.favb:hover {color:#ff5500;transform:scale(1.08)}
+.favb.on {color:#ff5500}
+.favb.on svg {fill:currentColor}
+.favb[disabled] {opacity:.6;cursor:default}
+.favn {font-size:14px;color:#3a352f;font-variant-numeric:tabular-nums}
+
 /* El corazon va en la esquina de arriba a la izquierda de la tapa: es la
    unica que queda libre (la etiqueta de estado y los botones del dueño van
    todos a la derecha) y es donde el pulgar llega comodo en el celular. */
