@@ -121,8 +121,8 @@ function iniciales(nombre) {
     .map((p) => p[0] || "").join("").toUpperCase() || "?";
 }
 
-// El corazon de la ficha. Va abajo del boton de comprar, no al lado: el que
-// tiene que ganar la atencion es Comprar.
+// El corazon de la ficha. Va pegado abajo de la tapa, afuera de la foto: ahi
+// no le compite al boton de comprar.
 //
 // El numero es el total de todos, no el mio, y sale de records.favs, que
 // mantiene al dia un disparador de la base. El numero recien se muestra de 3
@@ -184,6 +184,7 @@ async function cargar() {
     <div>
       <img class="main" id="foto-main" src="${fotos[0]}" alt="${d.artist} – ${d.title}">
       ${fotos.length > 1 ? `<div class="thumbs">${fotos.map(f => `<img src="${f}" onclick="document.getElementById('foto-main').src='${f}'">`).join("")}</div>` : ""}
+      ${favBloque(d)}
       ${yt ? `<iframe class="yt" src="https://www.youtube.com/embed/${yt}" allowfullscreen></iframe>
         <p class="hint">El audio es referencia de la edición, no del ejemplar en venta.</p>` : ""}
     </div>
@@ -238,12 +239,11 @@ async function cargar() {
 
   const box = document.getElementById("compra");
   if (!disponible) {
-    box.innerHTML = `<button class="btn" disabled>${cap(d.status)}</button>${favBloque(d)}`;
+    box.innerHTML = `<button class="btn" disabled>${cap(d.status)}</button>`;
   } else {
     // Todos los vendedores tienen Mercado Pago conectado (requisito para publicar)
     box.innerHTML = `
       <button class="btn" id="btn-comprar">Comprar</button>
-      ${favBloque(d)}
       <p class="hint" style="margin-top:10px">🛡 <b>Comprá tranquilo:</b> el vendedor cobra recién
       cuando confirmás que recibiste el disco.</p>`;
     document.getElementById("btn-comprar").onclick = comprar;
