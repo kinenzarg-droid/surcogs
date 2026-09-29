@@ -5,11 +5,11 @@
 // de lo mismo destinadas a separarse: ya nos habia pasado con la ficha
 // del disco. Estan aca para tocarlas una sola vez.
 
-import { fotoPrincipal, fmtPrecio, precioComprador, youtubeId, urlDisco, esFav, toggleFav, toast } from "/js/app.js?v=3";
+import { fotoPrincipal, fmtPrecio, youtubeId, urlDisco, esFav, toggleFav, toast, waConsulta } from "/js/app.js?v=3";
 
 export const esc = (s) => String(s ?? "").replace(/</g, "&lt;").replace(/"/g, "&quot;");
+const WA_ICON = '<svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14" style="pointer-events:none;flex:none"><path d="M12 2a10 10 0 0 0-8.6 15l-1.3 4.7 4.8-1.3A10 10 0 1 0 12 2zm5.8 14.2c-.2.7-1.4 1.3-2 1.4-.5.1-1.1.1-1.8-.1-.4-.1-1-.3-1.7-.6-3-1.3-4.9-4.3-5-4.5-.2-.2-1.2-1.6-1.2-3s.7-2.1 1-2.4c.2-.3.5-.4.7-.4h.5c.2 0 .4 0 .6.5l.8 2c.1.2.1.4 0 .5l-.3.5-.4.4c-.1.1-.3.3-.1.6.2.3.8 1.3 1.7 2.1 1.2 1 2.1 1.4 2.4 1.5.3.1.4.1.6-.1l.9-1c.2-.2.4-.2.6-.1l2 .9c.2.1.4.2.4.3.1.2.1.7-.1 1.4z"/></svg>';
 const FAV_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" style="pointer-events:none"><path d="M20.8 5.6a5 5 0 0 0-7.1 0L12 7.3l-1.7-1.7a5 5 0 1 0-7.1 7.1l8.8 8.8 8.8-8.8a5 5 0 0 0 0-7.1z"/></svg>';
-const CART_ICON = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#e6a817" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="pointer-events:none;flex:none"><circle cx="9" cy="20" r="1.7" fill="#e6a817" stroke="none"/><circle cx="17" cy="20" r="1.7" fill="#e6a817" stroke="none"/><path d="M3 3h2.5l2.2 12.2a1.5 1.5 0 0 0 1.5 1.3h7.9a1.5 1.5 0 0 0 1.5-1.2L20.5 8H6"/></svg>';
 
 // La localidad sale del perfil del vendedor; la copia guardada en el
 // disco es el respaldo por si el perfil no vino en la consulta.
@@ -53,14 +53,12 @@ export function tarjeta(d, i) {
         ${trackBtns(d, i)}
         <div class="gfoot">
           <span class="gprecio">
-            <span class="gprice">${d.old_price && d.old_price > d.price ? `<s>${fmtPrecio(precioComprador(d.old_price))}</s>` : ""}${fmtPrecio(precioComprador(d.price))}</span>
-            <span class="gtr">${fmtPrecio(Math.round(precioComprador(d.price) * 0.9))} <b>10% OFF</b> con transferencia</span>
+            <span class="gprice">${d.old_price && d.old_price > d.price ? `<s>${fmtPrecio(d.old_price)}</s>` : ""}${fmtPrecio(d.price)}</span>
           </span>
-          ${esMio(d) ? `<span class="gmio">${d.status === "vendido" ? "Cobraste" : "Vos cobr\u00e1s"} <b>${fmtPrecio(d.price)}</b></span>` : ""}
         </div>
         ${d.status === "disponible" ? `<div class="gbtns">
-          <a class="gbuy" href="${urlDisco(d)}">Comprar</a>
-          <button class="gcart" data-cart="${d.id}">${CART_ICON} Agregar al carrito</button>
+          <a class="gbuy" href="${waConsulta(d, d.profiles)}" target="_blank" rel="noopener"
+            data-wa="${d.id}">Comprar ${WA_ICON}</a>
         </div>` : ""}
       </div>
     </div>`;

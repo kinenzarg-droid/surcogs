@@ -70,17 +70,42 @@ export const WHATSAPP = window.SURCOGS_CONFIG.WHATSAPP || "";
 
 export const fmtPrecio = (n) => "$" + Number(n).toLocaleString("es-AR");
 
-// El precio guardado (records.price) es lo que RECIBE el vendedor.
-// El comprador ve el precio con comisiones incluidas.
-// Debe coincidir con functions/api/create-preference.js
-// El vendedor cobra su precio intacto. El comprador paga ese precio + 15%,
-// que cubre la comisión de Mercado Pago y el servicio de SURCOGS.
-export const RECARGO = 0.15;
-export const DTO_TRANSFER = 0.10;    // descuento por pagar con transferencia
-export const precioComprador = (neto) =>
-  Math.round(Number(neto) * (1 + RECARGO));
-export const precioTransferencia = (neto) =>
-  Math.round(precioComprador(neto) * (1 - DTO_TRANSFER));
+// SURCOGS no cobra comision. El precio que publica el vendedor es el que ve
+// el comprador y es el que cobra el vendedor: un solo numero, sin letra chica.
+//
+// Las dos funciones siguen existiendo porque las usan varias pantallas, pero
+// hoy devuelven el precio tal cual. Si algun dia vuelve una comision, se toca
+// aca y nada mas.
+export const RECARGO = 0;
+export const DTO_TRANSFER = 0;
+export const precioComprador = (neto) => Math.round(Number(neto));
+export const precioTransferencia = (neto) => Math.round(Number(neto));
+
+// --- Contacto directo con el vendedor ---------------------------------------
+// Los numeros se guardan como los escribio cada uno ("1151362793"). wa.me los
+// quiere con pais y el 9 de celular: 54 9 11 5136 2793.
+export function waNumero(n) {
+  let s = String(n || "").replace(/\D/g, "");
+  if (!s) return "";
+  if (s.startsWith("00")) s = s.slice(2);
+  if (s.startsWith("54")) return s.startsWith("549") ? s : "549" + s.slice(2);
+  return "549" + s.replace(/^0+/, "");
+}
+
+// El link de consulta de un disco. Si el vendedor todavia no cargo su numero,
+// la consulta cae en el WhatsApp de SURCOGS y hacemos de puente: es preferible
+// eso a un boton que no lleva a ningun lado.
+export function waConsulta(d, perfil) {
+  const propio = waNumero(perfil?.whatsapp);
+  const num = propio || waNumero(WHATSAPP);
+  // Si el mensaje cae en el WhatsApp de SURCOGS no hay que saludar al vendedor
+  // por su nombre: de quien es el disco se aclara aparte.
+  const hola = propio && perfil?.name ? `Hola ${perfil.name}, ` : "Hola, ";
+  const deQuien = propio ? "" : ` (lo vende ${perfil?.name || "otro usuario"})`;
+  const texto = hola + `te escribo desde SURCOGS por ${d.artist} – ${d.title}`
+    + ` (${fmtPrecio(d.price)})${deQuien}.\n${location.origin}${urlDisco(d)}`;
+  return `https://wa.me/${num}?text=${encodeURIComponent(texto)}`;
+}
 
 export async function getUser() {
   const { data } = await sb.auth.getUser();
@@ -97,8 +122,8 @@ export async function getPerfil(userId) {
 // para cubrir cualquier ancho de pantalla, así el verde nunca queda vacío.
 function tiraTexto() {
   const frases = [
-    "10% de descuento pagando por transferencia",
-    "Tu plata protegida: el vendedor cobra cuando confirmás que recibiste el disco",
+    "Sin comisiones: el precio que ves es el que cobra el vendedor",
+    "Escuchá el disco entero antes de comprarlo",
     "Publicar es gratis",
     "Vinilos de mano en mano, entre coleccionistas",
   ];
@@ -255,15 +280,6 @@ export async function renderHeader(activo) {
             <path d="M20.8 5.6a5 5 0 0 0-7.1 0L12 7.3l-1.7-1.7a5 5 0 1 0-7.1 7.1l8.8 8.8 8.8-8.8a5 5 0 0 0 0-7.1z"/>
           </svg>
           <span class="campana-n" id="fav-hdr-n">0</span>
-        </a>
-        <a class="campana" href="/carrito.html" id="cart-hdr" title="Tu carrito" aria-label="Tu carrito"
-           style="text-decoration:none">
-          <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-            stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="9" cy="20" r="1.4"/><circle cx="18" cy="20" r="1.4"/>
-            <path d="M2 3h2.5l2.4 12.2a1.6 1.6 0 0 0 1.6 1.3h8.9a1.6 1.6 0 0 0 1.6-1.3L21 7H5.6"/>
-          </svg>
-          <span class="campana-n" id="cart-hdr-n">0</span>
         </a>
         ${user ? `
           <div class="campana-wrap">
