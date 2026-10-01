@@ -112,8 +112,25 @@ export async function getUser() {
   return data.user || null;
 }
 
+// El perfil que puede ver cualquiera. El alias, el titular, la direccion y el
+// codigo postal quedaron fuera del alcance publico de la base: antes se podian
+// leer de cualquier perfil con la clave del navegador. Ahora los trae una
+// funcion que solo devuelve la fila del que esta logueado, asi que siguen
+// apareciendo en Mi cuenta pero nadie ve los de otro.
+const COLUMNAS_PUBLICAS =
+  "id, created_at, name, whatsapp, zona, mp_connected, localidad, avatar_url, usuario, usuarios_previos";
+
 export async function getPerfil(userId) {
-  const { data } = await sb.from("profiles").select("*").eq("id", userId).maybeSingle();
+  const { data } = await sb.from("profiles")
+    .select(COLUMNAS_PUBLICAS).eq("id", userId).maybeSingle();
+  if (!data) return data;
+  try {
+    const { data: ses } = await sb.auth.getSession();
+    if (ses?.session?.user?.id === userId) {
+      const { data: privado } = await sb.rpc("mi_perfil_privado");
+      if (Array.isArray(privado) && privado[0]) Object.assign(data, privado[0]);
+    }
+  } catch (_) { /* sin sesion, o la funcion todavia no existe */ }
   return data;
 }
 
