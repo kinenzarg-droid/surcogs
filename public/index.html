@@ -241,7 +241,8 @@ a:hover .hw-chip{background:#fff;box-shadow:1px 1px 0 rgba(0,0,0,.15)}
     </p>
     <p class="hw-footer">
       <strong>Grading Goldmine:</strong> M sellado o nunca reproducido · NM casi perfecto · VG+ uso leve · VG uso evidente, ruido leve · G+ / G ruido considerable.<br>
-      Pago protegido por Mercado Pago · Precios en pesos argentinos · SURCOGS · Buenos Aires ·
+      Sin comisiones: el precio que ves es el que cobra el vendedor · Precios en pesos argentinos ·
+      SURCOGS · Buenos Aires ·
       <a href="https://instagram.com/surcogs">@surcogs</a> · Contacto: <a href="mailto:info@surcogs.com.ar">info@surcogs.com.ar</a>
     </p>
   </main>
@@ -324,7 +325,7 @@ async function cargar() {
   const [u, { data, error }] = await Promise.all([
     getUser(),
     sb.from("records")
-      .select("id, seller_id, artist, title, label, year, format, price, old_price, condition_media, condition_sleeve, zona, localidad, genre, photos, status, created_at, shipping_mode, shipping_cost, profiles!records_seller_id_fkey(name, zona, localidad)")
+      .select("id, seller_id, artist, title, label, year, format, price, old_price, condition_media, condition_sleeve, zona, localidad, genre, photos, status, created_at, shipping_mode, shipping_cost, profiles!records_seller_id_fkey(name, whatsapp, zona, localidad)")
       .eq("status", "disponible")
       .order("created_at", { ascending: false }),
   ]);
@@ -518,6 +519,12 @@ const guardarCarrito = () => {
 };
 
 function pintarCartBar() {
+  // El carrito quedo apagado cuando SURCOGS dejo de cobrar: ahora cada compra
+  // se arregla por WhatsApp con el vendedor. No se borro nada; si vuelve el
+  // pago por la web, se saca este return y el resto sigue estando.
+  const p0 = document.getElementById("cartp");
+  if (p0) p0.style.display = "none";
+  if (true) return;
   // depurar: sacar discos vendidos o inexistentes
   [...carrito].forEach(rid => {
     const d = discos.find(x => x.id === rid);

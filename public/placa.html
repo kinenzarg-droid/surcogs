@@ -79,7 +79,7 @@
 </div>
 
 <script type="module">
-import { sb, renderHeader, fmtPrecio, precioComprador, precioTransferencia,
+import { sb, renderHeader, fmtPrecio,
   fotoPrincipal, getUser, toast } from "/js/app.js?v=3";
 
 renderHeader("");
@@ -161,8 +161,7 @@ function textoDelPosteo(d) {
     + (d.label ? `${d.label}${d.year ? " · " + d.year : ""}\n` : "")
     + [d.format, d.condition_media ? "Estado " + d.condition_media : ""]
         .filter(Boolean).join(" · ") + "\n"
-    + `\n${fmtPrecio(precioComprador(d.price))}\n`
-    + `${fmtPrecio(precioTransferencia(d.price))} pagando por transferencia (10% OFF)\n\n`
+    + `\n${fmtPrecio(d.price)}\n\n`
     + `Disponible en surcogs.com.ar`;
 }
 
@@ -242,17 +241,12 @@ async function dibujar(d) {
     ctx.fillText(ficha, centro, y);
   }
 
-  // El precio que va es el que ve el comprador en el catalogo, no el neto del
-  // vendedor: si en el posteo aparece uno y en la web otro, se cae la confianza.
+  // Un solo precio: el mismo que figura en la web. Si en el posteo aparece uno
+  // y en la web otro, se cae la confianza.
   y += 68;
   ctx.font = `600 58px -apple-system, "Segoe UI", Helvetica, Arial, sans-serif`;
   ctx.fillStyle = "#ff5500";
-  ctx.fillText(fmtPrecio(precioComprador(d.price)), centro, y);
-
-  y += 44;
-  ctx.font = `500 27px -apple-system, "Segoe UI", Helvetica, Arial, sans-serif`;
-  ctx.fillStyle = "#4cd964";
-  ctx.fillText(`${fmtPrecio(precioTransferencia(d.price))} con transferencia · 10% OFF`, centro, y);
+  ctx.fillText(fmtPrecio(d.price), centro, y);
 
   y += 46;
   ctx.font = `400 24px -apple-system, "Segoe UI", Helvetica, Arial, sans-serif`;

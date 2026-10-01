@@ -44,11 +44,14 @@ async function cargar() {
   renderHeader(user && user.id === id ? "coleccion" : "");
 
   const [{ data: perfil }, { data: recs }] = await Promise.all([
-    sb.from("profiles").select("name, zona, localidad, avatar_url, created_at").eq("id", id).maybeSingle(),
+    sb.from("profiles").select("name, whatsapp, zona, localidad, avatar_url, created_at").eq("id", id).maybeSingle(),
     sb.from("records").select("*").eq("seller_id", id).order("created_at", { ascending: false }),
   ]);
   if (!perfil) { main.innerHTML = "<p class='sub'>Perfil no encontrado. <a href='/'>Volver al catálogo</a></p>"; return; }
   discos = recs || [];
+  // La tarjeta arma el link de WhatsApp con d.profiles. Acá el perfil se pide
+  // aparte, así que se lo colgamos a cada disco.
+  discos.forEach((d) => { d.profiles = perfil; });
 
   const enVenta = discos.filter(d => d.status === "disponible");
   const vendidos = discos.filter(d => d.status === "vendido");
@@ -87,7 +90,7 @@ function pintar() {
   const genero = document.getElementById("f-genre").value;
   const visibles = discos.filter(d => d.status !== "vendido" && (!genero || d.genre === genero));
   // La misma tarjeta del catalogo: tapa, etiqueta de estado, sello,
-  // localidad, precio con el 10% off y los temas con audio.
+  // localidad, precio y los temas con audio.
   const caja = document.getElementById("grid");
   caja.className = "ggrid";
   caja.innerHTML = visibles.map((d, i) => tarjeta(d, i)).join("");
@@ -129,6 +132,10 @@ function pintar() {
 }
 
 function actualizarCarrito() {
+  // Carrito apagado: la compra se arregla por WhatsApp con el vendedor.
+  const barra = document.getElementById("cart-bar");
+  if (barra) barra.style.display = "none";
+  if (true) return;
   const total = [...carrito].reduce((s, rid) => {
     const d = discos.find(x => x.id === rid);
     return s + (d ? precioComprador(d.price) : 0);

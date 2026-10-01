@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>SURCOGS — Vendé tus vinilos</title>
-<meta name="description" content="Publicá gratis, cobrás el precio que ponés y la plata está protegida hasta que el comprador confirma que recibió el disco.">
+<meta name="description" content="Publicá gratis y sin comisiones: el precio que ponés es el que cobrás. El comprador te escribe por WhatsApp y arreglan entre ustedes.">
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
 <link rel="icon" href="/favicon.ico" sizes="32x32">
 <link rel="apple-touch-icon" href="/icono-192.png">
@@ -59,17 +59,17 @@ h2 { margin: 32px 0 14px }
 
   <div class="v-hero">
     <h1>Vendé los vinilos que ya no escuchás</h1>
-    <p>Publicar es gratis. Ponés tu precio y cobrás ese precio, completo:
-      la comisión la paga el comprador, no vos.</p>
+    <p>Publicar es gratis y SURCOGS no cobra comisión. Ponés tu precio, el
+      comprador te escribe por WhatsApp y arreglan entre ustedes.</p>
   </div>
 
   <div class="v-tres">
     <div class="v-t"><b>Publicar no cuesta nada</b>
       <span>Subís los discos que quieras. Si no vendés, no pagás nada.</span></div>
-    <div class="v-t"><b>Cobrás tu precio completo</b>
-      <span>El precio que ponés es lo que te llega. La comisión la paga quien compra.</span></div>
-    <div class="v-t"><b>La plata está protegida</b>
-      <span>El comprador nos paga a nosotros. Vos cobrás cuando confirma que lo recibió.</span></div>
+    <div class="v-t"><b>Sin comisiones</b>
+      <span>El precio que publicás es el que ve el comprador y el que cobrás vos. Nada en el medio.</span></div>
+    <div class="v-t"><b>Trato directo</b>
+      <span>El comprador te escribe por WhatsApp. El pago y la entrega los arreglás vos.</span></div>
   </div>
 
   <h2>¿Cuánto cobrás?</h2>
@@ -77,7 +77,7 @@ h2 { margin: 32px 0 14px }
     <label for="precio">Poné el precio que querés recibir</label>
     <input id="precio" type="number" min="0" step="100" value="20000" inputmode="numeric">
     <div class="v-out" id="out"></div>
-    <p class="v-nota">Si el comprador paga por transferencia recibe un 10% de descuento.
+    <p class="v-nota">Es el mismo número: SURCOGS no se queda con nada.
       Ese descuento sale de nuestra comisión: <b>vos cobrás lo mismo en los dos casos</b>.</p>
   </div>
 
@@ -100,24 +100,24 @@ h2 { margin: 32px 0 14px }
   <h2>Lo que todos preguntan</h2>
   <div class="v-faq">
     <details><summary>¿Cuánto me cobran de comisión?</summary>
-      <p>A vos, nada. El precio que ponés es exactamente lo que te transferimos.
-        Al comprador se le suma un 15% sobre tu precio, y de ahí sale lo que cobramos
-        nosotros. Por eso el número que ves en el catálogo es más alto que el tuyo.</p></details>
+      <p>Nada. SURCOGS no cobra comisión ni le suma recargo al comprador: el precio que
+        ponés es el que se publica y el que cobrás vos. Publicar también es gratis.</p></details>
 
-    <details><summary>¿Cuándo cobro?</summary>
-      <p>Dentro de las 48 horas hábiles de que el comprador confirme que recibió el disco.
-        Si no confirma ni reclama nada, se libera solo a los 10 días. Necesitás tener
-        cargado tu alias en Mi cuenta: sin eso no te podemos transferir.</p></details>
+    <details><summary>¿Cómo cobro?</summary>
+      <p>Como vos quieras. El comprador te escribe por WhatsApp desde la publicación y
+        arreglan entre ustedes: transferencia, efectivo, en mano. SURCOGS no toca la plata.
+        Cargá tu número en Mi cuenta, si no el botón no te llega a vos.</p></details>
 
     <details><summary>¿Y si el comprador no paga o desaparece?</summary>
-      <p>No mandás nada hasta que el pago esté confirmado. La plata entra a SURCOGS
-        antes de que vos muevas el disco, y recién ahí te avisamos de la venta.</p></details>
+      <p>No mandes nada hasta tener la plata. Como el trato es directo, el que pone las
+        condiciones sos vos: pedí el pago antes de despachar, o entregá en mano y cobrá
+        ahí mismo.</p></details>
 
     <details><summary>¿Quién se hace cargo si el disco se pierde o llega roto?</summary>
-      <p>Somos honestos: hoy no tenemos seguro de envío. Por eso la plata queda retenida
-        hasta que el comprador confirma que lo recibió, y por eso te mandamos por mail
-        cómo embalar un vinilo para que llegue entero. Si algo sale mal, el reclamo entra
-        antes de que se libere el pago y lo resolvemos entre las tres partes.</p></details>
+      <p>Somos honestos: no hay seguro de envío ni pago retenido. El riesgo del transporte
+        lo asumen entre ustedes, así que conviene acordarlo antes de despachar. Te mandamos
+        por mail cómo embalar un vinilo para que llegue entero; cuando se puede, lo más
+        seguro sigue siendo entregar en mano.</p></details>
 
     <details><summary>¿Por qué acá y no en Mercado Libre?</summary>
       <p>Porque acá el que entra busca vinilos de electrónica, no una batidora. Tu disco
@@ -144,7 +144,7 @@ h2 { margin: 32px 0 14px }
 </div>
 
 <script type="module">
-import { renderHeader, fmtPrecio, precioComprador, precioTransferencia } from "/js/app.js?v=3";
+import { renderHeader, fmtPrecio } from "/js/app.js?v=3";
 renderHeader("");
 
 const input = document.getElementById("precio");
@@ -153,11 +153,9 @@ const out = document.getElementById("out");
 function pintar() {
   const neto = Math.max(0, Number(input.value) || 0);
   out.innerHTML = `
-    <div class="v-fila"><span>El comprador ve y paga</span>
-      <b>${fmtPrecio(precioComprador(neto))}</b></div>
-    <div class="v-fila"><span>Si paga por transferencia</span>
-      <b>${fmtPrecio(precioTransferencia(neto))}</b></div>
-    <div class="v-fila vos"><span>Te transferimos a vos</span>
+    <div class="v-fila"><span>El comprador ve</span>
+      <b>${fmtPrecio(neto)}</b></div>
+    <div class="v-fila vos"><span>Vos cobrás</span>
       <b>${fmtPrecio(neto)}</b></div>`;
 }
 
