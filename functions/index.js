@@ -42,8 +42,9 @@ export async function onRequestGet({ request, env, next }) {
     "<h2>Vinilos de techno, de mano en mano</h2>" +
     "<p>SURCOGS es un mercado entre coleccionistas para comprar y vender vinilos " +
     "de m\u00fasica electr\u00f3nica en Argentina. Cada disco se puede escuchar " +
-    "entero antes de comprarlo. El vendedor cobra el precio que puso y la plata " +
-    "queda protegida hasta que el comprador confirma que lo recibi\u00f3.</p>" +
+    "entero antes de comprarlo. No cobramos comisi\u00f3n: el precio que ves es el " +
+    "que cobra el vendedor, y la compra se arregla directamente con \u00e9l por " +
+    "WhatsApp.</p>" +
     '<p><a href="/discos">' +
     (cuantos ? `Ver los ${cuantos} vinilos en venta` : "Ver todo el cat\u00e1logo en una sola p\u00e1gina") +
     " \u2192</a></p>" +

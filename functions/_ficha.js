@@ -5,7 +5,8 @@
 // cambie el precio o una etiqueta habria que acordarse de tocar las tres.
 // Los archivos que empiezan con guion bajo no son rutas: son para compartir.
 
-export const RECARGO = 1.15;   // lo mismo que cobra el sitio al comprador
+// SURCOGS ya no cobra comision: el precio publicado es el precio final.
+export const RECARGO = 1;
 
 export const esc = (s) => String(s ?? "")
   .replace(/&/g, "&amp;")
@@ -82,7 +83,7 @@ export function armarEtiquetas(d, url) {
 
   const estado = d.status === "vendido" ? "Vendido"
     : d.status === "reservado" ? "Reservado"
-    : precio ? precio + " \u00b7 10% OFF con transferencia" : "";
+    : precio || "";
 
   const texto = [ficha, estado].filter(Boolean).join("\n");
   const tapa = Array.isArray(d.photos) && d.photos.length ? d.photos[0] : "";
