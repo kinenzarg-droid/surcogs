@@ -32,10 +32,17 @@ export function configurarTarjetas(opciones = {}) {
 }
 
 export function tarjeta(d, i) {
+  // El disco vendido no se esconde: queda en el catalogo, en gris y con la
+  // faja encima. Que se vea lo que ya se vendio es la unica prueba de que
+  // acá se vende. Eso si, no cuenta como stock: de eso se ocupa el catalogo.
+  const vendido = d.status === "vendido";
   return `
-    <div class="gcard">
-      <a href="${urlDisco(d)}"><img class="gcov" src="${fotoPrincipal(d)}" alt="${esc(d.artist)} – ${esc(d.title)}" loading="lazy"></a>
-      <span class="gbadge ${d.status}">${d.status.charAt(0).toUpperCase() + d.status.slice(1)}</span>
+    <div class="gcard ${vendido ? "vendido" : ""}">
+      <a class="gtapa" href="${urlDisco(d)}">
+        <img class="gcov" src="${fotoPrincipal(d)}" alt="${esc(d.artist)} – ${esc(d.title)}" loading="lazy">
+        ${vendido ? `<span class="gfaja">Vendido</span>` : ""}
+      </a>
+      ${vendido ? "" : `<span class="gbadge ${d.status}">${d.status.charAt(0).toUpperCase() + d.status.slice(1)}</span>`}
       <button class="gfav ${esFav(d.id) ? "on" : ""}" data-fav="${d.id}"
         title="Guardar en favoritos" aria-label="Guardar en favoritos"
         aria-pressed="${esFav(d.id)}">${FAV_ICON}</button>
@@ -53,12 +60,17 @@ export function tarjeta(d, i) {
         ${trackBtns(d, i)}
         <div class="gfoot">
           <span class="gprecio">
-            <span class="gprice">${d.old_price && d.old_price > d.price ? `<s>${fmtPrecio(d.old_price)}</s>` : ""}${fmtPrecio(d.price)}</span>
+            <span class="gprice">${vendido
+              ? `<s>${fmtPrecio(d.price)}</s>`
+              : `${d.old_price && d.old_price > d.price ? `<s>${fmtPrecio(d.old_price)}</s>` : ""}${fmtPrecio(d.price)}`}</span>
           </span>
         </div>
         ${d.status === "disponible" ? `<div class="gbtns">
           <a class="gbuy" href="${waConsulta(d, d.profiles)}" target="_blank" rel="noopener"
             data-wa="${d.id}">Comprar ${WA_ICON}</a>
+        </div>` : ""}
+        ${vendido && vendedorDe(d) ? `<div class="gbtns">
+          <a class="gotros" href="/perfil.html?id=${d.seller_id}">Ver otros de ${esc(vendedorDe(d))}</a>
         </div>` : ""}
       </div>
     </div>`;
