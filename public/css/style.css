@@ -496,6 +496,19 @@ img, iframe { max-width: 100%; }
 .gcard {background:#fff;border:1px solid #e6e6e6;color:#1d1d1d;display:flex;flex-direction:column;position:relative}
 .gcard:nth-child(even) {background:#fafafa}
 .gcov {width:100%;aspect-ratio:1;object-fit:cover;display:block}
+/* El disco vendido sigue en el catalogo: la tapa en gris para que el bloque
+   se lea de un vistazo, y la faja encima para que no haya que interpretar
+   nada. El resto de la tarjeta se apaga, pero se puede leer. */
+.gtapa {position:relative;display:block}
+.gcard.vendido .gcov {filter:grayscale(1);opacity:.9}
+.gcard.vendido .gbody {opacity:.72}
+.gcard.vendido .gprice {color:#6b6560}
+.gfaja {position:absolute;left:0;right:0;top:50%;transform:translateY(-50%);
+  background:rgba(13,13,13,.86);color:#fff;font-size:12px;font-weight:700;
+  letter-spacing:3px;text-transform:uppercase;text-align:center;padding:7px 0;z-index:2}
+.gotros {display:block;text-align:center;border:1px solid var(--line,#e0dbd3);
+  border-radius:4px;padding:7px 8px;font-size:11.5px;color:#4a453f}
+.gotros:hover {border-color:#8a827a;color:#16130f}
 .gtag {position:absolute;top:8px;left:8px;background:#2ea860;color:#fff;font-size:10.5px;
   font-weight:700;letter-spacing:1px;padding:2px 7px;border-radius:2px;text-transform:uppercase;z-index:2}
 .gbody {padding:10px 12px 12px;display:flex;flex-direction:column;gap:5px;flex:1}
