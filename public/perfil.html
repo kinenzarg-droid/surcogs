@@ -88,7 +88,10 @@ async function cargar() {
 
 function pintar() {
   const genero = document.getElementById("f-genre").value;
-  const visibles = discos.filter(d => d.status !== "vendido" && (!genero || d.genre === genero));
+  // En el perfil tambien se ven los vendidos, al final de todo: para el que
+  // llega, es la prueba de que este vendedor efectivamente vende.
+  const visibles = discos.filter(d => !genero || d.genre === genero)
+    .sort((a, b) => (a.status === "vendido") - (b.status === "vendido"));
   // La misma tarjeta del catalogo: tapa, etiqueta de estado, sello,
   // localidad, precio y los temas con audio.
   const caja = document.getElementById("grid");

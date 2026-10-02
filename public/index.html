@@ -326,7 +326,7 @@ async function cargar() {
     getUser(),
     sb.from("records")
       .select("id, seller_id, artist, title, label, year, format, price, old_price, condition_media, condition_sleeve, zona, localidad, genre, photos, status, created_at, shipping_mode, shipping_cost, profiles!records_seller_id_fkey(name, whatsapp, zona, localidad)")
-      .eq("status", "disponible")
+      .in("status", ["disponible", "vendido"])
       .order("created_at", { ascending: false }),
   ]);
   usuario = u;
@@ -355,12 +355,18 @@ function visibles() {
   });
   if (filtro.orden === "asc") out.sort((a, b) => a.price - b.price);
   if (filtro.orden === "desc") out.sort((a, b) => b.price - a.price);
+  // Los vendidos van siempre al final, ordenen como ordenen los de arriba.
+  // Si se mezclaran por fecha, un disco que ya se vendio ayer le taparia el
+  // lugar a diez que estan en venta.
+  out.sort((a, b) => (a.status === "vendido") - (b.status === "vendido"));
   return out;
 }
 
 function pintarSidebar() {
+  // Los numeros son de stock: un disco vendido aparece en el catalogo pero no
+  // suma en "Techno 227" ni en el total, porque ya no se puede comprar.
   const generos = {}, zonas = {};
-  discos.forEach(d => {
+  discos.filter(d => d.status !== "vendido").forEach(d => {
     if (d.genre) generos[d.genre] = (generos[d.genre] || 0) + 1;
     const z = zonaDe(d);
     if (z) zonas[z] = (zonas[z] || 0) + 1;
@@ -370,7 +376,7 @@ function pintarSidebar() {
     <h4>Guardados</h4>
     <a data-f="fav" data-v="" class="${filtro.fav === "" ? "on" : ""}">Todo el catálogo</a>
     <a data-f="fav" data-v="1" class="${filtro.fav === "1" ? "on" : ""}">Mis favoritos <span class="cnt">${
-      discos.filter(d => favoritos.has(d.id)).length}</span></a>
+      discos.filter(d => favoritos.has(d.id) && d.status !== "vendido").length}</span></a>
     <h4>Nuevos</h4>
     <a data-f="nuevo" data-v="" class="${filtro.nuevo === "" ? "on" : ""}">Todos</a>
     <a data-f="nuevo" data-v="semana" class="${filtro.nuevo === "semana" ? "on" : ""}">Esta semana</a>
@@ -420,6 +426,8 @@ function pintarSidebar() {
 
 async function pintar(mantenerScroll) {
   const out = visibles();
+  const vendidos = out.filter(d => d.status === "vendido").length;
+  const enVenta = out.length - vendidos;
   const totalPaginas = Math.max(1, Math.ceil(out.length / POR_PAGINA));
   if (pagina > totalPaginas) pagina = totalPaginas;
   itemsPagina = out.slice((pagina - 1) * POR_PAGINA, pagina * POR_PAGINA);
@@ -446,7 +454,7 @@ async function pintar(mantenerScroll) {
     ${nums.map(n => { const gap = n - ult > 1 ? `<span class="info">…</span>` : ""; ult = n;
       return gap + `<button class="${n === pagina ? "on" : ""}" data-pag="${n}">${n}</button>`; }).join("")}
     <button ${pagina === totalPaginas ? "disabled" : ""} data-pag="${pagina + 1}">${angosto ? "›" : "Siguiente ›"}</button>
-    <span class="info">${out.length} discos</span>` : "";
+    <span class="info">${enVenta} en venta${vendidos ? ` \u00b7 ${vendidos} vendidos` : ""}</span>` : "";
   document.querySelectorAll("#pager [data-pag]").forEach(b => b.onclick = () => {
     pagina = Number(b.dataset.pag);
     pintar();
