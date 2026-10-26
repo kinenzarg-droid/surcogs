@@ -1,5 +1,14 @@
 // Cloudflare Pages Function — métricas del negocio, solo para el admin.
 // Requiere env ADMIN_USER_ID (el UUID del usuario dueño de SURCOGS).
+//
+// Esto se reescribió cuando SURCOGS dejó de cobrar comisión. Antes todo salía
+// de la tabla de órdenes: ventas, GMV, comisión, liquidez. Con el trato
+// cerrándose por WhatsApp ya no se genera ninguna orden, así que ese tablero
+// marcaba cero para siempre por más que el sitio funcionara.
+//
+// Lo que se mide ahora es lo que de verdad pasa: cuánta gente levanta la mano
+// por un disco (la consulta por WhatsApp), cuánta guarda discos para después,
+// cuánta se crea cuenta, y cuánto catálogo hay para ofrecerles.
 export async function onRequestGet({ request, env }) {
   const SUPA = env.SUPABASE_URL;
   const KEY = env.SUPABASE_SERVICE_ROLE_KEY;
@@ -16,69 +25,102 @@ export async function onRequestGet({ request, env }) {
     return json({ error: "Solo el administrador puede ver las métricas" }, 403);
   }
 
-  // Traer datos (escala MVP: todo en memoria)
-  const [orders, ratings, records] = await Promise.all([
-    fetch(`${SUPA}/rest/v1/orders?select=id,fee,amount,status,created_at,buyer_email,seller_id`, { headers: hdrs(KEY) }).then(r => r.json()),
-    fetch(`${SUPA}/rest/v1/ratings?select=order_id,stars,created_at`, { headers: hdrs(KEY) }).then(r => r.json()),
-    fetch(`${SUPA}/rest/v1/records?select=id,status,created_at,seller_id`, { headers: hdrs(KEY) }).then(r => r.json()),
+  const [consultas, records, profiles] = await Promise.all([
+    traer(SUPA, KEY, "consultas?select=record_id,created_at"),
+    traer(SUPA, KEY, "records?select=id,artist,title,status,created_at,seller_id,favs,consultas"),
+    traer(SUPA, KEY, "profiles?select=id,created_at"),
   ]);
 
-  const ahora = new Date();
-  const inicioMes = new Date(ahora.getFullYear(), ahora.getMonth(), 1).toISOString();
-  const hace30 = new Date(Date.now() - 30 * 86400000).toISOString();
-  const hace60 = new Date(Date.now() - 60 * 86400000).toISOString();
+  const DIA = 86400000;
+  const desde = (dias) => new Date(Date.now() - dias * DIA).toISOString();
+  const hace7 = desde(7), hace14 = desde(14), hace30 = desde(30);
 
-  const pagadas = orders.filter(o => o.status === "pagada");
-  const pagadasMes = pagadas.filter(o => o.created_at >= inicioMes);
-  const ratingPorOrden = Object.fromEntries(ratings.map(r => [r.order_id, r.stars]));
+  // --- La métrica norte: consultas por WhatsApp ----------------------------
+  const estaSemana = consultas.filter((c) => c.created_at >= hace7).length;
+  const semanaPrevia = consultas.filter(
+    (c) => c.created_at >= hace14 && c.created_at < hace7).length;
 
-  // ⭐ Norte: ventas felices del mes (pagadas + calificadas 4-5)
-  const felicesMes = pagadasMes.filter(o => (ratingPorOrden[o.id] || 0) >= 4).length;
+  // Serie de las últimas 8 semanas, de lunes a domingo. Es lo que deja ver si
+  // una campaña movió la aguja o si fue un pico de un día suelto.
+  const lunesDe = (f) => {
+    const d = new Date(f);
+    d.setUTCHours(0, 0, 0, 0);
+    d.setUTCDate(d.getUTCDate() - ((d.getUTCDay() + 6) % 7));
+    return d.toISOString().slice(0, 10);
+  };
+  const porSemana = {};
+  for (let i = 7; i >= 0; i--) porSemana[lunesDe(Date.now() - i * 7 * DIA)] = 0;
+  consultas.forEach((c) => {
+    const k = lunesDe(c.created_at);
+    if (k in porSemana) porSemana[k]++;
+  });
+  const serie = Object.entries(porSemana).map(([dia, n]) => ({ desde: dia, n }));
 
-  // Liquidez: de los discos publicados en los últimos 60 días, % vendidos
-  const publicados60 = records.filter(r => r.created_at >= hace60);
-  const vendidos60 = publicados60.filter(r => r.status === "vendido");
-
-  // Vendedores activos: con 3+ discos publicados
+  // --- Oferta --------------------------------------------------------------
   const porVendedor = {};
-  records.forEach(r => { porVendedor[r.seller_id] = (porVendedor[r.seller_id] || 0) + 1; });
-  const vendedoresActivos = Object.values(porVendedor).filter(n => n >= 3).length;
+  records.forEach((r) => { porVendedor[r.seller_id] = (porVendedor[r.seller_id] || 0) + 1; });
 
-  const compradores = new Set(pagadas.map(o => o.buyer_email).filter(Boolean));
-  const compradoresRepetidos = [...pagadas.reduce((m, o) => {
-    if (o.buyer_email) m.set(o.buyer_email, (m.get(o.buyer_email) || 0) + 1);
-    return m;
-  }, new Map()).values()].filter(n => n > 1).length;
+  // --- Lo que la gente quiere ----------------------------------------------
+  const corto = (r) => ({
+    artist: r.artist, title: r.title,
+    consultas: r.consultas || 0, favs: r.favs || 0, status: r.status,
+  });
+  const masConsultados = [...records].filter((r) => (r.consultas || 0) > 0)
+    .sort((a, b) => (b.consultas || 0) - (a.consultas || 0)).slice(0, 6).map(corto);
+  const masGuardados = [...records].filter((r) => (r.favs || 0) > 0)
+    .sort((a, b) => (b.favs || 0) - (a.favs || 0)).slice(0, 6).map(corto);
 
-  const avgStars = ratings.length
-    ? (ratings.reduce((s, r) => s + r.stars, 0) / ratings.length) : null;
+  // Un disco muy guardado y nunca consultado suele ser precio mal puesto: la
+  // gente lo quiere pero no se anima a preguntar.
+  const deseadosSinConsulta = [...records]
+    .filter((r) => (r.favs || 0) > 0 && !(r.consultas || 0) && r.status === "disponible")
+    .sort((a, b) => (b.favs || 0) - (a.favs || 0)).slice(0, 6).map(corto);
 
   return json({
     norte: {
-      ventasFelicesMes: felicesMes,
-      ventasPagadasMes: pagadasMes.length,
-      calificadasPendientes: pagadasMes.length - pagadasMes.filter(o => ratingPorOrden[o.id]).length,
+      semana: estaSemana,
+      semanaPrevia,
+      mes: consultas.filter((c) => c.created_at >= hace30).length,
+      total: consultas.length,
     },
-    soporte: {
-      liquidez60: publicados60.length ? Math.round((vendidos60.length / publicados60.length) * 100) : null,
-      publicados60: publicados60.length,
-      vendidos60: vendidos60.length,
-      vendedoresActivos,
-      vendedoresTotales: Object.keys(porVendedor).length,
-      discosDisponibles: records.filter(r => r.status === "disponible").length,
-      publicadosUlt30: records.filter(r => r.created_at >= hace30).length,
-      compradoresUnicos: compradores.size,
-      compradoresRepetidos,
-      ratingPromedio: avgStars ? Number(avgStars.toFixed(2)) : null,
-      totalCalificaciones: ratings.length,
+    serie,
+    demanda: {
+      favoritos: records.reduce((s, r) => s + (r.favs || 0), 0),
+      discosConConsulta: records.filter((r) => (r.consultas || 0) > 0).length,
+      discosConFav: records.filter((r) => (r.favs || 0) > 0).length,
     },
-    plata: {
-      comisionMes: pagadasMes.reduce((s, o) => s + (o.fee || 0), 0),
-      comisionTotal: pagadas.reduce((s, o) => s + (o.fee || 0), 0),
-      gmvMes: pagadasMes.reduce((s, o) => s + (o.amount || 0), 0),
-      ventasTotales: pagadas.length,
+    audiencia: {
+      cuentas: profiles.length,
+      nuevas30: profiles.filter((p) => p.created_at >= hace30).length,
     },
+    oferta: {
+      disponibles: records.filter((r) => r.status === "disponible").length,
+      publicados30: records.filter((r) => r.created_at >= hace30).length,
+      vendedores: Object.keys(porVendedor).length,
+      vendedoresActivos: Object.values(porVendedor).filter((n) => n >= 3).length,
+    },
+    salud: {
+      vendidos: records.filter((r) => r.status === "vendido").length,
+      vendidos30: records.filter((r) => r.status === "vendido" && r.created_at >= hace30).length,
+    },
+    top: { masConsultados, masGuardados, deseadosSinConsulta },
   });
+}
+
+// PostgREST devuelve 1000 filas por pedido. Con el volumen de hoy sobra, pero
+// se pagina igual para que no empiece a mentir en silencio cuando crezca.
+async function traer(SUPA, KEY, consulta) {
+  const salida = [];
+  for (let desde = 0; ; desde += 1000) {
+    const r = await fetch(`${SUPA}/rest/v1/${consulta}`, {
+      headers: { ...hdrs(KEY), Range: `${desde}-${desde + 999}` },
+    });
+    const tanda = await r.json();
+    if (!Array.isArray(tanda) || !tanda.length) break;
+    salida.push(...tanda);
+    if (tanda.length < 1000) break;
+  }
+  return salida;
 }
 
 const hdrs = (KEY) => ({
