@@ -11,14 +11,33 @@
 <link rel="stylesheet" href="/css/style.css">
 <script src="/js/config.js"></script>
 <style>
-.m-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 16px; margin-top: 20px; }
-.m-card { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 18px; }
+.m-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(215px, 1fr)); gap: 14px; margin-top: 16px; }
+.m-card { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 16px; }
 .m-card.norte { border-color: var(--acc); grid-column: 1 / -1;
   background: linear-gradient(135deg, rgba(255,85,0,.12), var(--panel)); }
-.m-num { font-size: 38px; font-weight: 800; letter-spacing: -1px; }
+.m-num { font-size: 34px; font-weight: 800; letter-spacing: -1px; line-height: 1.1 }
 .m-card.norte .m-num { font-size: 56px; color: var(--acc); }
-.m-lbl { font-size: 13px; font-weight: 600; margin-bottom: 6px; }
-.m-sub { color: var(--dim); font-size: 12px; margin-top: 6px; line-height: 1.5; }
+.m-lbl { font-size: 12.5px; font-weight: 600; margin-bottom: 5px; }
+.m-sub { color: var(--dim); font-size: 12px; margin-top: 6px; line-height: 1.55; }
+.m-dif { font-size: 13px; font-weight: 700; margin-left: 10px; vertical-align: 6px }
+.m-dif.sube { color: #2ea860 } .m-dif.baja { color: #e06666 } .m-dif.igual { color: var(--dim) }
+h2.m-h { font-size: 15px; margin: 28px 0 0 }
+
+/* La serie semanal. Barras con divs: ocho números no justifican una librería. */
+.m-serie { display: flex; align-items: flex-end; gap: 8px; height: 110px; margin-top: 14px }
+.m-sem { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 5px }
+.m-barra { width: 100%; background: var(--acc); border-radius: 3px 3px 0 0; min-height: 2px;
+  transition: height .3s }
+.m-barra.cero { background: var(--line) }
+.m-pie { font-size: 10.5px; color: var(--dim); white-space: nowrap }
+.m-tope { font-size: 11.5px; font-weight: 700 }
+
+.m-lista { list-style: none; padding: 0; margin: 10px 0 0 }
+.m-lista li { display: flex; gap: 10px; justify-content: space-between; align-items: baseline;
+  padding: 7px 0; border-top: 1px solid var(--line); font-size: 13px }
+.m-lista li:first-child { border-top: 0 }
+.m-lista .n { color: var(--dim); font-size: 12.5px; white-space: nowrap }
+.m-lista .d { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap }
 </style>
 </head>
 <body>
@@ -26,74 +45,131 @@
 <div class="wrap" id="main"><p class="sub">Cargando métricas…</p></div>
 
 <script type="module">
-import { sb, renderHeader, fmtPrecio, toast } from "/js/app.js?v=3";
+import { sb, renderHeader } from "/js/app.js?v=3";
 renderHeader("");
 const main = document.getElementById("main");
+const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) =>
+  ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+
+// Cuánto subió o bajó contra el período anterior. Sin referencia, un número
+// suelto no dice nada: 12 consultas puede ser excelente o un derrumbe.
+function diferencia(hoy, antes) {
+  if (!antes && !hoy) return `<span class="m-dif igual">—</span>`;
+  if (!antes) return `<span class="m-dif sube">nuevo</span>`;
+  const pct = Math.round(((hoy - antes) / antes) * 100);
+  const clase = pct > 0 ? "sube" : pct < 0 ? "baja" : "igual";
+  const signo = pct > 0 ? "+" : "";
+  return `<span class="m-dif ${clase}">${signo}${pct}%</span>`;
+}
+
+const dia = (f) => {
+  const d = new Date(f + "T12:00:00Z");
+  return d.toLocaleDateString("es-AR", { day: "numeric", month: "short" });
+};
+
+const listaDiscos = (ds, campo, vacio) => ds.length
+  ? `<ul class="m-lista">${ds.map((d) => `<li>
+      <span class="d">${esc(d.artist)} – ${esc(d.title)}${d.status === "vendido" ? " · vendido" : ""}</span>
+      <span class="n">${d[campo]}</span></li>`).join("")}</ul>`
+  : `<p class="m-sub">${vacio}</p>`;
 
 async function cargar() {
   const { data: { session } } = await sb.auth.getSession();
-  if (!session) { main.innerHTML = "<p class='sub'>Ingresá con tu cuenta para ver esto. <a href='/cuenta.html'>Ingresar</a></p>"; return; }
+  if (!session) {
+    main.innerHTML = "<p class='sub'>Ingresá con tu cuenta para ver esto. <a href='/cuenta.html'>Ingresar</a></p>";
+    return;
+  }
 
   const r = await fetch("/api/metrics", { headers: { Authorization: "Bearer " + session.access_token } });
   const m = await r.json();
-  if (!r.ok) { main.innerHTML = `<p class='sub'>${m.error}</p>`; return; }
+  if (!r.ok) { main.innerHTML = `<p class='sub'>${esc(m.error)}</p>`; return; }
 
-  const mes = new Date().toLocaleDateString("es-AR", { month: "long", year: "numeric" });
+  const tope = Math.max(1, ...m.serie.map((s) => s.n));
+  const serie = m.serie.map((s, i) => `
+    <div class="m-sem" title="Semana del ${dia(s.desde)}: ${s.n}">
+      <span class="m-tope">${s.n || ""}</span>
+      <div class="m-barra ${s.n ? "" : "cero"}" style="height:${Math.round((s.n / tope) * 76) + 2}px"></div>
+      <span class="m-pie">${i === m.serie.length - 1 ? "esta" : dia(s.desde)}</span>
+    </div>`).join("");
+
   main.innerHTML = `
-    <h1>Métricas</h1>
-    <p class="sub">${mes} · datos en vivo de la base</p>
+    <h1 style="margin-bottom:4px">Métricas</h1>
+    <p class="sub">Datos en vivo de la base · actualizado ${new Date().toLocaleString("es-AR")}</p>
+
     <div class="m-grid">
       <div class="m-card norte">
-        <div class="m-lbl">⭐ MÉTRICA NORTE · Ventas felices este mes</div>
-        <div class="m-num">${m.norte.ventasFelicesMes}</div>
-        <div class="m-sub">Ventas pagadas y calificadas con 4-5 estrellas.
-        Este mes hubo ${m.norte.ventasPagadasMes} venta${m.norte.ventasPagadasMes === 1 ? "" : "s"} pagada${m.norte.ventasPagadasMes === 1 ? "" : "s"}
-        (${m.norte.calificadasPendientes} sin calificar todavía). Si este número crece mes a mes, el negocio funciona.</div>
-      </div>
-
-      <div class="m-card">
-        <div class="m-lbl">💧 Liquidez</div>
-        <div class="m-num">${m.soporte.liquidez60 === null ? "—" : m.soporte.liquidez60 + "%"}</div>
-        <div class="m-sub">De los ${m.soporte.publicados60} discos publicados en los últimos 60 días,
-        se vendieron ${m.soporte.vendidos60}. Arriba del 20% es un marketplace sano.</div>
-      </div>
-
-      <div class="m-card">
-        <div class="m-lbl">🏪 Vendedores activos</div>
-        <div class="m-num">${m.soporte.vendedoresActivos}</div>
-        <div class="m-sub">Con 3+ discos publicados (de ${m.soporte.vendedoresTotales} vendedores totales).
-        Tu prioridad pre-lanzamiento: llegar a 5-10.</div>
-      </div>
-
-      <div class="m-card">
-        <div class="m-lbl">📦 Oferta activa</div>
-        <div class="m-num">${m.soporte.discosDisponibles}</div>
-        <div class="m-sub">Discos disponibles ahora · ${m.soporte.publicadosUlt30} publicados en los últimos 30 días.</div>
-      </div>
-
-      <div class="m-card">
-        <div class="m-lbl">🔁 Compradores</div>
-        <div class="m-num">${m.soporte.compradoresUnicos}</div>
-        <div class="m-sub">Únicos históricos · ${m.soporte.compradoresRepetidos} compraron más de una vez.
-        La repetición es la métrica de retención.</div>
-      </div>
-
-      <div class="m-card">
-        <div class="m-lbl">⭐ Reputación global</div>
-        <div class="m-num">${m.soporte.ratingPromedio ?? "—"}</div>
-        <div class="m-sub">Promedio de ${m.soporte.totalCalificaciones} calificación${m.soporte.totalCalificaciones === 1 ? "" : "es"}.
-        Si baja de 4, hay un problema de calidad o entregas.</div>
-      </div>
-
-      <div class="m-card">
-        <div class="m-lbl">💰 Tu comisión</div>
-        <div class="m-num">${fmtPrecio(m.plata.comisionMes)}</div>
-        <div class="m-sub">Este mes · ${fmtPrecio(m.plata.comisionTotal)} histórico ·
-        GMV del mes: ${fmtPrecio(m.plata.gmvMes)} · ${m.plata.ventasTotales} ventas totales.</div>
+        <div class="m-lbl">⭐ MÉTRICA NORTE · Consultas por WhatsApp, últimos 7 días</div>
+        <div class="m-num">${m.norte.semana}${diferencia(m.norte.semana, m.norte.semanaPrevia)}</div>
+        <div class="m-sub">La semana anterior hubo ${m.norte.semanaPrevia}.
+          En los últimos 30 días: ${m.norte.mes}. Histórico: ${m.norte.total}.<br>
+          Cada una es alguien que vio un disco y quiso preguntar por él. Es lo más cerca
+          de una venta que puede ver SURCOGS ahora que el trato se cierra por afuera.</div>
+        <div class="m-serie">${serie}</div>
       </div>
     </div>
-    <p class="hint" style="margin-top:22px">El tráfico del sitio (visitas, orígenes) está en Cloudflare → Web Analytics.
-    Esta página es privada: solo tu cuenta puede verla.</p>`;
+
+    <h2 class="m-h">Demanda</h2>
+    <div class="m-grid">
+      <div class="m-card">
+        <div class="m-lbl">❤️ Discos guardados</div>
+        <div class="m-num">${m.demanda.favoritos}</div>
+        <div class="m-sub">Repartidos en ${m.demanda.discosConFav} discos distintos.
+          Guardar es querer sin apurarse: es la lista de lo que la gente espera poder comprar.</div>
+      </div>
+      <div class="m-card">
+        <div class="m-lbl">💬 Discos consultados</div>
+        <div class="m-num">${m.demanda.discosConConsulta}</div>
+        <div class="m-sub">De ${m.oferta.disponibles} disponibles. Si este número no crece,
+          el catálogo se mira pero no mueve a nadie.</div>
+      </div>
+      <div class="m-card">
+        <div class="m-lbl">👤 Cuentas</div>
+        <div class="m-num">${m.audiencia.cuentas}</div>
+        <div class="m-sub">${m.audiencia.nuevas30} nuevas en los últimos 30 días.</div>
+      </div>
+    </div>
+
+    <h2 class="m-h">Oferta</h2>
+    <div class="m-grid">
+      <div class="m-card">
+        <div class="m-lbl">📦 Discos en venta</div>
+        <div class="m-num">${m.oferta.disponibles}</div>
+        <div class="m-sub">${m.oferta.publicados30} publicados en los últimos 30 días.</div>
+      </div>
+      <div class="m-card">
+        <div class="m-lbl">🏪 Vendedores activos</div>
+        <div class="m-num">${m.oferta.vendedoresActivos}</div>
+        <div class="m-sub">Con 3 o más discos, de ${m.oferta.vendedores} cuentas con catálogo.</div>
+      </div>
+      <div class="m-card">
+        <div class="m-lbl">✅ Marcados vendidos</div>
+        <div class="m-num">${m.salud.vendidos}</div>
+        <div class="m-sub">Es la única señal de venta real que queda, y depende de que
+          el vendedor se acuerde de marcarlo. Tomalo como piso, no como total.</div>
+      </div>
+    </div>
+
+    <h2 class="m-h">Qué quiere la gente</h2>
+    <div class="m-grid">
+      <div class="m-card">
+        <div class="m-lbl">🔥 Más consultados</div>
+        ${listaDiscos(m.top.masConsultados, "consultas", "Todavía ninguno. Aparecen apenas alguien toque el botón de WhatsApp.")}
+      </div>
+      <div class="m-card">
+        <div class="m-lbl">❤️ Más guardados</div>
+        ${listaDiscos(m.top.masGuardados, "favs", "Todavía ninguno.")}
+      </div>
+      <div class="m-card">
+        <div class="m-lbl">🤔 Deseados pero sin consultas</div>
+        ${listaDiscos(m.top.deseadosSinConsulta, "favs", "Ninguno por ahora.")}
+        <div class="m-sub">Los guardan y no preguntan. Suele ser precio: revisalos.</div>
+      </div>
+    </div>
+
+    <p class="hint" style="margin-top:26px">Las visitas y de dónde vienen están en
+      <a href="https://dash.cloudflare.com/?to=/:account/web-analytics" target="_blank"
+        rel="noopener" style="color:var(--acc)">Cloudflare → Web Analytics</a>.
+      Esta página es privada: solo tu cuenta puede verla.</p>`;
 }
 cargar();
 </script>
