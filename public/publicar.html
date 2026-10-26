@@ -23,7 +23,7 @@
 <div class="wrap" id="main"></div>
 
 <script type="module">
-import { sb, renderHeader, getUser, getPerfil, GRADOS, toast, fmtPrecio, precioComprador, ADMIN_ID, zonaSelector, authHeaders } from "/js/app.js?v=3";
+import { sb, renderHeader, getUser, getPerfil, GRADOS, toast, fmtPrecio, precioComprador, achicarFoto, CACHE_FOTOS, ADMIN_ID, zonaSelector, authHeaders } from "/js/app.js?v=3";
 import { traerDeDiscogs } from "/js/discogs.js?v=2";
 renderHeader("publicar");
 const main = document.getElementById("main");
@@ -376,9 +376,12 @@ async function init() {
           const blob = await resp.blob();
           archivo = new File([blob], "tapa.jpg", { type: blob.type || "image/jpeg" });
         }
+        // Se achica en el navegador antes de subirla: lo que entra al Storage
+        // ya es del tamaño en que se va a ver, no la foto cruda del celular.
+        archivo = await achicarFoto(archivo);
         const ext = (archivo.name.split(".").pop() || "jpg").toLowerCase();
         const path = `${user.id}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
-        const { error } = await sb.storage.from("records").upload(path, archivo);
+        const { error } = await sb.storage.from("records").upload(path, archivo, CACHE_FOTOS);
         if (error) throw error;
         photos.push(sb.storage.from("records").getPublicUrl(path).data.publicUrl);
       }

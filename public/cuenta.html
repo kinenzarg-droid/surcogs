@@ -20,7 +20,7 @@
 <div class="wrap" id="main"></div>
 
 <script type="module">
-import { sb, renderHeader, getUser, getPerfil, fmtPrecio, fotoPrincipal, toast, zonaSelector, authHeaders } from "/js/app.js?v=3";
+import { sb, renderHeader, getUser, getPerfil, fmtPrecio, fotoPrincipal, toast, zonaSelector, authHeaders , achicarFoto, CACHE_FOTOS } from "/js/app.js?v=3";
 
 // Declarada como funcion y no como const: asi esta disponible apenas arranca
 // el script, sin importar en que orden corran las cosas.
@@ -537,9 +537,10 @@ async function renderPanel(user, perfil) {
     const f = e.target.files[0];
     if (!f) return;
     if (f.size > 3 * 1024 * 1024) return toast("La foto es muy pesada (máx. 3 MB)", true);
-    const ext = (f.name.split(".").pop() || "jpg").toLowerCase();
+    const chica = await achicarFoto(f, 500);
+    const ext = (chica.name.split(".").pop() || "jpg").toLowerCase();
     const path = `avatars/${user.id}-${Date.now()}.${ext}`;
-    const { error: e1 } = await sb.storage.from("records").upload(path, f);
+    const { error: e1 } = await sb.storage.from("records").upload(path, chica, CACHE_FOTOS);
     if (e1) return toast(e1.message, true);
     const { data: pu } = sb.storage.from("records").getPublicUrl(path);
     const { error: e2 } = await sb.from("profiles").update({ avatar_url: pu.publicUrl }).eq("id", user.id);
