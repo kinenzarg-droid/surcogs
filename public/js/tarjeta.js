@@ -39,7 +39,9 @@ export function tarjeta(d, i) {
   return `
     <div class="gcard ${vendido ? "vendido" : ""}">
       <a class="gtapa" href="${urlDisco(d)}">
-        <img class="gcov" src="${fotoPrincipal(d)}" alt="${esc(d.artist)} – ${esc(d.title)}" loading="lazy">
+        <img class="gcov" src="${fotoPrincipal(d, 500)}" alt="${esc(d.artist)} – ${esc(d.title)}"
+          width="500" height="500" loading="${i < 4 ? "eager" : "lazy"}" decoding="async"
+          onerror="this.onerror=null;this.src='${fotoPrincipal(d)}'">
         ${vendido ? `<span class="gfaja">Vendido</span>` : ""}
       </a>
       ${vendido ? "" : `<span class="gbadge ${d.status}">${d.status.charAt(0).toUpperCase() + d.status.slice(1)}</span>`}

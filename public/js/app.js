@@ -597,12 +597,49 @@ export function urlDisco(d) {
   return `/disco/${nombre || "disco"}-${String(d.id).slice(0, 8)}`;
 }
 
-export function fotoPrincipal(rec) {
-  return rec.photos && rec.photos.length
-    ? rec.photos[0]
-    : "data:image/svg+xml," + encodeURIComponent(
-        `<svg xmlns='http://www.w3.org/2000/svg' width='400' height='400'><rect width='400' height='400' fill='#1a1a1a'/><circle cx='200' cy='200' r='140' fill='#111' stroke='#333' stroke-width='2'/><circle cx='200' cy='200' r='45' fill='#222'/><circle cx='200' cy='200' r='6' fill='#0a0a0a'/></svg>`);
+// Las tapas que suben los vendedores van a parar al Storage de Supabase, que
+// las sirve enteras y con "no-cache": cada vez que alguien abre el catalogo se
+// bajan las 20 de nuevo, a tamaño completo. Por eso la portada tardaba cuatro
+// segundos en mostrar la primera imagen.
+//
+// Pidiendolas por /render/image/ llegan ya achicadas al tamaño en que se ven y
+// con una hora de cache. Si algun dia esa ruta deja de estar, el <img> vuelve
+// sola a la original con su onerror: la tapa se ve igual, mas pesada.
+export function fotoAncho(url, ancho) {
+  if (!url || !ancho) return url;
+  if (!url.includes("/storage/v1/object/public/")) return url;   // Discogs y demas, como vienen
+  return url.replace("/storage/v1/object/public/", "/storage/v1/render/image/public/")
+    + (url.includes("?") ? "&" : "?") + `width=${ancho}&resize=contain&quality=75`;
 }
+
+export function fotoPrincipal(rec, ancho) {
+  const u = rec.photos && rec.photos.length ? rec.photos[0] : null;
+  if (u) return fotoAncho(u, ancho);
+  return "data:image/svg+xml," + encodeURIComponent(
+    `<svg xmlns='http://www.w3.org/2000/svg' width='400' height='400'><rect width='400' height='400' fill='#1a1a1a'/><circle cx='200' cy='200' r='140' fill='#111' stroke='#333' stroke-width='2'/><circle cx='200' cy='200' r='45' fill='#222'/><circle cx='200' cy='200' r='6' fill='#0a0a0a'/></svg>`);
+}
+
+// Achica una foto en el navegador antes de subirla. Un celular saca fotos de
+// 4000px y 4 MB; en la tarjeta se ven a 400. Subir el original es castigar a
+// todos los que despues abren el catalogo.
+export async function achicarFoto(file, lado = 1400, calidad = 0.82) {
+  try {
+    if (!file.type.startsWith("image/")) return file;
+    const bitmap = await createImageBitmap(file);
+    if (bitmap.width <= lado && bitmap.height <= lado && file.size < 400 * 1024) return file;
+    const escala = Math.min(1, lado / Math.max(bitmap.width, bitmap.height));
+    const lienzo = document.createElement("canvas");
+    lienzo.width = Math.round(bitmap.width * escala);
+    lienzo.height = Math.round(bitmap.height * escala);
+    lienzo.getContext("2d").drawImage(bitmap, 0, 0, lienzo.width, lienzo.height);
+    const blob = await new Promise((r) => lienzo.toBlob(r, "image/jpeg", calidad));
+    if (!blob || blob.size >= file.size) return file;   // si no mejora, la original
+    return new File([blob], file.name.replace(/\.\w+$/, "") + ".jpg", { type: "image/jpeg" });
+  } catch (_) { return file; }   // ante cualquier duda, sube la original
+}
+
+// Un año de cache. Las tapas nunca cambian: cada archivo tiene nombre propio.
+export const CACHE_FOTOS = { cacheControl: "31536000", upsert: false };
 
 // Reputación: promedio de estrellas de un vendedor, estilo "★★★★★ 100.0%, 79 valoraciones"
 export async function reputacionHTML(sellerId) {
