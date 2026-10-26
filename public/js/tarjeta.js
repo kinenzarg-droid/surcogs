@@ -5,7 +5,7 @@
 // de lo mismo destinadas a separarse: ya nos habia pasado con la ficha
 // del disco. Estan aca para tocarlas una sola vez.
 
-import { fotoPrincipal, fmtPrecio, youtubeId, urlDisco, esFav, toggleFav, toast, waConsulta } from "/js/app.js?v=3";
+import { fotoPrincipal, fmtPrecio, youtubeId, urlDisco, esFav, toggleFav, toast, waConsulta, registrarConsulta } from "/js/app.js?v=3";
 
 export const esc = (s) => String(s ?? "").replace(/</g, "&lt;").replace(/"/g, "&quot;");
 const WA_ICON = '<svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14" style="pointer-events:none;flex:none"><path d="M12 2a10 10 0 0 0-8.6 15l-1.3 4.7 4.8-1.3A10 10 0 1 0 12 2zm5.8 14.2c-.2.7-1.4 1.3-2 1.4-.5.1-1.1.1-1.8-.1-.4-.1-1-.3-1.7-.6-3-1.3-4.9-4.3-5-4.5-.2-.2-1.2-1.6-1.2-3s.7-2.1 1-2.4c.2-.3.5-.4.7-.4h.5c.2 0 .4 0 .6.5l.8 2c.1.2.1.4 0 .5l-.3.5-.4.4c-.1.1-.3.3-.1.6.2.3.8 1.3 1.7 2.1 1.2 1 2.1 1.4 2.4 1.5.3.1.4.1.6-.1l.9-1c.2-.2.4-.2.6-.1l2 .9c.2.1.4.2.4.3.1.2.1.7-.1 1.4z"/></svg>';
@@ -285,6 +285,19 @@ function activarFavoritos() {
   });
 }
 
+// El clic al boton de WhatsApp se anota una sola vez para toda la pantalla,
+// igual que el corazon. Ojo: no se toca el evento, asi que el link abre
+// WhatsApp como siempre, pase lo que pase con el registro.
+let consultasPuestas = false;
+function activarConsultas() {
+  if (consultasPuestas) return;
+  consultasPuestas = true;
+  document.addEventListener("click", (ev) => {
+    const b = ev.target.closest("[data-wa]");
+    if (b) registrarConsulta(b.dataset.wa);
+  });
+}
+
 // Enganchar los botones de tema despues de dibujar. Cada boton guarda la
 // posicion del disco dentro de la lista que se dibujo, asi que hay que
 // pasarle esa misma lista y en el mismo orden.
@@ -292,6 +305,7 @@ export function activarTracks(lista, raiz = document) {
   montarPlayer();
   activarFlechas();
   activarFavoritos();
+  activarConsultas();
   raiz.querySelectorAll("[data-play]").forEach((b) => {
     b.onclick = () => {
       const [di, ti] = b.dataset.play.split(":").map(Number);

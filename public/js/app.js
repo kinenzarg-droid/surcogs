@@ -238,13 +238,48 @@ export async function sincronizarFavoritos(user) {
   return favoritos;
 }
 
-// El numerito del corazon en el header.
+// El numerito naranja del corazon avisa lo que guardaste y todavia no fuiste a
+// ver, como la campanita. Una vez que abriste la lista desaparece y queda el
+// corazon solo: un numero fijo ahi arriba no avisa nada, solo hace ruido.
+const FAV_VISTOS = "sc_favs_vistos";
+const leerVistos = () => {
+  try { return new Set(JSON.parse(localStorage.getItem(FAV_VISTOS) || "[]")); }
+  catch (_) { return new Set(); }
+};
+
+export function favsSinVer() {
+  const vistos = leerVistos();
+  return [...favoritos].filter((id) => !vistos.has(id)).length;
+}
+
+// Se llama cuando la persona efectivamente mira su lista de favoritos.
+export function marcarFavsVistos() {
+  localStorage.setItem(FAV_VISTOS, JSON.stringify([...favoritos]));
+  refrescarFavoritos();
+}
+
 export function refrescarFavoritos() {
   const el = document.getElementById("fav-hdr-n");
   if (!el) return;
-  const n = favoritos.size;
+  const n = favsSinVer();
+  if (!n) { el.style.display = "none"; return; }
+  el.style.display = "";
   el.textContent = n > 9 ? "9+" : n;
-  el.style.background = n ? "var(--acc)" : "#555";
+  el.style.background = "var(--acc)";
+}
+
+// --- Consultas por WhatsApp ---------------------------------------------
+// Cada vez que alguien toca el boton de WhatsApp queda registrado. Ahora que
+// el trato se cierra por afuera, este clic es la unica senal de intencion de
+// compra que ve SURCOGS: es la metrica que reemplaza a las ventas.
+//
+// No se espera la respuesta a proposito: el boton tiene que abrir WhatsApp al
+// toque, y si el registro falla no pasa nada. Es un dato, no una transaccion.
+export function registrarConsulta(record_id) {
+  if (!record_id) return;
+  try {
+    sb.from("consultas").insert({ record_id }).then(() => {}, () => {});
+  } catch (_) { /* da igual: nunca frena el clic */ }
 }
 
 export function hace(fecha) {
