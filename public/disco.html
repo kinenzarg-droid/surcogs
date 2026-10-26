@@ -30,7 +30,7 @@
 </div>
 
 <script type="module">
-import { sb, renderHeader, getUser, fmtPrecio, fotoPrincipal, youtubeId, toast, reputacionHTML, authHeaders, esFav, toggleFav, waConsulta, ADMIN_ID } from "/js/app.js?v=3";
+import { sb, renderHeader, getUser, fmtPrecio, fotoPrincipal, youtubeId, toast, reputacionHTML, authHeaders, esFav, toggleFav, waConsulta, registrarConsulta, ADMIN_ID } from "/js/app.js?v=3";
 
   // Los estados se guardan en minuscula; en pantalla van con mayuscula.
   const cap = (s) => (s || "").charAt(0).toUpperCase() + (s || "").slice(1);
@@ -219,7 +219,8 @@ async function cargar() {
         </span>
         <span class="vend-ir" id="vend-ir">Ver su colección →</span>
       </a>
-      ${disponible ? `<a class="vend-wa" href="${waConsulta(d, p)}" target="_blank" rel="noopener">
+      ${disponible ? `<a class="vend-wa" href="${waConsulta(d, p)}" target="_blank" rel="noopener"
+        data-wa="${d.id}">
         ${WA_ICON} Escribirle a ${esc(p?.name || "el vendedor")}</a>
         <p class="vend-nota">El trato y el pago los arreglan entre ustedes. SURCOGS no cobra comisión
         ni participa de la operación.</p>` : ""}
@@ -253,6 +254,10 @@ async function cargar() {
   const box = document.getElementById("compra");
   box.innerHTML = disponible ? "" : `<button class="btn" disabled>${cap(d.status)}</button>`;
   activarFav(d);
+  // El clic al boton de WhatsApp queda anotado: es la senal de intencion de
+  // compra que reemplaza a las ventas ahora que el trato se cierra por afuera.
+  const wa = cont.querySelector("[data-wa]");
+  if (wa) wa.addEventListener("click", () => registrarConsulta(d.id));
 
   // Players por tema: YouTube y SoundCloud embebidos; Bandcamp u otros abren aparte
   cont.querySelectorAll(".btn-play").forEach(b => b.onclick = () => {
