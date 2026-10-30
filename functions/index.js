@@ -51,13 +51,20 @@ export async function onRequestGet({ request, env, next }) {
     "</section>";
 
   // Quienes somos, para el buscador y para los asistentes.
+  // Google corrige "surcogs" por "surcos" y muestra otra cosa. Para que
+  // aprenda que es una marca y no un error de tipeo hay que repetirle el
+  // nombre junto a su categoria y enlazarlo con los perfiles que si reconoce.
   const quienes = {
     "@context": "https://schema.org",
     "@type": "OnlineStore",
     name: "SURCOGS",
+    alternateName: ["Surcogs", "SURCOGS Vinilos", "surcogs.com.ar"],
     url: "https://surcogs.com.ar",
-    description: "Mercado entre coleccionistas para comprar y vender vinilos de " +
-      "musica electronica en Argentina, con audio de cada tema.",
+    slogan: "Escuchalo entero antes de comprarlo",
+    description: "SURCOGS es el mercado de vinilos de techno y musica " +
+      "electronica en Argentina: cada disco se puede escuchar entero antes " +
+      "de comprarlo y no se cobra comision.",
+    knowsAbout: ["Vinilos", "Techno", "Musica electronica", "Discos de vinilo"],
     areaServed: { "@type": "Country", name: "Argentina" },
     currenciesAccepted: "ARS",
     sameAs: ["https://www.instagram.com/surcogs"],
