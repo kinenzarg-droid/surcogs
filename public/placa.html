@@ -102,7 +102,7 @@ if (!user) {
 
 async function cargar() {
   const { data, error } = await sb.from("records")
-    .select("id,artist,title,label,year,format,condition_media,price,photos,status")
+    .select("id,artist,title,label,year,format,condition_media,price,photos,status,seller_id,profiles!records_seller_id_fkey(name)")
     .eq("status", "disponible")
     .order("created_at", { ascending: false });
   if (error) { toast(error.message, true); return; }
@@ -161,6 +161,7 @@ function textoDelPosteo(d) {
     + (d.label ? `${d.label}${d.year ? " · " + d.year : ""}\n` : "")
     + [d.format, d.condition_media ? "Estado " + d.condition_media : ""]
         .filter(Boolean).join(" · ") + "\n"
+    + ((d.profiles && d.profiles.name) ? `Vende ${d.profiles.name}\n` : "")
     + `\n${fmtPrecio(d.price)}\n\n`
     + `Disponible en surcogs.com.ar`;
 }
@@ -177,6 +178,27 @@ function escribirAjustado(txt, x, y, anchoMax, tamInicial, peso, color) {
   ctx.fillStyle = color;
   ctx.fillText(txt, x, y);
   return tam;
+}
+
+// Una linea con dos colores, centrada como si fuera una sola. Canvas no sabe
+// mezclar estilos en un fillText, asi que se mide cada parte y se dibujan
+// corridas: sirve para "Vende  Tarab Store", el rotulo apagado y el nombre no.
+function lineaDosTonos(rotulo, valor, x, y, tamRotulo, tamValor, colorRotulo, colorValor) {
+  const fuente = (t, p) => `${p} ${t}px -apple-system, "Segoe UI", Helvetica, Arial, sans-serif`;
+  ctx.textAlign = "left";
+  ctx.font = fuente(tamRotulo, 400);
+  const anchoRotulo = ctx.measureText(rotulo).width;
+  ctx.font = fuente(tamValor, 600);
+  const anchoValor = ctx.measureText(valor).width;
+  let px = x - (anchoRotulo + anchoValor) / 2;
+  ctx.font = fuente(tamRotulo, 400);
+  ctx.fillStyle = colorRotulo;
+  ctx.fillText(rotulo, px, y);
+  px += anchoRotulo;
+  ctx.font = fuente(tamValor, 600);
+  ctx.fillStyle = colorValor;
+  ctx.fillText(valor, px, y);
+  ctx.textAlign = "center";
 }
 
 async function dibujar(d) {
@@ -241,9 +263,18 @@ async function dibujar(d) {
     ctx.fillText(ficha, centro, y);
   }
 
+  // Quien vende. Va en la placa por dos motivos: le da credito al vendedor
+  // —que es lo que lo hace compartirla— y le dice al que mira que atras de
+  // este disco hay una persona, no un deposito.
+  const vendedor = (d.profiles && d.profiles.name) ? d.profiles.name : "";
+  if (vendedor) {
+    y += 42;
+    lineaDosTonos("Vende  ", vendedor, centro, y, 25, 29, "#6f6862", "#c9c3ba");
+  }
+
   // Un solo precio: el mismo que figura en la web. Si en el posteo aparece uno
   // y en la web otro, se cae la confianza.
-  y += 68;
+  y += vendedor ? 62 : 68;
   ctx.font = `600 58px -apple-system, "Segoe UI", Helvetica, Arial, sans-serif`;
   ctx.fillStyle = "#ff5500";
   ctx.fillText(fmtPrecio(d.price), centro, y);
