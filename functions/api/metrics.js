@@ -25,10 +25,11 @@ export async function onRequestGet({ request, env }) {
     return json({ error: "Solo el administrador puede ver las métricas" }, 403);
   }
 
-  const [consultas, records, profiles] = await Promise.all([
+  const [consultas, records, profiles, busquedas] = await Promise.all([
     traer(SUPA, KEY, "consultas?select=record_id,created_at"),
     traer(SUPA, KEY, "records?select=id,artist,title,status,created_at,seller_id,favs,consultas"),
     traer(SUPA, KEY, "profiles?select=id,created_at"),
+    traer(SUPA, KEY, "busquedas?select=texto,email,created_at,avisado_at&order=created_at.desc"),
   ]);
 
   const DIA = 86400000;
@@ -76,7 +77,29 @@ export async function onRequestGet({ request, env }) {
     .filter((r) => (r.favs || 0) > 0 && !(r.consultas || 0) && r.status === "disponible")
     .sort((a, b) => (b.favs || 0) - (a.favs || 0)).slice(0, 6).map(corto);
 
+  // Lo que la gente busca y no encontramos. Es la demanda que el catalogo
+  // todavia no sabe atender, y la lista de que conviene salir a conseguir.
+  const porTexto = {};
+  busquedas.forEach((b) => {
+    const k = (b.texto || "").trim().toLowerCase();
+    if (!k) return;
+    if (!porTexto[k]) porTexto[k] = { texto: b.texto.trim(), n: 0, ultima: b.created_at };
+    porTexto[k].n++;
+    if (b.created_at > porTexto[k].ultima) porTexto[k].ultima = b.created_at;
+  });
+  const pedidos = Object.values(porTexto)
+    .sort((a, b) => b.n - a.n || (a.ultima < b.ultima ? 1 : -1)).slice(0, 12);
+
   return json({
+    buscados: {
+      total: busquedas.length,
+      nuevas30: busquedas.filter((b) => b.created_at >= hace30).length,
+      sinAvisar: busquedas.filter((b) => !b.avisado_at).length,
+      pedidos,
+      ultimas: busquedas.slice(0, 10).map((b) => ({
+        texto: b.texto, email: b.email, created_at: b.created_at, avisado: !!b.avisado_at,
+      })),
+    },
     norte: {
       semana: estaSemana,
       semanaPrevia,
