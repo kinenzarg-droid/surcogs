@@ -575,15 +575,23 @@ if (avisoBox) {
     if (texto.length < 2) return toast("Escribí qué estás buscando", true);
     const boton = ev.target.querySelector("button");
     boton.disabled = true;
-    const { error } = await sb.from("busquedas").insert({
-      texto, email, user_id: usuario ? usuario.id : null,
-    });
+    // Va por /api/pedido y no directo a la base: ahí se valida lo que entra y
+    // de paso sale el mail de aviso, que es lo que hace que esto sirva.
+    let ok = false;
+    try {
+      const r = await fetch("/api/pedido", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ texto, email, user_id: usuario ? usuario.id : null }),
+      });
+      ok = r.ok;
+    } catch (_) { ok = false; }
     boton.disabled = false;
-    if (error) return toast("No se pudo guardar. Probá de nuevo.", true);
+    if (!ok) return toast("No se pudo guardar. Probá de nuevo.", true);
     document.getElementById("aviso-f").style.display = "none";
-    const ok = document.getElementById("aviso-ok");
-    ok.style.display = "block";
-    ok.textContent = "Listo. Te escribimos a " + email + " apenas entre algo de \u00ab"
+    const cartel = document.getElementById("aviso-ok");
+    cartel.style.display = "block";
+    cartel.textContent = "Listo. Te escribimos a " + email + " apenas entre algo de \u00ab"
       + texto + "\u00bb.";
   };
 }
