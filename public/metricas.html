@@ -149,6 +149,33 @@ async function cargar() {
       </div>
     </div>
 
+    <h2 class="m-h">Lo que buscan y no encontramos</h2>
+    <div class="m-grid">
+      <div class="m-card">
+        <div class="m-lbl">🔎 Pedidos</div>
+        <div class="m-num">${m.buscados ? m.buscados.total : 0}</div>
+        <div class="m-sub">${m.buscados ? m.buscados.nuevas30 : 0} en los últimos 30 días ·
+          ${m.buscados ? m.buscados.sinAvisar : 0} sin avisar todavía.<br>
+          Cada uno es alguien que entró, no encontró lo que buscaba y dejó dicho qué era.</div>
+      </div>
+      <div class="m-card">
+        <div class="m-lbl">📌 Más pedidos</div>
+        ${m.buscados && m.buscados.pedidos.length
+          ? `<ul class="m-lista">${m.buscados.pedidos.map((p) => `<li>
+              <span class="d">${esc(p.texto)}</span>
+              <span class="n">${p.n}</span></li>`).join("")}</ul>`
+          : `<p class="m-sub">Todavía nadie dejó un pedido.</p>`}
+      </div>
+      <div class="m-card">
+        <div class="m-lbl">✉️ A quién avisarle</div>
+        ${m.buscados && m.buscados.ultimas.length
+          ? `<ul class="m-lista">${m.buscados.ultimas.map((u) => `<li>
+              <span class="d">${esc(u.texto)}<br><span class="n">${esc(u.email)}</span></span>
+              <span class="n">${u.avisado ? "avisado" : "pendiente"}</span></li>`).join("")}</ul>`
+          : `<p class="m-sub">Nada pendiente.</p>`}
+      </div>
+    </div>
+
     <h2 class="m-h">Qué quiere la gente</h2>
     <div class="m-grid">
       <div class="m-card">

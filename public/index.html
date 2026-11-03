@@ -137,6 +137,17 @@ a:hover .hw-chip{background:#fff;box-shadow:1px 1px 0 rgba(0,0,0,.15)}
 .hw-own:hover{background:#f0f0f0;color:#111}
 .hw-own.del{color:#a33}
 /* carrito estilo Bandcamp: panel derecho (desktop) / bandeja inferior (mobile) */
+.aviso-box{border:1px solid var(--line,#e0dbd3);border-radius:10px;padding:18px 20px;margin:26px 0 0;
+  background:#fff}
+.aviso-t{font-size:15px;font-weight:700;color:#16130f}
+.aviso-s{font-size:13px;color:var(--dim,#6b6560);margin:5px 0 12px;line-height:1.6}
+.aviso-f{display:flex;gap:8px;flex-wrap:wrap}
+.aviso-f input{flex:1;min-width:170px;border:1px solid var(--line,#e0dbd3);border-radius:7px;
+  padding:10px 12px;font:inherit;font-size:14px;background:#fff;color:#16130f}
+.aviso-f input:focus{outline:0;border-color:#8a827a}
+.aviso-f .btn{flex:none}
+.aviso-ok{font-size:13.5px;color:#1e7a44;margin:10px 0 0;line-height:1.6}
+@media (max-width:520px){.aviso-f .btn{width:100%}}
 @keyframes cartpulse{0%{box-shadow:0 0 0 0 rgba(46,168,96,.75)}100%{box-shadow:0 0 0 16px rgba(46,168,96,0)}}
 .cartp{position:fixed;right:12px;top:215px;width:240px;background:#fff;color:#1d1d1d;border:1px solid #ddd;
   z-index:65;display:none;box-shadow:0 4px 22px rgba(0,0,0,.45);border-radius:4px;
@@ -239,6 +250,20 @@ a:hover .hw-chip{background:#fff;box-shadow:1px 1px 0 rgba(0,0,0,.15)}
     <p id="empty" class="sub" style="display:none;padding:20px 0">
       <span id="empty-txt">No hay discos que coincidan. Probá otra búsqueda o <a href="/publicar.html" style="color:var(--acc)">publicá el tuyo</a>.</span>
     </p>
+
+    <!-- El que busca algo y no lo encuentra se va y no vuelve. Acá al menos
+         deja dicho qué buscaba: es lo que después hay que salir a conseguir. -->
+    <div class="aviso-box" id="aviso-box">
+      <div class="aviso-t">¿Buscás algo que no está?</div>
+      <p class="aviso-s" id="aviso-s">Decinos qué disco, artista o sello estás buscando y te escribimos
+        cuando entre al catálogo.</p>
+      <form class="aviso-f" id="aviso-f">
+        <input id="aviso-q" placeholder="Jeroen Search, Mord, un disco…" maxlength="120" required>
+        <input id="aviso-m" type="email" placeholder="tu@email.com" maxlength="120" required>
+        <button class="btn" type="submit">Avisame</button>
+      </form>
+      <p class="aviso-ok" id="aviso-ok" style="display:none"></p>
+    </div>
     <p class="hw-footer">
       <strong>Grading Goldmine:</strong> M sellado o nunca reproducido · NM casi perfecto · VG+ uso leve · VG uso evidente, ruido leve · G+ / G ruido considerable.<br>
       Sin comisiones: el precio que ves es el que cobra el vendedor · Precios en pesos argentinos ·
@@ -334,6 +359,9 @@ async function cargar() {
   // Los favoritos guardados sin cuenta se suben ahora y se juntan con los que
   // ya tenia esa cuenta. Si falla, se sigue con los del navegador y listo.
   if (u) { try { await sincronizarFavoritos(u); } catch (_) {} }
+  // Si ya está adentro, no tiene por qué volver a escribir su mail.
+  const mail = document.getElementById("aviso-m");
+  if (u && mail && !mail.value) mail.value = u.email || "";
   discos = data || [];
   pintarSidebar();
   pintar();
@@ -439,6 +467,7 @@ async function pintar(mantenerScroll) {
   lista.className = "ggrid";
   lista.innerHTML = itemsPagina.map((d, i) => tarjeta(d, i)).join("");
   document.getElementById("empty").style.display = out.length ? "none" : "block";
+  acomodarAviso(!out.length);
   document.getElementById("empty-txt").innerHTML = filtro.fav
     ? "Todavía no guardaste ningún disco. Tocá el corazón de la tapa y te lo dejo acá."
     : `No hay discos que coincidan. Probá otra búsqueda o <a href="/publicar.html" style="color:var(--acc)">publicá el tuyo</a>.`;
@@ -511,6 +540,52 @@ async function pintar(mantenerScroll) {
     (tr || []).forEach(r => tracksCache.set(r.id, r.tracks || []));
     pintar(true);
   }
+}
+
+/* ===== "Avisame cuando entre" =====
+   El que busca algo y no lo encuentra es la demanda que hoy se pierde entera:
+   se va sin dejar rastro y no sabemos ni que queria. Acá deja dicho qué busca
+   y dónde avisarle. Para SURCOGS eso es dos cosas a la vez: una visita que
+   vuelve, y la lista de qué conviene conseguir. */
+const avisoBox = document.getElementById("aviso-box");
+const avisoQ = document.getElementById("aviso-q");
+
+// Si la busqueda no trajo nada, el bloque toma ese texto: la persona ya dijo
+// qué quería, no hay que pedírselo de nuevo.
+function acomodarAviso(sinResultados) {
+  if (!avisoBox) return;
+  const sub = document.getElementById("aviso-s");
+  if (sinResultados && filtro.q) {
+    avisoBox.classList.add("vacio");
+    sub.textContent = "No tenemos nada de \u00ab" + filtro.q + "\u00bb todav\u00eda. "
+      + "Dejanos tu mail y te escribimos apenas entre.";
+    if (!avisoQ.value) avisoQ.value = filtro.q;
+  } else {
+    avisoBox.classList.remove("vacio");
+    sub.textContent = "Decinos qu\u00e9 disco, artista o sello est\u00e1s buscando y te escribimos "
+      + "cuando entre al cat\u00e1logo.";
+  }
+}
+
+if (avisoBox) {
+  document.getElementById("aviso-f").onsubmit = async (ev) => {
+    ev.preventDefault();
+    const texto = avisoQ.value.trim();
+    const email = document.getElementById("aviso-m").value.trim();
+    if (texto.length < 2) return toast("Escribí qué estás buscando", true);
+    const boton = ev.target.querySelector("button");
+    boton.disabled = true;
+    const { error } = await sb.from("busquedas").insert({
+      texto, email, user_id: usuario ? usuario.id : null,
+    });
+    boton.disabled = false;
+    if (error) return toast("No se pudo guardar. Probá de nuevo.", true);
+    document.getElementById("aviso-f").style.display = "none";
+    const ok = document.getElementById("aviso-ok");
+    ok.style.display = "block";
+    ok.textContent = "Listo. Te escribimos a " + email + " apenas entre algo de \u00ab"
+      + texto + "\u00bb.";
+  };
 }
 
 // El corazon lo maneja tarjeta.js para todo el sitio. Acá solo hace falta
