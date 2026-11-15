@@ -406,8 +406,8 @@ async function renderPanel(user, perfil) {
       leer: () => ({ direccion: document.getElementById("q-dir").value.trim() || null,
                      cp: document.getElementById("q-cp").value.trim() || null }) },
 
-    { k: "alias", tit: "Dónde cobrás", ico: "💰", privado: true,
-      por: "Sin alias no te podemos transferir lo que vendas. Solo lo vemos nosotros.",
+    { k: "alias", tit: "Tu alias para cobrar", ico: "💰", privado: true,
+      por: "Para tenerlo a mano cuando arregles un pago por transferencia. No lo ve nadie más que vos.",
       lleno: (p) => !!(p.alias || "").trim(),
       resumen: (p) => p.alias + (p.titular ? " · " + p.titular : ""),
       form: (p) => `<input id="q-alias" placeholder="Tu alias o CBU" value="${esc(p.alias)}" style="flex:1;min-width:170px">
