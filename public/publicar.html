@@ -38,21 +38,29 @@ async function init() {
   const perfil = await getPerfil(user.id);
   if (!perfil) { location.href = "/cuenta.html"; return; }
 
-  // Requisito para vender: tener el alias cargado, para poder transferirle
-  if (!perfil.alias) {
+  // ¿Modo edición?
+  const editId = new URLSearchParams(location.search).get("edit");
+
+  // Requisito para publicar: el WhatsApp. Antes se pedía el alias, de cuando
+  // SURCOGS cobraba y transfería; eso ya no pasa y el alias dejó de servir
+  // para nada. Lo que sí hace falta es el número: sin eso, el botón de
+  // consulta de sus discos cae en el teléfono de SURCOGS y no en el suyo.
+  //
+  // Y solo se pide al publicar uno nuevo. Al que viene a editar —o a marcar
+  // un disco como vendido— no se le corta el paso: eso lo tiene que poder
+  // hacer siempre.
+  if (!editId && !(perfil.whatsapp || "").trim()) {
     main.innerHTML = `
       <h1>Un paso antes de publicar</h1>
-      <p class="sub">Cargá el alias donde querés cobrar tus ventas. Es una sola vez y tarda diez segundos.</p>
+      <p class="sub">Cargá tu WhatsApp. Es una sola vez y tarda diez segundos.</p>
       <div class="panel">
         <strong>¿Por qué?</strong>
-        <p class="hint" style="margin:6px 0 14px">Este es el precio que va a ver el comprador y el que vas a cobrar vos: SURCOGS no cobra comisión. El que quiera el disco te escribe por WhatsApp y arreglan el pago y la entrega entre ustedes. Cargá tu número en Mi cuenta para que el botón te llegue a vos.</p>
-        <a class="btn" href="/cuenta.html">Cargar mi alias</a>
+        <p class="hint" style="margin:6px 0 14px">SURCOGS no cobra comisión y no participa de la venta: el que quiere tu disco toca un botón y te escribe directo por WhatsApp. Sin tu número cargado, esa consulta no te llega.</p>
+        <a class="btn" href="/cuenta.html">Cargar mi WhatsApp</a>
       </div>`;
     return;
   }
 
-  // ¿Modo edición?
-  const editId = new URLSearchParams(location.search).get("edit");
   let editRec = null;
   if (editId) {
     const { data } = await sb.from("records").select("*").eq("id", editId).maybeSingle();
